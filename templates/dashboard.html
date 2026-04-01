@@ -176,98 +176,108 @@
 function deleteProfile() {
     if (!confirm('Delete {{ chart.name }}? This cannot be undone.')) return;
     fetch('/profiles/{{ profile_id }}', {method: 'DELETE'})
-        .then(r => r.json())
         .then(d => { window.location.href = '/dashboard'; })
         .catch(e => alert('Error: ' + e));
 }
 </script>
 <script>
-// North Indian Chart SVG Renderer — Enhanced
+// North Indian Chart — Professional Design
 (function() {
-    const size = 360;
-    const pad = 20;
+    const W = 440, H = 440, PAD = 24, C = W/2;
     const asc = {{ asc_json | safe }};
     const planets = {{ planets_json | safe }};
 
-    // North Indian house center positions
+    // House centers (North Indian diamond layout)
     const hc = {
-        1:  {x: 180, y: 90},
-        2:  {x: 90,  y: 45},
-        3:  {x: 45,  y: 90},
-        4:  {x: 90,  y: 180},
-        5:  {x: 45,  y: 270},
-        6:  {x: 90,  y: 315},
-        7:  {x: 180, y: 270},
-        8:  {x: 270, y: 315},
-        9:  {x: 315, y: 270},
-        10: {x: 270, y: 180},
-        11: {x: 315, y: 90},
-        12: {x: 270, y: 45},
+        1:  {x:220, y:100}, 2: {x:110, y:50},  3: {x:50,  y:100},
+        4:  {x:110, y:220}, 5: {x:50,  y:340}, 6: {x:110, y:390},
+        7:  {x:220, y:340}, 8: {x:330, y:390}, 9: {x:390, y:340},
+        10: {x:330, y:220}, 11:{x:390, y:100}, 12:{x:330, y:50},
     };
 
-    const signNames = ['Ar','Ta','Ge','Cn','Le','Vi','Li','Sc','Sg','Cp','Aq','Pi'];
-    const signColors = ['#e94560','#4ecca3','#4a9eff','#6c5ce7','#f0a500','#888','#e94560','#4ecca3','#4a9eff','#6c5ce7','#f0a500','#888'];
-    const planetAbbr = {Sun:'Su',Moon:'Mo',Mars:'Ma',Mercury:'Me',Jupiter:'Ju',Venus:'Ve',Saturn:'Sa',Rahu:'Ra',Ketu:'Ke'};
+    const signFull = ['Aries','Taurus','Gemini','Cancer','Leo','Virgo','Libra','Scorpio','Sagittarius','Capricorn','Aquarius','Pisces'];
+    const signShort = ['Ar','Ta','Ge','Cn','Le','Vi','Li','Sc','Sg','Cp','Aq','Pi'];
+
+    // Element colors
+    const elemColor = ['#ef4444','#22c55e','#3b82f6','#a855f7']; // fire, earth, air, water
+    const elemIdx = [0,1,2,3,0,1,2,3,0,1,2,3]; // Aries=fire, Taurus=earth, etc.
+
+    // Planet display
+    const pAbbr = {Sun:'Su',Moon:'Mo',Mars:'Ma',Mercury:'Me',Jupiter:'Ju',Venus:'Ve',Saturn:'Sa',Rahu:'Ra',Ketu:'Ke'};
+    const pColors = {Sun:'#f59e0b',Moon:'#e2e8f0',Mars:'#ef4444',Mercury:'#22c55e',Jupiter:'#f59e0b',Venus:'#ec4899',Saturn:'#6366f1',Rahu:'#8b5cf6',Ketu:'#8b5cf6'};
 
     const ascIdx = asc.rashi_index;
     function getSign(h) { return (ascIdx + h - 1) % 12; }
 
-    // SVG
-    let svg = `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" style="max-width:100%; border-radius:8px">`;
+    let s = '';
+    // SVG with defs for gradients
+    s += `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="max-width:100%;border-radius:12px" xmlns="http://www.w3.org/2000/svg">`;
+    s += `<defs>
+        <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#1e1b4b"/>
+            <stop offset="100%" stop-color="#0f172a"/>
+        </linearGradient>
+        <filter id="glow"><feGaussianBlur stdDeviation="2" result="g"/><feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    </defs>`;
 
     // Background
-    svg += `<rect x="0" y="0" width="${size}" height="${size}" fill="#1a1a2e" rx="8"/>`;
+    s += `<rect width="${W}" height="${H}" fill="url(#bg)" rx="12"/>`;
 
-    // Outer border
-    svg += `<rect x="${pad}" y="${pad}" width="${size-pad*2}" height="${size-pad*2}" fill="none" stroke="#f0a500" stroke-width="2"/>`;
+    // Outer frame — thick gold border
+    s += `<rect x="${PAD}" y="${PAD}" width="${W-PAD*2}" height="${H-PAD*2}" fill="none" stroke="#d4a017" stroke-width="2.5" rx="4"/>`;
 
-    // Cross lines
-    const c = size/2;
-    svg += `<line x1="${c}" y1="${pad}" x2="${c}" y2="${size-pad}" stroke="#2d2d4a" stroke-width="1"/>`;
-    svg += `<line x1="${pad}" y1="${c}" x2="${size-pad}" y2="${c}" stroke="#2d2d4a" stroke-width="1"/>`;
-    // Diagonals
-    svg += `<line x1="${pad}" y1="${pad}" x2="${size-pad}" y2="${size-pad}" stroke="#2d2d4a" stroke-width="1"/>`;
-    svg += `<line x1="${size-pad}" y1="${pad}" x2="${pad}" y2="${size-pad}" stroke="#2d2d4a" stroke-width="1"/>`;
+    // Inner lines — cross + diagonals
+    const LCOL = '#334155', LW = 1.2;
+    s += `<line x1="${C}" y1="${PAD}" x2="${C}" y2="${H-PAD}" stroke="${LCOL}" stroke-width="${LW}"/>`;
+    s += `<line x1="${PAD}" y1="${C}" x2="${W-PAD}" y2="${C}" stroke="${LCOL}" stroke-width="${LW}"/>`;
+    s += `<line x1="${PAD}" y1="${PAD}" x2="${W-PAD}" y2="${H-PAD}" stroke="${LCOL}" stroke-width="${LW}"/>`;
+    s += `<line x1="${W-PAD}" y1="${PAD}" x2="${PAD}" y2="${H-PAD}" stroke="${LCOL}" stroke-width="${LW}"/>`;
 
     // Draw each house
     for (let h = 1; h <= 12; h++) {
-        const pos = hc[h];
+        const p = hc[h];
         const si = getSign(h);
+        const ec = elemColor[elemIdx[si]];
 
-        // Sign label (top-left corner of house)
-        const labelPos = {x: pos.x - 22, y: pos.y - 20};
-        svg += `<text x="${labelPos.x}" y="${labelPos.y}" fill="${signColors[si]}" font-size="10" font-weight="bold" opacity="0.8">${signNames[si]}</text>`;
+        // Ascendant house highlight
+        if (h === 1) {
+            s += `<text x="${p.x}" y="${p.y+44}" fill="#d4a017" font-size="7" text-anchor="middle" font-weight="600" letter-spacing="1" opacity="0.7">ASC</text>`;
+        }
 
-        // House number (bottom-right of house)
-        const hPos = {x: pos.x + 22, y: pos.y + 28};
-        svg += `<text x="${hPos.x}" y="${hPos.y}" fill="#555" font-size="9" text-anchor="end">H${h}</text>`;
+        // Sign label — colored by element, top area
+        s += `<text x="${p.x-24}" y="${p.y-18}" fill="${ec}" font-size="11" font-weight="700" opacity="0.9">${signShort[si]}</text>`;
 
-        // Planets in this house
+        // House number — subtle, bottom
+        s += `<text x="${p.x+24}" y="${p.y+32}" fill="#475569" font-size="8" text-anchor="end">${h}</text>`;
+
+        // Planets
         let here = [];
-        for (const [name, p] of Object.entries(planets)) {
-            if (p.house === h) {
-                const abbr = planetAbbr[name] || name.substring(0,2);
-                const col = p.retrograde ? '#e94560' : '#e0e0e0';
-                const suf = p.retrograde ? '℞' : '';
-                here.push({abbr: abbr+suf, color: col});
+        for (const [nm, pl] of Object.entries(planets)) {
+            if (pl.house === h) {
+                const ab = pAbbr[nm] || nm.slice(0,2);
+                const col = pColors[nm] || '#e2e8f0';
+                const ret = pl.retrograde;
+                here.push({ab, col, ret, deg: pl.degree_formatted});
             }
         }
 
         if (here.length > 0) {
-            const fs = here.length > 3 ? 9 : here.length > 2 ? 10 : 12;
+            const fs = here.length > 3 ? 9 : here.length > 2 ? 11 : 13;
             here.forEach((pl, i) => {
-                const yOff = (i - (here.length-1)/2) * (fs + 3);
-                svg += `<text x="${pos.x}" y="${pos.y + yOff}" fill="${pl.color}" font-size="${fs}" text-anchor="middle" font-weight="700">${pl.abbr}</text>`;
+                const yOff = (i - (here.length-1)/2) * (fs + 5);
+                const label = pl.ret ? pl.ab + '℞' : pl.ab;
+                const col = pl.ret ? '#f87171' : pl.col;
+                // Planet name
+                s += `<text x="${p.x}" y="${p.y + yOff}" fill="${col}" font-size="${fs}" text-anchor="middle" font-weight="800" filter="${pl.ret ? '' : 'url(#glow)'}">${label}</text>`;
             });
         }
     }
 
-    // Ascendant indicator
-    const ascPos = hc[1];
-    svg += `<text x="${ascPos.x}" y="${ascPos.y + 38}" fill="#f0a500" font-size="8" text-anchor="middle" font-weight="bold">ASC</text>`;
+    // Title bar
+    s += `<text x="${C}" y="${H-6}" fill="#64748b" font-size="7" text-anchor="middle" letter-spacing="1">NORTH INDIAN · SIDEREAL</text>`;
 
-    svg += '</svg>';
-    document.getElementById('chart-container').innerHTML = svg;
+    s += '</svg>';
+    document.getElementById('chart-container').innerHTML = s;
 })();
 </script>
 {% endblock %}
