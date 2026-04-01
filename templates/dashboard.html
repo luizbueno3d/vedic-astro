@@ -187,12 +187,21 @@ function deleteProfile() {
     const asc = {{ asc_json | safe }};
     const planets = {{ planets_json | safe }};
 
-    // House centers (North Indian diamond layout)
+    // House centers — matching the cross + diamond frame
+    const DM = 110;
     const hc = {
-        1:  {x:220, y:100}, 2: {x:110, y:50},  3: {x:50,  y:100},
-        4:  {x:110, y:220}, 5: {x:50,  y:340}, 6: {x:110, y:390},
-        7:  {x:220, y:340}, 8: {x:330, y:390}, 9: {x:390, y:340},
-        10: {x:330, y:220}, 11:{x:390, y:100}, 12:{x:330, y:50},
+        1:  {x:C,       y:C-DM/2},    // top center (between cross and diamond)
+        2:  {x:C-DM/2,  y:C-DM-15},   // top-left corner
+        3:  {x:PAD+35,  y:C-DM/2},    // left top
+        4:  {x:C-DM/2,  y:C},         // left center
+        5:  {x:PAD+35,  y:C+DM/2},    // left bottom
+        6:  {x:C-DM/2,  y:C+DM+15},   // bottom-left corner
+        7:  {x:C,       y:C+DM/2},    // bottom center
+        8:  {x:C+DM/2,  y:C+DM+15},   // bottom-right corner
+        9:  {x:W-PAD-35,y:C+DM/2},    // right bottom
+        10: {x:C+DM/2,  y:C},         // right center
+        11: {x:W-PAD-35,y:C-DM/2},    // right top
+        12: {x:C+DM/2,  y:C-DM-15},   // top-right corner
     };
 
     const signFull = ['Aries','Taurus','Gemini','Cancer','Leo','Virgo','Libra','Scorpio','Sagittarius','Capricorn','Aquarius','Pisces'];
@@ -226,12 +235,17 @@ function deleteProfile() {
     // Outer frame — thick gold border
     s += `<rect x="${PAD}" y="${PAD}" width="${W-PAD*2}" height="${H-PAD*2}" fill="none" stroke="#d4a017" stroke-width="2.5" rx="4"/>`;
 
-    // Inner lines — cross + diagonals
+    // Inner lines — cross + diamond
     const LCOL = '#334155', LW = 1.2;
+    // Cross (2 lines through center)
     s += `<line x1="${C}" y1="${PAD}" x2="${C}" y2="${H-PAD}" stroke="${LCOL}" stroke-width="${LW}"/>`;
     s += `<line x1="${PAD}" y1="${C}" x2="${W-PAD}" y2="${C}" stroke="${LCOL}" stroke-width="${LW}"/>`;
-    s += `<line x1="${PAD}" y1="${PAD}" x2="${W-PAD}" y2="${H-PAD}" stroke="${LCOL}" stroke-width="${LW}"/>`;
-    s += `<line x1="${W-PAD}" y1="${PAD}" x2="${PAD}" y2="${H-PAD}" stroke="${LCOL}" stroke-width="${LW}"/>`;
+    // Diamond (4 lines forming a rotated square in the center)
+    const DM = 110; // diamond half-size
+    s += `<line x1="${C}" y1="${C-DM}" x2="${C+DM}" y2="${C}" stroke="${LCOL}" stroke-width="${LW}"/>`;  // top to right
+    s += `<line x1="${C+DM}" y1="${C}" x2="${C}" y2="${C+DM}" stroke="${LCOL}" stroke-width="${LW}"/>`;  // right to bottom
+    s += `<line x1="${C}" y1="${C+DM}" x2="${C-DM}" y2="${C}" stroke="${LCOL}" stroke-width="${LW}"/>`;  // bottom to left
+    s += `<line x1="${C-DM}" y1="${C}" x2="${C}" y2="${C-DM}" stroke="${LCOL}" stroke-width="${LW}"/>`;  // left to top
 
     // Draw each house
     for (let h = 1; h <= 12; h++) {
