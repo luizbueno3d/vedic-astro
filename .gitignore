@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+*.pyo
+*.db
+data/profiles.db
+data/ai_config.json
+.env
+*.egg-info/
+.DS_Store

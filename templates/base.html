@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Vedic Astro{% endblock %}</title>
+    <style>
+        :root {
+            --bg: #0f0f1a;
+            --card: #1a1a2e;
+            --border: #2d2d4a;
+            --text: #e0e0e0;
+            --muted: #888;
+            --accent: #f0a500;
+            --accent2: #e94560;
+            --green: #4ecca3;
+            --blue: #4a9eff;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+        nav {
+            background: var(--card);
+            border-bottom: 1px solid var(--border);
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        nav .brand {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: var(--accent);
+            text-decoration: none;
+        }
+        nav a {
+            color: var(--muted);
+            text-decoration: none;
+            font-size: 0.9em;
+            transition: color 0.2s;
+        }
+        nav a:hover, nav a.active { color: var(--accent); }
+        nav select {
+            background: var(--bg);
+            color: var(--text);
+            border: 1px solid var(--border);
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .grid {
+            display: grid;
+            gap: 20px;
+        }
+        .grid-2 { grid-template-columns: 1fr 1fr; }
+        .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+        }
+        .card h3 {
+            color: var(--accent);
+            margin-bottom: 12px;
+            font-size: 1em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85em;
+        }
+        th {
+            text-align: left;
+            color: var(--muted);
+            padding: 6px 8px;
+            border-bottom: 1px solid var(--border);
+            font-weight: 500;
+        }
+        td {
+            padding: 6px 8px;
+            border-bottom: 1px solid rgba(45,45,74,0.5);
+        }
+        tr:hover td { background: rgba(240,165,0,0.05); }
+        .retro { color: var(--accent2); }
+        .current { color: var(--green); font-weight: bold; }
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.75em;
+            font-weight: 600;
+        }
+        .badge-fire { background: #e94560; color: white; }
+        .badge-earth { background: #4ecca3; color: #111; }
+        .badge-air { background: #4a9eff; color: white; }
+        .badge-water { background: #6c5ce7; color: white; }
+        .section-title {
+            font-size: 1.2em;
+            color: var(--accent);
+            margin: 20px 0 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+        }
+        .subtitle {
+            color: var(--muted);
+            font-size: 0.85em;
+            margin-bottom: 16px;
+        }
+        .tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 16px;
+        }
+        .tab {
+            padding: 8px 16px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--muted);
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: all 0.2s;
+        }
+        .tab:hover, .tab.active {
+            background: var(--accent);
+            color: #111;
+            border-color: var(--accent);
+        }
+        @media (max-width: 768px) {
+            .grid-2, .grid-3 { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="/" class="brand">☿ Vedic Astro</a>
+        <a href="/dashboard" class="{% if page == 'dashboard' %}active{% endif %}">Dashboard</a>
+        <a href="/vargas" class="{% if page == 'vargas' %}active{% endif %}">Divisionals</a>
+        <a href="/analysis" class="{% if page == 'analysis' %}active{% endif %}">Analysis</a>
+        <a href="/reading" class="{% if page == 'reading' %}active{% endif %}">Reading</a>
+        <a href="/ai-settings" class="{% if page == 'ai_reading' %}active{% endif %}">AI Interpretations</a>
+        <a href="/dasha" class="{% if page == 'dasha' %}active{% endif %}">Dasha</a>
+        <a href="/compatibility" class="{% if page == 'compatibility' %}active{% endif %}">Compatibility</a>
+        <select id="profileSelect" onchange="switchProfile(this.value)">
+            {% for p in profiles %}
+            <option value="{{ p.id }}" {% if p.id == profile_id %}selected{% endif %}>{{ p.name }}</option>
+            {% endfor %}
+        </select>
+        <a href="/new-profile" style="background:var(--accent); color:#111; padding:4px 10px; border-radius:4px; font-size:0.85em; font-weight:600; text-decoration:none">+ Add Person</a>
+    </nav>
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+    <script>
+        function switchProfile(id) {
+            const path = window.location.pathname;
+            window.location.href = path + '?profile_id=' + id;
+        }
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

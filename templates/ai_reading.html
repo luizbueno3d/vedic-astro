@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+{% block title %}AI Interpretations — Vedic Astro{% endblock %}
+
+{% block content %}
+<h2>AI Interpretations</h2>
+<p class="subtitle">Configure an AI provider, then generate personalized readings on demand</p>
+
+<!-- Provider Selection -->
+<div class="card" style="margin-bottom:20px">
+    <h3>AI Provider</h3>
+    <p class="subtitle">Choose one provider to enable. Your API key is stored locally.</p>
+
+    <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:12px; margin-top:12px">
+        {% for provider_id, provider in providers.items() %}
+        <div class="card" style="border-color:{% if provider.enabled %}var(--green){% else %}var(--border){% endif %}; cursor:pointer"
+             onclick="selectProvider('{{ provider_id }}')">
+            <div style="display:flex; justify-content:space-between; align-items:center">
+                <strong>{{ provider.label }}</strong>
+                {% if provider.enabled %}
+                <span class="badge badge-earth">Active</span>
+                {% endif %}
+            </div>
+            <div style="color:var(--muted); font-size:0.8em; margin-top:4px">
+                {% if provider_id == 'groq' %}Free tier available · Fast inference
+                {% elif provider_id == 'ollama' %}Local · No API key needed
+                {% elif provider_id == 'openrouter' %}100+ models · Pay per use
+                {% elif provider_id == 'openai' %}GPT-4o, GPT-4o-mini
+                {% elif provider_id == 'anthropic' %}Claude Sonnet, Haiku
+                {% elif provider_id == 'minimax' %}M2.5, M2.7
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Provider Settings -->
+<div class="card" style="margin-bottom:20px">
+    <h3>Provider Settings</h3>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px">
+        <div>
+            <label style="color:var(--muted); font-size:0.85em; display:block; margin-bottom:4px">Provider</label>
+            <select id="providerSelect" onchange="loadProviderSettings(this.value)"
+                style="width:100%; background:var(--bg); color:var(--text); border:1px solid var(--border); padding:10px; border-radius:4px">
+                {% for pid, p in providers.items() %}
+                <option value="{{ pid }}" {% if p.enabled %}selected{% endif %}>{{ p.label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label style="color:var(--muted); font-size:0.85em; display:block; margin-bottom:4px">Model</label>
+            <select id="modelSelect"
+                style="width:100%; background:var(--bg); color:var(--text); border:1px solid var(--border); padding:10px; border-radius:4px">
+            </select>
+        </div>
+    </div>
+
+    <div style="margin-top:16px">
+        <label style="color:var(--muted); font-size:0.85em; display:block; margin-bottom:4px">API Key</label>
+        <input type="password" id="apiKey" placeholder="sk-..."
+            style="width:100%; background:var(--bg); color:var(--text); border:1px solid var(--border); padding:10px; border-radius:4px; font-size:1em">
+        <div style="color:var(--muted); font-size:0.8em; margin-top:4px">
+            Stored locally in <code>data/ai_config.json</code>. Never leaves your machine.
+        </div>
+    </div>
+
+    <div style="margin-top:16px; display:flex; gap:12px">
+        <button onclick="saveProvider()" style="background:var(--accent); color:#111; border:none; padding:10px 20px; border-radius:4px; cursor:pointer; font-weight:600">
+            Save & Enable
+        </button>
+        <button onclick="testConnection()" style="background:var(--card); color:var(--text); border:1px solid var(--border); padding:10px 20px; border-radius:4px; cursor:pointer">
+            Test Connection
+        </button>
+    </div>
+    <div id="settingsStatus" style="margin-top:10px; font-size:0.9em"></div>
+</div>
+
+<!-- Free Options Guide -->
+<div class="card" style="margin-bottom:20px; border-color: var(--green)">
+    <h3>Free Options</h3>
+    <table>
+        <tr><th>Provider</th><th>Free Models</th><th>Sign Up</th></tr>
+        <tr><td><strong>Groq</strong></td><td>llama-3.3-70b, llama-3.1-8b, gemma2-9b</td><td>groq.com</td></tr>
+        <tr><td><strong>Ollama</strong></td><td>Any local model (llama3.1, mistral, etc.)</td><td>ollama.ai (local install)</td></tr>
+        <tr><td><strong>OpenRouter</strong></td><td>Some free models, most very cheap</td><td>openrouter.ai</td></tr>
+    </table>
+</div>
+
+<!-- Generate Reading -->
+<div class="card" style="margin-bottom:20px">
+    <h3>Generate AI Reading</h3>
+    <div style="display:flex; gap:16px; align-items:end; flex-wrap:wrap; margin-bottom:16px">
+        <div style="flex:1; min-width:200px">
+            <label style="color:var(--muted); font-size:0.85em">Profile</label><br>
+            <select id="readingProfile"
+                style="width:100%; background:var(--bg); color:var(--text); border:1px solid var(--border); padding:10px; border-radius:4px">
+                {% for p in profiles %}
+                <option value="{{ p.id }}" {% if p.id == profile_id %}selected{% endif %}>{{ p.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button onclick="generateReading()" id="generateBtn"
+            style="background:var(--blue); color:white; border:none; padding:10px 24px; border-radius:4px; cursor:pointer; font-weight:600; font-size:1em">
+            Generate AI Reading
+        </button>
+    </div>
+
+    <div id="readingStatus" style="color:var(--muted); font-size:0.9em; margin-bottom:12px"></div>
+    <div id="readingResult" style="display:none; padding:16px; background:rgba(255,255,255,0.02); border-radius:8px; line-height:1.8; white-space:pre-wrap; font-size:0.95em"></div>
+</div>
+
+<!-- What the AI Sees -->
+<div class="card">
+    <h3>What the AI Receives</h3>
+    <p class="subtitle">Our calculated data is already highly structured — the AI just synthesizes it</p>
+    <table>
+        <tr><th>Data Layer</th><th>What's Included</th></tr>
+        <tr><td>Positions</td><td>All 9 planets, exact degrees, nakshatras, padas, houses</td></tr>
+        <tr><td>Rulerships</td><td>Which planet rules which house, where it's placed</td></tr>
+        <tr><td>Yogas</td><td>Raja, Dhana, Viparita, Gaja Kesari, Budhaditya, etc.</td></tr>
+        <tr><td>Doshas</td><td>Mangal, Kaal Sarpa, Sade Sati</td></tr>
+        <tr><td>Strength</td><td>Shadbala ranking, Ashtakavarga scores</td></tr>
+        <tr><td>Divisionals</td><td>D9 (marriage), D10 (career)</td></tr>
+        <tr><td>Aspects</td><td>Conjunctions, Vedic Drishti</td></tr>
+        <tr><td>Timing</td><td>Current MD/AD/PD, Saturn/Jupiter transits</td></tr>
+    </table>
+    <div style="margin-top:12px; color:var(--muted); font-size:0.85em">
+        The AI doesn't need to calculate anything — it just needs to CONNECT the dots and produce narrative.
+        This means even cheap/free models produce good readings.
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const PROVIDER_MODELS = {{ provider_models_json | safe }};
+const PROVIDERS = {{ providers_json | safe }};
+
+function selectProvider(id) {
+    document.getElementById('providerSelect').value = id;
+    loadProviderSettings(id);
+}
+
+function loadProviderSettings(id) {
+    const models = PROVIDER_MODELS[id] || [];
+    const select = document.getElementById('modelSelect');
+    select.innerHTML = '';
+    models.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m;
+        opt.textContent = m;
+        select.appendChild(opt);
+    });
+
+    // Load saved settings
+    const p = PROVIDERS[id];
+    if (p) {
+        document.getElementById('apiKey').value = p.api_key || '';
+        if (p.model && models.includes(p.model)) {
+            select.value = p.model;
+        }
+    }
+}
+
+async function saveProvider() {
+    const id = document.getElementById('providerSelect').value;
+    const model = document.getElementById('modelSelect').value;
+    const apiKey = document.getElementById('apiKey').value;
+    const status = document.getElementById('settingsStatus');
+
+    try {
+        const resp = await fetch('/ai-settings', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({provider: id, model, api_key: apiKey, enabled: true}),
+        });
+        const data = await resp.json();
+        status.innerHTML = '<span style="color:var(--green)">' + (data.message || 'Saved!') + '</span>';
+    } catch (e) {
+        status.innerHTML = '<span style="color:var(--accent2)">Error: ' + e.message + '</span>';
+    }
+}
+
+async function testConnection() {
+    const id = document.getElementById('providerSelect').value;
+    const status = document.getElementById('settingsStatus');
+    status.textContent = 'Testing...';
+
+    try {
+        const resp = await fetch('/ai-test/' + id);
+        const data = await resp.json();
+        if (data.success) {
+            status.innerHTML = '<span style="color:var(--green)">' + data.message + '</span>';
+        } else {
+            status.innerHTML = '<span style="color:var(--accent2)">' + data.message + '</span>';
+        }
+    } catch (e) {
+        status.innerHTML = '<span style="color:var(--accent2)">Error: ' + e.message + '</span>';
+    }
+}
+
+async function generateReading() {
+    const profileId = document.getElementById('readingProfile').value;
+    const btn = document.getElementById('generateBtn');
+    const status = document.getElementById('readingStatus');
+    const result = document.getElementById('readingResult');
+
+    btn.disabled = true;
+    btn.textContent = 'Generating... (10-30s)';
+    status.textContent = 'Calculating chart data...';
+    result.style.display = 'none';
+
+    try {
+        const resp = await fetch('/llm-reading/' + profileId);
+        const data = await resp.json();
+
+        if (data.reading) {
+            result.textContent = data.reading;
+            result.style.display = 'block';
+            status.innerHTML = '<span style="color:var(--green)">Reading generated via ' + (data.provider || 'AI') + '!</span>';
+        } else {
+            status.innerHTML = '<span style="color:var(--accent2)">No response. Check API key.</span>';
+        }
+    } catch (e) {
+        status.innerHTML = '<span style="color:var(--accent2)">Error: ' + e.message + '</span>';
+    }
+
+    btn.textContent = 'Generate AI Reading';
+    btn.disabled = false;
+}
+
+// Initialize
+loadProviderSettings(document.getElementById('providerSelect').value);
+</script>
+{% endblock %}

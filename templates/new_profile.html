@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block title %}New Profile — Vedic Astro{% endblock %}
+
+{% block content %}
+<h2>Add Person</h2>
+<p class="subtitle">Enter birth data → chart calculates automatically → saved to your people list</p>
+
+<div class="card" style="max-width:600px" id="formCard">
+    <form id="profileForm">
+        <div style="margin-bottom:16px">
+            <label style="color:var(--muted); font-size:0.85em; display:block; margin-bottom:4px">Name *</label>
+            <input type="text" id="name" required
+                style="width:100%; background:var(--bg); color:var(--text); border:1px solid var(--border); padding:10px; border-radius:4px; font-size:1em"
+                placeholder="Full name">
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px">
+            <div>
+                <label style="color:var(--muted); font-size:0.85em; display:block; margin-bottom:4px">Date of Birth *</label>
+                <input type="date" id="birth_date" required
+                    style="width:100%; background:var(--bg); color:var(--text); border:1px solid var(--border); padding:10px; border-radius:4px; font-size:1em">
+            </div>
+            <div>
+                <label style="color:var(--muted); font-size:0.85em; display:block; margin-bottom:4px">Time of Birth *</label>
+                <input type="time" id="birth_time" required
+                    style="width:100%; background:var(--bg); color:var(--text); border:1px solid var(--border); padding:10px; border-radius:4px; font-size:1em">
+            </div>
+        </div>
+
+        <div style="margin-bottom:16px">
+            <label style="color:var(--muted); font-size:0.85em; display:block; margin-bottom:4px">Place of Birth *</label>
+            <input type="text" id="birth_place" required
+                style="width:100%; background:var(--bg); color:var(--text); border:1px solid var(--border); padding:10px; border-radius:4px; font-size:1em"
+                placeholder="City, State, Country">
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:16px">
+            <div>
+                <label style="color:var(--muted); font-size:0.85em; display:block; margin-bottom:4px">Latitude *</label>
+                <input type="number" step="0.0001" id="latitude" required
+                    style="width:100%; background:var(--bg); color:var(--text); border:1px solid var(--border); padding:10px; border-radius:4px; font-size:1em"
+                    placeholder="-23.5505">
+            </div>
+            <div>
+                <label style="color:var(--muted); font-size:0.85em; display:block; margin-bottom:4px">Longitude *</label>
+                <input type="number" step="0.0001" id="longitude" required
+                    style="width:100%; background:var(--bg); color:var(--text); border:1px solid var(--border); padding:10px; border-radius:4px; font-size:1em"
+                    placeholder="-46.6333">
+            </div>
+            <div>
+                <label style="color:var(--muted); font-size:0.85em; display:block; margin-bottom:4px">UTC Offset</label>
+                <select id="tz_offset"
+                    style="width:100%; background:var(--bg); color:var(--text); border:1px solid var(--border); padding:10px; border-radius:4px; font-size:1em">
+                    <option value="-3">-3 (Brazil BRT)</option>
+                    <option value="-5">-5 (US EST)</option>
+                    <option value="-6">-6 (US CST)</option>
+                    <option value="-7">-7 (US MST)</option>
+                    <option value="-8">-8 (US PST)</option>
+                    <option value="0">+0 (UK GMT)</option>
+                    <option value="1">+1 (CET)</option>
+                    <option value="5.5">+5:30 (India)</option>
+                    <option value="8">+8 (China/Singapore)</option>
+                    <option value="9">+9 (Japan/Korea)</option>
+                </select>
+            </div>
+        </div>
+
+        <div style="margin-bottom:20px">
+            <label style="color:var(--muted); font-size:0.85em; display:block; margin-bottom:4px">Notes (optional)</label>
+            <textarea id="notes" rows="2"
+                style="width:100%; background:var(--bg); color:var(--text); border:1px solid var(--border); padding:10px; border-radius:4px; font-size:1em; resize:vertical"
+                placeholder="Any notes about this person..."></textarea>
+        </div>
+
+        <button type="submit" id="submitBtn"
+            style="background:var(--accent); color:#111; border:none; padding:12px 24px; border-radius:4px; cursor:pointer; font-weight:600; font-size:1em; width:100%">
+            Save & Calculate Chart
+        </button>
+    </form>
+    <div id="status" style="margin-top:12px; color:var(--muted); font-size:0.9em"></div>
+</div>
+
+<!-- Quick coordinates reference -->
+<div class="card" style="max-width:600px; margin-top:20px">
+    <h3>Common Coordinates</h3>
+    <table>
+        <tr><th>City</th><th>Lat</th><th>Lon</th><th>UTC</th></tr>
+        <tr><td>São Paulo</td><td>-23.55</td><td>-46.63</td><td>-3</td></tr>
+        <tr><td>Rio de Janeiro</td><td>-22.91</td><td>-43.17</td><td>-3</td></tr>
+        <tr><td>Londrina</td><td>-23.31</td><td>-51.17</td><td>-3</td></tr>
+        <tr><td>New York</td><td>40.71</td><td>-74.01</td><td>-5</td></tr>
+        <tr><td>London</td><td>51.51</td><td>-0.13</td><td>0</td></tr>
+        <tr><td>Mumbai</td><td>19.08</td><td>72.88</td><td>+5:30</td></tr>
+    </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('profileForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('submitBtn');
+    const status = document.getElementById('status');
+    btn.disabled = true;
+    btn.textContent = 'Creating...';
+    status.textContent = '';
+
+    const data = {
+        name: document.getElementById('name').value,
+        birth_date: document.getElementById('birth_date').value,
+        birth_time: document.getElementById('birth_time').value,
+        birth_place: document.getElementById('birth_place').value,
+        latitude: parseFloat(document.getElementById('latitude').value),
+        longitude: parseFloat(document.getElementById('longitude').value),
+        tz_offset: parseFloat(document.getElementById('tz_offset').value),
+        notes: document.getElementById('notes').value,
+    };
+
+    try {
+        const resp = await fetch('/profiles', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data),
+        });
+        const result = await resp.json();
+        if (result.id) {
+            status.innerHTML = '<span style="color:var(--green)">Saved! Chart calculated. Redirecting...</span>';
+            setTimeout(() => {
+                window.location.href = '/dashboard?profile_id=' + result.id;
+            }, 500);
+        } else {
+            status.innerHTML = '<span style="color:var(--accent2)">Error: ' + (result.detail || 'Unknown') + '</span>';
+            btn.disabled = false;
+            btn.textContent = 'Create Profile & Calculate Chart';
+        }
+    } catch (err) {
+        status.innerHTML = '<span style="color:var(--accent2)">Error: ' + err.message + '</span>';
+        btn.disabled = false;
+        btn.textContent = 'Create Profile & Calculate Chart';
+    }
+});
+</script>
+{% endblock %}

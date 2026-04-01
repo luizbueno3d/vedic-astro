@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}Reading — {{ chart.name }}{% endblock %}
+
+{% block content %}
+<h2>Synthesized Reading — {{ chart.name }}</h2>
+<p class="subtitle">{{ chart.birth_date }} · {{ chart.birth_time }} · {{ chart.birth_place }}</p>
+
+<!-- Summary -->
+<div class="card" style="margin-bottom:20px; border-color: var(--accent)">
+    <h3>Chart Summary</h3>
+    <p style="line-height:1.7; font-size:1em">{{ synthesis.summary }}</p>
+    <div style="margin-top:10px">
+        <strong>Key Themes:</strong>
+        {% for theme in synthesis.key_themes %}
+        <span class="badge badge-earth" style="margin:2px">{{ theme }}</span>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- AI Reading Button -->
+<div class="card" style="margin-bottom:20px; text-align:center; border-color: var(--blue)">
+    <h3>AI-Powered Reading</h3>
+    <p style="color:var(--muted); margin-bottom:12px">Generate a personalized reading using AI (requires API key)</p>
+    <button onclick="generateLLMReading()" id="llmBtn"
+        style="background:var(--blue); color:white; border:none; padding:12px 24px; border-radius:4px; cursor:pointer; font-weight:600; font-size:1em">
+        Generate AI Reading
+    </button>
+    <div id="llmStatus" style="margin-top:10px; color:var(--muted); font-size:0.9em"></div>
+    <div id="llmResult" style="display:none; text-align:left; margin-top:16px; padding:16px; background:rgba(255,255,255,0.02); border-radius:8px; line-height:1.7; white-space:pre-wrap"></div>
+</div>
+
+<!-- Sections by category -->
+{% for category, section_insights in synthesis.sections.items() %}
+<div class="card" style="margin-bottom:20px">
+    <h3>{{ category | title }}</h3>
+    {% for insight in section_insights %}
+    <div style="margin-bottom:16px; padding:12px; background:rgba(255,255,255,0.02); border-radius:6px; border-left:3px solid {% if insight.priority <= 2 %}var(--accent){% elif insight.priority <= 4 %}var(--green){% else %}var(--border){% endif %}">
+        <div style="display:flex; justify-content:space-between; align-items:center">
+            <strong style="font-size:1em">{{ insight.title }}</strong>
+            <span style="font-size:0.75em; color:var(--muted)">Priority {{ insight.priority }}</span>
+        </div>
+        <p style="line-height:1.7; margin-top:8px; color:var(--text)">{{ insight.narrative }}</p>
+    </div>
+    {% endfor %}
+</div>
+{% endfor %}
+
+<!-- All Insights (flat list) -->
+<div class="card" style="margin-top:20px">
+    <h3>All Insights (Priority Order)</h3>
+    <table>
+        <tr><th>#</th><th>Category</th><th>Insight</th></tr>
+        {% for insight in synthesis.insights %}
+        <tr>
+            <td>{{ insight.priority }}</td>
+            <td><span class="badge badge-earth">{{ insight.category }}</span></td>
+            <td>
+                <strong>{{ insight.title }}</strong>
+                <div style="color:var(--muted); font-size:0.85em; margin-top:2px">{{ insight.narrative[:150] }}{% if insight.narrative|length > 150 %}...{% endif %}</div>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function generateLLMReading() {
+    const btn = document.getElementById('llmBtn');
+    const status = document.getElementById('llmStatus');
+    const result = document.getElementById('llmResult');
+    
+    btn.disabled = true;
+    btn.textContent = 'Generating... (this may take 10-30 seconds)';
+    status.textContent = 'Sending chart data to AI...';
+    result.style.display = 'none';
+
+    try {
+        const resp = await fetch('/llm-reading/{{ profile_id }}');
+        const data = await resp.json();
+        
+        if (data.reading) {
+            result.textContent = data.reading;
+            result.style.display = 'block';
+            status.innerHTML = '<span style="color:var(--green)">Reading generated!</span>';
+            btn.textContent = 'Regenerate AI Reading';
+            btn.disabled = false;
+        } else {
+            status.innerHTML = '<span style="color:var(--accent2)">No reading returned. Check API key.</span>';
+            btn.textContent = 'Generate AI Reading';
+            btn.disabled = false;
+        }
+    } catch (err) {
+        status.innerHTML = '<span style="color:var(--accent2)">Error: ' + err.message + '</span>';
+        btn.textContent = 'Generate AI Reading';
+        btn.disabled = false;
+    }
+}
+</script>
+{% endblock %}

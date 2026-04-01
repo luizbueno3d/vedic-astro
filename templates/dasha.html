@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Dasha — {{ chart.name }}{% endblock %}
+
+{% block content %}
+<h2>Dasha Timeline — {{ chart.name }}</h2>
+<p class="subtitle">Starting Dasha: {{ dasha.starting_dasha }} · Moon in {{ chart.planets.Moon.nakshatra }} {{ chart.planets.Moon.rashi }}</p>
+
+<!-- Current Period -->
+{% if dasha.current.mahadasha %}
+<div class="card" style="margin-bottom:20px; border-color: var(--accent)">
+    <h3>Currently Active</h3>
+    <table>
+        <tr><th>Level</th><th>Lord</th><th>Start</th><th>End</th><th>Duration</th></tr>
+        <tr>
+            <td>Mahadasha</td>
+            <td class="current" style="font-size:1.1em">{{ dasha.current.mahadasha.lord }}</td>
+            <td>{{ dasha.current.mahadasha.start }}</td>
+            <td>{{ dasha.current.mahadasha.end }}</td>
+            <td>{{ dasha.current.mahadasha.years }}y</td>
+        </tr>
+        {% if dasha.current.antardasha %}
+        <tr>
+            <td>Antardasha</td>
+            <td class="current">{{ dasha.current.antardasha.lord }}</td>
+            <td>{{ dasha.current.antardasha.start }}</td>
+            <td>{{ dasha.current.antardasha.end }}</td>
+            <td>{{ "%.1f"|format(dasha.current.antardasha.years) }}y</td>
+        </tr>
+        {% endif %}
+        {% if dasha.current.pratyantardasha %}
+        <tr>
+            <td>Pratyantardasha</td>
+            <td class="current">{{ dasha.current.pratyantardasha.lord }}</td>
+            <td>{{ dasha.current.pratyantardasha.start }}</td>
+            <td>{{ dasha.current.pratyantardasha.end }}</td>
+            <td>{{ "%.2f"|format(dasha.current.pratyantardasha.years) }}y</td>
+        </tr>
+        {% endif %}
+    </table>
+    <div style="margin-top:12px">
+        <a href="/dasha?profile_id={{ profile_id }}&level=antardashas" class="tab active">Show Antardashas</a>
+        {% if dasha.current.antardasha %}
+        <a href="/dasha?profile_id={{ profile_id }}&level=pratyantardashas" class="tab">Show Pratyantardashas</a>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Antardashas within current MD -->
+{% if antardashas %}
+<div class="card" style="margin-bottom:20px">
+    <h3>Antardashas within {{ dasha.current.mahadasha.lord }} MD</h3>
+    <table>
+        <tr><th>Lord</th><th>Start</th><th>End</th><th>Duration</th><th></th></tr>
+        {% for ad in antardashas %}
+        <tr>
+            <td>{{ ad.lord }}</td>
+            <td>{{ ad.start }}</td>
+            <td>{{ ad.end }}</td>
+            <td>{{ "%.1f"|format(ad.years) }}y</td>
+            <td>{% if ad.is_current %}<span class="current">◄ NOW</span>{% endif %}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+{% endif %}
+
+<!-- Pratyantardashas within current AD -->
+{% if pratyantardashas %}
+<div class="card" style="margin-bottom:20px">
+    <h3>Pratyantardashas within {{ dasha.current.antardasha.lord }} AD</h3>
+    <table>
+        <tr><th>Lord</th><th>Start</th><th>End</th><th>Duration</th><th></th></tr>
+        {% for pd in pratyantardashas %}
+        <tr>
+            <td>{{ pd.lord }}</td>
+            <td>{{ pd.start }}</td>
+            <td>{{ pd.end }}</td>
+            <td>{{ "%.2f"|format(pd.years) }}y</td>
+            <td>{% if pd.is_current %}<span class="current">◄ NOW</span>{% endif %}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+{% endif %}
+
+<!-- Full Mahadasha Timeline -->
+<div class="card">
+    <h3>Full Mahadasha Timeline (120 years)</h3>
+    <table>
+        <tr><th>#</th><th>Lord</th><th>Start</th><th>End</th><th>Duration</th><th></th></tr>
+        {% for md in dasha.mahadashas %}
+        <tr>
+            <td>{{ loop.index }}</td>
+            <td><strong>{{ md.lord }}</strong></td>
+            <td>{{ md.start }}</td>
+            <td>{{ md.end }}</td>
+            <td>{{ md.years }}y</td>
+            <td>{% if md.is_current %}<span class="current">◄ NOW</span>{% endif %}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+{% endblock %}

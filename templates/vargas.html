@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Divisional Charts — {{ chart.name }}{% endblock %}
+
+{% block content %}
+<h2>Divisional Charts — {{ chart.name }}</h2>
+<p class="subtitle">Shodasha Varga (16 divisions) — D9, D10, D7 verified against AstroSage</p>
+
+<div class="grid grid-3">
+    {% for varga_id, varga in vargas.items() %}
+    <div class="card">
+        <h3>{{ varga_id }} — {{ varga.name }}</h3>
+        <div class="subtitle">{{ varga.purpose }}</div>
+        <table>
+            <tr><th>Planet</th><th>Sign</th></tr>
+            {% for planet, sign in varga.signs.items() %}
+            <tr>
+                <td>{{ planet }}</td>
+                <td>{{ sign }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

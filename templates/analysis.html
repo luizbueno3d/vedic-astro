@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+{% block title %}Analysis — {{ chart.name }}{% endblock %}
+
+{% block content %}
+<h2>Deep Analysis — {{ chart.name }}</h2>
+<p class="subtitle">Yogas, Conjunctions, Aspects, Bhavat Bhavam, House Rulerships</p>
+
+<!-- House Rulerships -->
+<div class="card" style="margin-bottom:20px">
+    <h3>House Rulerships</h3>
+    <table>
+        <tr><th>House</th><th>Lord</th><th>Placed In</th><th>Nakshatra</th></tr>
+        {% for planet, houses in house_rulerships.items() %}
+        <tr>
+            <td>H{{ houses | join(', H') }}</td>
+            <td><strong>{{ planet }}</strong></td>
+            <td>H{{ chart.planets[planet].house }} ({{ chart.planets[planet].rashi }})</td>
+            <td>{{ chart.planets[planet].nakshatra }} P{{ chart.planets[planet].pada }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+
+<div class="grid grid-2">
+    <!-- Yogas -->
+    <div class="card">
+        <h3>Yogas Detected</h3>
+        {% if yogas %}
+        {% for y in yogas %}
+        <div style="margin-bottom:12px; padding:10px; background:rgba(240,165,0,0.05); border-radius:6px; border-left:3px solid {% if y.strength == 'strong' %}var(--green){% else %}var(--accent){% endif %}">
+            <strong>{{ y.name }}</strong>
+            {% if y.strength == 'strong' %}<span class="badge badge-earth">Strong</span>{% endif %}
+            <div style="color:var(--muted); font-size:0.85em; margin-top:4px">{{ y.description }}</div>
+            <div style="font-size:0.8em; margin-top:4px">Planets: {{ y.planets | join(' + ') }} · Houses: H{{ y.houses | join(', H') }}</div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <p style="color:var(--muted)">No major yogas detected</p>
+        {% endif %}
+    </div>
+
+    <!-- Doshas -->
+<div class="card" style="margin-top:20px">
+    <h3>Doshas Detected</h3>
+    {% if doshas %}
+    {% for d in doshas %}
+    <div style="margin-bottom:12px; padding:10px; background:rgba(233,69,96,0.05); border-radius:6px; border-left:3px solid {% if d.severity == 'high' %}var(--accent2){% else %}var(--accent){% endif %}">
+        <strong>{{ d.name }}</strong>
+        <span class="badge {% if d.severity == 'high' %}badge-fire{% else %}badge-earth{% endif %}">{{ d.severity }}</span>
+        <div style="color:var(--muted); font-size:0.85em; margin-top:4px">{{ d.description }}</div>
+        {% if d.remedy %}<div style="font-size:0.85em; margin-top:4px; color:var(--green)">Remedy: {{ d.remedy }}</div>{% endif %}
+    </div>
+    {% endfor %}
+    {% else %}
+    <p style="color:var(--green)">No active doshas detected. Chart is clean.</p>
+    {% endif %}
+</div>
+
+<!-- Conjunctions -->
+    <div class="card">
+        <h3>Conjunctions</h3>
+        {% if conjunctions %}
+        <table>
+            <tr><th>Planets</th><th>House</th><th>Sign</th><th>Orb</th></tr>
+            {% for c in conjunctions %}
+            <tr>
+                <td><strong>{{ c.planets[0] }} + {{ c.planets[1] }}</strong></td>
+                <td>H{{ c.house }}</td>
+                <td>{{ c.sign }}</td>
+                <td>{{ c.orb }}° {% if c.tight %}<span class="current">TIGHT</span>{% endif %}</td>
+            </tr>
+            {% endfor %}
+        </table>
+        {% else %}
+        <p style="color:var(--muted)">No tight conjunctions</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Aspects -->
+<div class="card" style="margin-top:20px">
+    <h3>Planetary Aspects (Drishti)</h3>
+    {% if aspects %}
+    <table>
+        <tr><th>From</th><th>House</th><th>→</th><th>To</th><th>House</th><th>Type</th><th>Orb</th></tr>
+        {% for a in aspects %}
+        <tr>
+            <td><strong>{{ a.from }}</strong></td>
+            <td>H{{ a.from_house }}</td>
+            <td>→</td>
+            <td><strong>{{ a.to }}</strong></td>
+            <td>H{{ a.to_house }}</td>
+            <td>{{ a.type }}</td>
+            <td>{{ a.orb }}°</td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% else %}
+    <p style="color:var(--muted)">No aspects found</p>
+    {% endif %}
+</div>
+
+<!-- Bhavat Bhavam -->
+<div class="card" style="margin-top:20px">
+    <h3>Bhavat Bhavam — House-from-House</h3>
+    <table>
+        <tr><th>House</th><th>BH House</th><th>Title</th><th>Planets in H</th><th>Planets in BH</th></tr>
+        {% for b in bhavat_bhavam %}
+        <tr>
+            <td>H{{ b.house }}</td>
+            <td>H{{ b.bb_house }}</td>
+            <td>{{ b.title }}</td>
+            <td>{{ b.planets_in_house | join(', ') if b.planets_in_house else '-' }}</td>
+            <td>{{ b.planets_in_bb_house | join(', ') if b.planets_in_bb_house else '-' }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+
+<!-- Ashtakavarga -->
+<div class="grid grid-2" style="margin-top:20px">
+    <div class="card">
+        <h3>Sarva Ashtakavarga (SAV)</h3>
+        <p class="subtitle">House strength scores (bindus). Higher = stronger.</p>
+        <table>
+            <tr><th>House</th><th>Bindus</th><th>Assessment</th></tr>
+            {% for house in range(1, 13) %}
+            <tr>
+                <td>H{{ house }}</td>
+                <td><strong>{{ ashtakavarga.house_scores[house] }}</strong></td>
+                <td style="color: {% if ashtakavarga.house_scores[house] >= 5 %}var(--green){% elif ashtakavarga.house_scores[house] >= 4 %}var(--accent){% else %}var(--accent2){% endif %}">
+                    {% if ashtakavarga.house_scores[house] >= 5 %}Strong{% elif ashtakavarga.house_scores[house] >= 4 %}Average{% else %}Weak{% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+
+    <!-- Shadbala -->
+    <div class="card">
+        <h3>Shadbala — Planetary Strength Ranking</h3>
+        <p class="subtitle">6-fold strength. Higher = more powerful.</p>
+        <table>
+            <tr><th>#</th><th>Planet</th><th>Score</th><th>Dignity</th><th>H</th></tr>
+            {% for r in shadbala.ranking %}
+            <tr>
+                <td>{{ r.rank }}</td>
+                <td><strong>{{ r.planet }}</strong></td>
+                <td>{{ "%.3f"|format(r.score) }}</td>
+                <td>
+                    {% set p = shadbala.planets[r.planet] %}
+                    {% if p.dignity == 'exalted' %}<span class="current">Exalted</span>
+                    {% elif p.dignity == 'own_sign' %}<span style="color:var(--green)">Own</span>
+                    {% elif p.dignity == 'debilitated' %}<span class="retro">Debilitated</span>
+                    {% else %}{{ p.dignity }}{% endif %}
+                </td>
+                <td>H{{ p.house }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+</div>
+
+<!-- Bhavat Bhavam -->
+<div class="card" style="margin-top:20px">
+    <h3>Bhavat Bhavam — House-from-House</h3>
+    <table>
+        <tr><th>House</th><th>BH House</th><th>Title</th><th>Planets in H</th><th>Planets in BH</th></tr>
+        {% for b in bhavat_bhavam %}
+        <tr>
+            <td>H{{ b.house }}</td>
+            <td>H{{ b.bb_house }}</td>
+            <td>{{ b.title }}</td>
+            <td>{{ b.planets_in_house | join(', ') if b.planets_in_house else '-' }}</td>
+            <td>{{ b.planets_in_bb_house | join(', ') if b.planets_in_bb_house else '-' }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+{% endblock %}

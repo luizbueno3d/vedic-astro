@@ -1,0 +1,273 @@
+{% extends "base.html" %}
+{% block title %}{{ chart.name }} — Vedic Astro{% endblock %}
+
+{% block content %}
+<h2 style="margin-bottom:4px">
+    {{ chart.name }}
+    <button onclick="deleteProfile()" style="background:none; border:1px solid var(--accent2); color:var(--accent2); padding:4px 10px; border-radius:4px; cursor:pointer; font-size:0.7em; margin-left:10px; vertical-align:middle">Delete</button>
+</h2>
+<div class="subtitle">{{ chart.birth_date }} · {{ chart.birth_time }} · {{ chart.birth_place }} · Ayanamsa: {{ "%.4f"|format(chart.ayanamsa) }}°</div>
+
+<div class="grid grid-2">
+    <!-- North Indian Chart -->
+    <div class="card">
+        <h3>D1 — Rashi Chart (North Indian)</h3>
+        <div id="chart-container" style="text-align:center"></div>
+    </div>
+
+    <!-- Planet Table -->
+    <div class="card">
+        <h3>Planetary Positions</h3>
+        <table>
+            <tr><th>Planet</th><th>Sign</th><th>Deg</th><th>Nakshatra</th><th>H</th><th>Lord</th></tr>
+            {% for name, p in chart.planets.items() %}
+            <tr>
+                <td><strong>{{ name }}</strong>{% if p.retrograde %} <span class="retro">℞</span>{% endif %}</td>
+                <td>{{ p.rashi }}</td>
+                <td>{{ p.degree_formatted }}</td>
+                <td>{{ p.nakshatra }} {{ p.pada }}</td>
+                <td>{{ p.house }}</td>
+                <td>{{ p.rashi_lord }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+</div>
+
+<div class="grid grid-2" style="margin-top:20px">
+    <!-- Current Dasha -->
+    <div class="card">
+        <h3>Current Dasha</h3>
+        {% if dasha.current.mahadasha %}
+        <table>
+            <tr><th>Level</th><th>Lord</th><th>Start</th><th>End</th></tr>
+            <tr>
+                <td>Mahadasha</td>
+                <td class="current">{{ dasha.current.mahadasha.lord }}</td>
+                <td>{{ dasha.current.mahadasha.start }}</td>
+                <td>{{ dasha.current.mahadasha.end }}</td>
+            </tr>
+            {% if dasha.current.antardasha %}
+            <tr>
+                <td>Antardasha</td>
+                <td class="current">{{ dasha.current.antardasha.lord }}</td>
+                <td>{{ dasha.current.antardasha.start }}</td>
+                <td>{{ dasha.current.antardasha.end }}</td>
+            </tr>
+            {% endif %}
+            {% if dasha.current.pratyantardasha %}
+            <tr>
+                <td>Pratyantardasha</td>
+                <td class="current">{{ dasha.current.pratyantardasha.lord }}</td>
+                <td>{{ dasha.current.pratyantardasha.start }}</td>
+                <td>{{ dasha.current.pratyantardasha.end }}</td>
+            </tr>
+            {% endif %}
+        </table>
+        {% endif %}
+
+        <h3 style="margin-top:16px">Mahadasha Timeline</h3>
+        <table>
+            <tr><th>Lord</th><th>Start</th><th>End</th><th>Years</th><th></th></tr>
+            {% for md in dasha.mahadashas %}
+            <tr>
+                <td>{{ md.lord }}</td>
+                <td>{{ md.start }}</td>
+                <td>{{ md.end }}</td>
+                <td>{{ md.years }}</td>
+                <td>{% if md.is_current %}<span class="current">◄ NOW</span>{% endif %}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+
+    <!-- Current Transits -->
+    <div class="card">
+        <h3>Current Transits (Gochar)</h3>
+        <table>
+            <tr><th>Planet</th><th>Sign</th><th>Deg</th><th>House</th><th>From Natal</th></tr>
+            {% for name, t in transits.items() %}
+            <tr>
+                <td><strong>{{ name }}</strong></td>
+                <td>{{ t.rashi }}</td>
+                <td>{{ t.degree_formatted }}</td>
+                <td>H{{ t.house }}</td>
+                <td>{{ "%+.1f"|format(t.orb) }}°</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+</div>
+
+<!-- D9 Quick View -->
+<div class="card" style="margin-top:20px">
+    <h3>D9 Navamsha (Quick View)</h3>
+    <table style="max-width:600px">
+        <tr><th>Planet</th><th>D9 Sign</th></tr>
+        {% for planet, sign in vargas.D9.signs.items() %}
+        <tr><td>{{ planet }}</td><td>{{ sign }}</td></tr>
+        {% endfor %}
+    </table>
+</div>
+
+<div class="grid grid-2" style="margin-top:20px">
+    <!-- House Rulerships -->
+    <div class="card">
+        <h3>House Rulerships</h3>
+        <table>
+            <tr><th>House</th><th>Lord</th><th>Placed In</th></tr>
+            {% for planet, houses in house_rulerships.items() %}
+            <tr>
+                <td>H{{ houses | join(', H') }}</td>
+                <td><strong>{{ planet }}</strong></td>
+                <td>H{{ chart.planets[planet].house }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+
+    <!-- Yogas Detected -->
+    <div class="card">
+        <h3>Yogas Detected</h3>
+        {% if yogas %}
+        <table>
+            {% for y in yogas %}
+            <tr>
+                <td><strong>{{ y.name }}</strong></td>
+                <td>{{ y.planets | join(' + ') }}</td>
+                <td>
+                    {% if y.strength == 'strong' %}<span class="current">Strong</span>{% else %}Moderate{% endif %}
+                </td>
+            </tr>
+            <tr>
+                <td colspan="3" style="color:var(--muted); font-size:0.85em; padding-top:0">{{ y.description }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+        {% else %}
+        <p style="color:var(--muted)">No major yogas detected</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Conjunctions -->
+<div class="card" style="margin-top:20px">
+    <h3>Conjunctions</h3>
+    {% if conjunctions %}
+    <table style="max-width:500px">
+        <tr><th>Planets</th><th>House</th><th>Sign</th><th>Orb</th></tr>
+        {% for c in conjunctions %}
+        <tr>
+            <td><strong>{{ c.planets[0] }} + {{ c.planets[1] }}</strong></td>
+            <td>H{{ c.house }}</td>
+            <td>{{ c.sign }}</td>
+            <td>{{ c.orb }}° {% if c.tight %}<span class="current">TIGHT</span>{% endif %}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% else %}
+    <p style="color:var(--muted)">No tight conjunctions found</p>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function deleteProfile() {
+    if (!confirm('Delete {{ chart.name }}? This cannot be undone.')) return;
+    fetch('/profiles/{{ profile_id }}', {method: 'DELETE'})
+        .then(r => r.json())
+        .then(d => { window.location.href = '/dashboard'; })
+        .catch(e => alert('Error: ' + e));
+}
+</script>
+<script>
+// North Indian Chart SVG Renderer — Enhanced
+(function() {
+    const size = 360;
+    const pad = 20;
+    const asc = {{ asc_json | safe }};
+    const planets = {{ planets_json | safe }};
+
+    // North Indian house center positions
+    const hc = {
+        1:  {x: 180, y: 90},
+        2:  {x: 90,  y: 45},
+        3:  {x: 45,  y: 90},
+        4:  {x: 90,  y: 180},
+        5:  {x: 45,  y: 270},
+        6:  {x: 90,  y: 315},
+        7:  {x: 180, y: 270},
+        8:  {x: 270, y: 315},
+        9:  {x: 315, y: 270},
+        10: {x: 270, y: 180},
+        11: {x: 315, y: 90},
+        12: {x: 270, y: 45},
+    };
+
+    const signNames = ['Ar','Ta','Ge','Cn','Le','Vi','Li','Sc','Sg','Cp','Aq','Pi'];
+    const signColors = ['#e94560','#4ecca3','#4a9eff','#6c5ce7','#f0a500','#888','#e94560','#4ecca3','#4a9eff','#6c5ce7','#f0a500','#888'];
+    const planetAbbr = {Sun:'Su',Moon:'Mo',Mars:'Ma',Mercury:'Me',Jupiter:'Ju',Venus:'Ve',Saturn:'Sa',Rahu:'Ra',Ketu:'Ke'};
+
+    const ascIdx = asc.rashi_index;
+    function getSign(h) { return (ascIdx + h - 1) % 12; }
+
+    // SVG
+    let svg = `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" style="max-width:100%; border-radius:8px">`;
+
+    // Background
+    svg += `<rect x="0" y="0" width="${size}" height="${size}" fill="#1a1a2e" rx="8"/>`;
+
+    // Outer border
+    svg += `<rect x="${pad}" y="${pad}" width="${size-pad*2}" height="${size-pad*2}" fill="none" stroke="#f0a500" stroke-width="2"/>`;
+
+    // Cross lines
+    const c = size/2;
+    svg += `<line x1="${c}" y1="${pad}" x2="${c}" y2="${size-pad}" stroke="#2d2d4a" stroke-width="1"/>`;
+    svg += `<line x1="${pad}" y1="${c}" x2="${size-pad}" y2="${c}" stroke="#2d2d4a" stroke-width="1"/>`;
+    // Diagonals
+    svg += `<line x1="${pad}" y1="${pad}" x2="${size-pad}" y2="${size-pad}" stroke="#2d2d4a" stroke-width="1"/>`;
+    svg += `<line x1="${size-pad}" y1="${pad}" x2="${pad}" y2="${size-pad}" stroke="#2d2d4a" stroke-width="1"/>`;
+
+    // Draw each house
+    for (let h = 1; h <= 12; h++) {
+        const pos = hc[h];
+        const si = getSign(h);
+
+        // Sign label (top-left corner of house)
+        const labelPos = {x: pos.x - 22, y: pos.y - 20};
+        svg += `<text x="${labelPos.x}" y="${labelPos.y}" fill="${signColors[si]}" font-size="10" font-weight="bold" opacity="0.8">${signNames[si]}</text>`;
+
+        // House number (bottom-right of house)
+        const hPos = {x: pos.x + 22, y: pos.y + 28};
+        svg += `<text x="${hPos.x}" y="${hPos.y}" fill="#555" font-size="9" text-anchor="end">H${h}</text>`;
+
+        // Planets in this house
+        let here = [];
+        for (const [name, p] of Object.entries(planets)) {
+            if (p.house === h) {
+                const abbr = planetAbbr[name] || name.substring(0,2);
+                const col = p.retrograde ? '#e94560' : '#e0e0e0';
+                const suf = p.retrograde ? '℞' : '';
+                here.push({abbr: abbr+suf, color: col});
+            }
+        }
+
+        if (here.length > 0) {
+            const fs = here.length > 3 ? 9 : here.length > 2 ? 10 : 12;
+            here.forEach((pl, i) => {
+                const yOff = (i - (here.length-1)/2) * (fs + 3);
+                svg += `<text x="${pos.x}" y="${pos.y + yOff}" fill="${pl.color}" font-size="${fs}" text-anchor="middle" font-weight="700">${pl.abbr}</text>`;
+            });
+        }
+    }
+
+    // Ascendant indicator
+    const ascPos = hc[1];
+    svg += `<text x="${ascPos.x}" y="${ascPos.y + 38}" fill="#f0a500" font-size="8" text-anchor="middle" font-weight="bold">ASC</text>`;
+
+    svg += '</svg>';
+    document.getElementById('chart-container').innerHTML = svg;
+})();
+</script>
+{% endblock %}
