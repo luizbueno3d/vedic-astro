@@ -499,62 +499,66 @@ def _serialize_chart_for_json(chart) -> dict:
 
 @app.get("/dashboard", response_class=HTMLResponse)
 async def page_dashboard(request: Request, profile_id: int = Query(None)):
-    profiles = list_profiles()
-    pid = profile_id or _get_default_profile_id()
-    chart = _chart_from_profile(pid)
-    serial = _serialize_chart(chart)
+    try:
+        profiles = list_profiles()
+        pid = profile_id or _get_default_profile_id()
+        chart = _chart_from_profile(pid)
+        serial = _serialize_chart(chart)
 
-    # Dasha
-    moon_lon = chart.planets['Moon'].longitude
-    birth_date = date.fromisoformat(chart.birth_date)
-    mds = calculate_mahadasha(birth_date, moon_lon)
-    current = get_current_dasha_periods(mds)
+        # Dasha
+        moon_lon = chart.planets['Moon'].longitude
+        birth_date = date.fromisoformat(chart.birth_date)
+        mds = calculate_mahadasha(birth_date, moon_lon)
+        current = get_current_dasha_periods(mds)
 
-    dasha_data = {
-        'starting_dasha': get_starting_dasha(moon_lon)[0],
-        'mahadashas': [dasha_to_dict(md) for md in mds],
-        'current': {},
-    }
-    if current['mahadasha']:
-        dasha_data['current']['mahadasha'] = dasha_to_dict(current['mahadasha'])
-        if current['antardasha']:
-            dasha_data['current']['antardasha'] = dasha_to_dict(current['antardasha'])
-        if current['pratyantardasha']:
-            dasha_data['current']['pratyantardasha'] = dasha_to_dict(current['pratyantardasha'])
+        dasha_data = {
+            'starting_dasha': get_starting_dasha(moon_lon)[0],
+            'mahadashas': [dasha_to_dict(md) for md in mds],
+            'current': {},
+        }
+        if current['mahadasha']:
+            dasha_data['current']['mahadasha'] = dasha_to_dict(current['mahadasha'])
+            if current['antardasha']:
+                dasha_data['current']['antardasha'] = dasha_to_dict(current['antardasha'])
+            if current['pratyantardasha']:
+                dasha_data['current']['pratyantardasha'] = dasha_to_dict(current['pratyantardasha'])
 
-    # Transits
-    transits = calculate_transits(chart)
-    transits_data = {k: transit_to_dict(v) for k, v in transits.items()}
+        # Transits
+        transits = calculate_transits(chart)
+        transits_data = {k: transit_to_dict(v) for k, v in transits.items()}
 
-    # Vargas
-    vargas = get_varga_signs(chart)
+        # Vargas
+        vargas = get_varga_signs(chart)
 
-    # Aspects & Yogas
-    conjs = find_conjunctions(chart.planets)
-    asps = find_aspects(chart.planets)
-    rulerships = calculate_house_rulerships(chart.ascendant.rashi_index)
-    yogas = detect_all_yogas(chart.planets, rulerships)
+        # Aspects & Yogas
+        conjs = find_conjunctions(chart.planets)
+        asps = find_aspects(chart.planets)
+        rulerships = calculate_house_rulerships(chart.ascendant.rashi_index)
+        yogas = detect_all_yogas(chart.planets, rulerships)
 
-    return templates.TemplateResponse("dashboard.html", {
-        "request": request,
-        "page": "dashboard",
-        "profiles": profiles,
-        "profile_id": pid,
-        "chart": serial,
-        "dasha": dasha_data,
-        "transits": transits_data,
-        "vargas": vargas,
-        "conjunctions": [conjunction_to_dict(c) for c in conjs],
-        "aspects": [aspect_to_dict(a) for a in asps],
-        "yogas": [yoga_to_dict(y) for y in yogas],
-        "house_rulerships": rulerships,
-        "houses_json": json.dumps(list(range(1, 13))),
-        "asc_json": json.dumps({
-            'rashi': chart.ascendant.rashi,
-            'rashi_index': chart.ascendant.rashi_index,
-        }),
-        "planets_json": json.dumps(_serialize_chart_for_json(chart)),
-    })
+        return templates.TemplateResponse("dashboard.html", {
+            "request": request,
+            "page": "dashboard",
+            "profiles": profiles,
+            "profile_id": pid,
+            "chart": serial,
+            "dasha": dasha_data,
+            "transits": transits_data,
+            "vargas": vargas,
+            "conjunctions": [conjunction_to_dict(c) for c in conjs],
+            "aspects": [aspect_to_dict(a) for a in asps],
+            "yogas": [yoga_to_dict(y) for y in yogas],
+            "house_rulerships": rulerships,
+            "houses_json": json.dumps(list(range(1, 13))),
+            "asc_json": json.dumps({
+                'rashi': chart.ascendant.rashi,
+                'rashi_index': chart.ascendant.rashi_index,
+            }),
+            "planets_json": json.dumps(_serialize_chart_for_json(chart)),
+        })
+    except Exception as e:
+        import traceback
+        return HTMLResponse(content=f"<pre>Error: {str(e)}\n\n{traceback.format_exc()}</pre>", status_code=500)
 
 
 @app.get("/vargas", response_class=HTMLResponse)
