@@ -235,17 +235,34 @@ function deleteProfile() {
     // Outer frame — thick gold border
     s += `<rect x="${PAD}" y="${PAD}" width="${W-PAD*2}" height="${H-PAD*2}" fill="none" stroke="#d4a017" stroke-width="2.5" rx="4"/>`;
 
-    // Inner lines — cross + diamond
+    // FRAME: X (2 diagonals corner to corner) + Diamond (4 midpoint connections)
+    const T = PAD, B = H-PAD, L = PAD, R = W-PAD;
     const LCOL = '#334155', LW = 1.2;
-    // Cross (2 lines through center)
-    s += `<line x1="${C}" y1="${PAD}" x2="${C}" y2="${H-PAD}" stroke="${LCOL}" stroke-width="${LW}"/>`;
-    s += `<line x1="${PAD}" y1="${C}" x2="${W-PAD}" y2="${C}" stroke="${LCOL}" stroke-width="${LW}"/>`;
-    // Diamond (4 lines forming a rotated square in the center)
-    const DM = 110; // diamond half-size
-    s += `<line x1="${C}" y1="${C-DM}" x2="${C+DM}" y2="${C}" stroke="${LCOL}" stroke-width="${LW}"/>`;  // top to right
-    s += `<line x1="${C+DM}" y1="${C}" x2="${C}" y2="${C+DM}" stroke="${LCOL}" stroke-width="${LW}"/>`;  // right to bottom
-    s += `<line x1="${C}" y1="${C+DM}" x2="${C-DM}" y2="${C}" stroke="${LCOL}" stroke-width="${LW}"/>`;  // bottom to left
-    s += `<line x1="${C-DM}" y1="${C}" x2="${C}" y2="${C-DM}" stroke="${LCOL}" stroke-width="${LW}"/>`;  // left to top
+    // X — diagonals
+    s += `<line x1="${L}" y1="${T}" x2="${R}" y2="${B}" stroke="${LCOL}" stroke-width="${LW}"/>`;
+    s += `<line x1="${R}" y1="${T}" x2="${L}" y2="${B}" stroke="${LCOL}" stroke-width="${LW}"/>`;
+    // Diamond — midpoint connections
+    s += `<line x1="${C}" y1="${T}" x2="${R}" y2="${C}" stroke="${LCOL}" stroke-width="${LW}"/>`;
+    s += `<line x1="${R}" y1="${C}" x2="${C}" y2="${B}" stroke="${LCOL}" stroke-width="${LW}"/>`;
+    s += `<line x1="${C}" y1="${B}" x2="${L}" y2="${C}" stroke="${LCOL}" stroke-width="${LW}"/>`;
+    s += `<line x1="${L}" y1="${C}" x2="${C}" y2="${T}" stroke="${LCOL}" stroke-width="${LW}"/>`;
+
+    // House centers — standard North Indian positions
+    // Geometry creates the frame, houses are positioned conventionally
+    const hc = {
+        1:  {x: 220, y: 75},    // top center (Ascendant)
+        2:  {x: 135, y: 75},    // upper-left
+        3:  {x: 75,  y: 135},   // left-upper
+        4:  {x: 75,  y: 220},   // left center
+        5:  {x: 75,  y: 305},   // left-lower
+        6:  {x: 135, y: 365},   // lower-left
+        7:  {x: 220, y: 365},   // bottom center
+        8:  {x: 305, y: 365},   // lower-right
+        9:  {x: 365, y: 305},   // right-lower
+        10: {x: 365, y: 220},   // right center
+        11: {x: 365, y: 135},   // right-upper
+        12: {x: 305, y: 75},    // upper-right
+    };
 
     // Draw each house
     for (let h = 1; h <= 12; h++) {
