@@ -35,6 +35,7 @@ from engine.ai_provider import (
     generate_reading as ai_generate_reading, test_provider, PROVIDER_MODELS,
     DEFAULT_PROVIDERS, AIProvider
 )
+from engine.geocoding import geocode, search_places
 from data.database import (
     list_profiles, get_profile, add_profile, update_profile,
     delete_profile, seed_default_profiles
@@ -466,6 +467,13 @@ async def api_update_ai_settings(request: Request):
 async def api_test_provider(provider_name: str):
     result = test_provider(provider_name)
     return result
+
+
+@app.get("/geocode")
+async def api_geocode(q: str = Query(...)):
+    """Look up coordinates for a place name."""
+    results = search_places(q, limit=5)
+    return {'results': results}
 
 
 # ===== HTML PAGE ROUTES =====

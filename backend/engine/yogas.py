@@ -51,13 +51,16 @@ def detect_raja_yoga(planets: dict[str, PlanetPosition],
         return yogas  # Can't detect without rulership info
 
     # Find which planets rule Kendra and Trikona houses
+    # H1 is excluded from both (it's an overlap, not a true Kendra+Trikona)
+    PURE_KENDRA = {4, 7, 10}
+    PURE_TRIKONA = {5, 9}
     kendra_lords = set()
     trikona_lords = set()
     for planet, houses in planet_houses_ruled.items():
         for h in houses:
-            if h in KENDRA:
+            if h in PURE_KENDRA:
                 kendra_lords.add(planet)
-            if h in TRIKONA:
+            if h in PURE_TRIKONA:
                 trikona_lords.add(planet)
 
     # Check for conjunctions between Kendra and Trikona lords

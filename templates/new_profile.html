@@ -27,11 +27,19 @@
             </div>
         </div>
 
-        <div style="margin-bottom:16px">
+        <div style="margin-bottom:16px; position:relative">
             <label style="color:var(--muted); font-size:0.85em; display:block; margin-bottom:4px">Place of Birth *</label>
-            <input type="text" id="birth_place" required
-                style="width:100%; background:var(--bg); color:var(--text); border:1px solid var(--border); padding:10px; border-radius:4px; font-size:1em"
-                placeholder="City, State, Country">
+            <div style="display:flex; gap:8px">
+                <input type="text" id="birth_place" required
+                    style="flex:1; background:var(--bg); color:var(--text); border:1px solid var(--border); padding:10px; border-radius:4px; font-size:1em"
+                    placeholder="Type city name (e.g. São Paulo)" autocomplete="off">
+                <button type="button" onclick="searchLocation()" id="searchBtn"
+                    style="background:var(--card); color:var(--text); border:1px solid var(--border); padding:10px 16px; border-radius:4px; cursor:pointer; white-space:nowrap">
+                    Search
+                </button>
+            </div>
+            <div id="searchResults" style="display:none; position:absolute; z-index:10; width:100%; background:var(--card); border:1px solid var(--border); border-radius:4px; margin-top:4px; max-height:200px; overflow-y:auto"></div>
+            <div id="searchStatus" style="color:var(--muted); font-size:0.8em; margin-top:4px"></div>
         </div>
 
         <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:16px">
@@ -97,6 +105,78 @@
 
 {% block scripts %}
 <script>
+// Location search
+let searchTimeout = null;
+
+async function searchLocation() {
+    const query = document.getElementById('birth_place').value.trim();
+    if (query.length < 2) return;
+
+    const btn = document.getElementById('searchBtn');
+    const results = document.getElementById('searchResults');
+    const status = document.getElementById('searchStatus');
+
+    btn.textContent = 'Searching...';
+    results.style.display = 'none';
+
+    try {
+        const resp = await fetch('/geocode?q=' + encodeURIComponent(query));
+        const data = await resp.json();
+
+        if (data.results && data.results.length > 0) {
+            results.innerHTML = '';
+            data.results.forEach(r => {
+                const div = document.createElement('div');
+                div.style.cssText = 'padding:10px; cursor:pointer; border-bottom:1px solid var(--border); font-size:0.9em';
+                div.innerHTML = `<strong>${r.name}</strong><br><span style="color:var(--muted); font-size:0.8em">${r.display_name}</span>`;
+                div.onmouseenter = () => div.style.background = 'rgba(255,255,255,0.05)';
+                div.onmouseleave = () => div.style.background = '';
+                div.onclick = () => selectLocation(r);
+                results.appendChild(div);
+            });
+            results.style.display = 'block';
+            status.textContent = `${data.results.length} results found`;
+        } else {
+            status.textContent = 'No results found. Try a different search.';
+        }
+    } catch (err) {
+        status.textContent = 'Search error: ' + err.message;
+    }
+
+    btn.textContent = 'Search';
+}
+
+function selectLocation(r) {
+    document.getElementById('birth_place').value = r.display_name;
+    document.getElementById('latitude').value = r.lat;
+    document.getElementById('longitude').value = r.lon;
+
+    // Auto-select timezone
+    const tzSelect = document.getElementById('tz_offset');
+    for (let opt of tzSelect.options) {
+        if (Math.abs(parseFloat(opt.value) - r.tz_offset) < 0.6) {
+            opt.selected = true;
+            break;
+        }
+    }
+
+    document.getElementById('searchResults').style.display = 'none';
+    document.getElementById('searchStatus').innerHTML = `<span style="color:var(--green)">Found: ${r.lat}, ${r.lon} (UTC${r.tz_offset >= 0 ? '+' : ''}${r.tz_offset})</span>`;
+}
+
+// Auto-search on Enter
+document.getElementById('birth_place').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); searchLocation(); }
+});
+
+// Close dropdown on click outside
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('#birth_place') && !e.target.closest('#searchResults')) {
+        document.getElementById('searchResults').style.display = 'none';
+    }
+});
+
+// Profile form submit
 document.getElementById('profileForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = document.getElementById('submitBtn');
