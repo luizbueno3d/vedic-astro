@@ -187,22 +187,6 @@ function deleteProfile() {
     const asc = {{ asc_json | safe }};
     const planets = {{ planets_json | safe }};
 
-    // House centers — matching the cross + diamond frame
-    const DM = 110;
-    const hc = {
-        1:  {x:C,       y:C-DM/2},    // top center (between cross and diamond)
-        2:  {x:C-DM/2,  y:C-DM-15},   // top-left corner
-        3:  {x:PAD+35,  y:C-DM/2},    // left top
-        4:  {x:C-DM/2,  y:C},         // left center
-        5:  {x:PAD+35,  y:C+DM/2},    // left bottom
-        6:  {x:C-DM/2,  y:C+DM+15},   // bottom-left corner
-        7:  {x:C,       y:C+DM/2},    // bottom center
-        8:  {x:C+DM/2,  y:C+DM+15},   // bottom-right corner
-        9:  {x:W-PAD-35,y:C+DM/2},    // right bottom
-        10: {x:C+DM/2,  y:C},         // right center
-        11: {x:W-PAD-35,y:C-DM/2},    // right top
-        12: {x:C+DM/2,  y:C-DM-15},   // top-right corner
-    };
 
     const signFull = ['Aries','Taurus','Gemini','Cancer','Leo','Virgo','Libra','Scorpio','Sagittarius','Capricorn','Aquarius','Pisces'];
     const signShort = ['Ar','Ta','Ge','Cn','Le','Vi','Li','Sc','Sg','Cp','Aq','Pi'];
