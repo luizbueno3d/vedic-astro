@@ -4,7 +4,8 @@
 {% block content %}
 <h2 style="margin-bottom:4px">
     {{ chart.name }}
-    <button onclick="deleteProfile()" style="background:none; border:1px solid var(--accent2); color:var(--accent2); padding:4px 10px; border-radius:4px; cursor:pointer; font-size:0.7em; margin-left:10px; vertical-align:middle">Delete</button>
+    <a href="/edit/{{ profile_id }}" style="background:var(--card); border:1px solid var(--accent); color:var(--accent); padding:4px 10px; border-radius:4px; font-size:0.7em; margin-left:10px; vertical-align:middle; text-decoration:none">Edit</a>
+    <button onclick="deleteProfile()" style="background:none; border:1px solid var(--accent2); color:var(--accent2); padding:4px 10px; border-radius:4px; cursor:pointer; font-size:0.7em; margin-left:4px; vertical-align:middle">Delete</button>
 </h2>
 <div class="subtitle">{{ chart.birth_date }} · {{ chart.birth_time }} · {{ chart.birth_place }} · Ayanamsa: {{ "%.4f"|format(chart.ayanamsa) }}°</div>
 

@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% block title %}Edit {{ profile.name }} — Vedic Astro{% endblock %}
+
+{% block content %}
+<h2>Edit Profile</h2>
+<p class="subtitle">Update birth data — chart recalculates automatically</p>
+
+<div class="card" style="max-width:600px" id="formCard">
+    <form id="editForm">
+        <div style="margin-bottom:16px">
+            <label style="color:var(--muted); font-size:0.85em; display:block; margin-bottom:4px">Name *</label>
+            <input type="text" id="name" value="{{ profile.name }}" required
+                style="width:100%; background:var(--bg); color:var(--text); border:1px solid var(--border); padding:10px; border-radius:4px; font-size:1em">
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px">
+            <div>
+                <label style="color:var(--muted); font-size:0.85em; display:block; margin-bottom:4px">Date of Birth *</label>
+                <input type="date" id="birth_date" value="{{ profile.birth_date }}" required
+                    style="width:100%; background:var(--bg); color:var(--text); border:1px solid var(--border); padding:10px; border-radius:4px; font-size:1em">
+            </div>
+            <div>
+                <label style="color:var(--muted); font-size:0.85em; display:block; margin-bottom:4px">Time of Birth *</label>
+                <input type="time" id="birth_time" value="{{ profile.birth_time }}" required
+                    style="width:100%; background:var(--bg); color:var(--text); border:1px solid var(--border); padding:10px; border-radius:4px; font-size:1em">
+            </div>
+        </div>
+
+        <div style="margin-bottom:16px; position:relative">
+            <label style="color:var(--muted); font-size:0.85em; display:block; margin-bottom:4px">Place of Birth *</label>
+            <div style="display:flex; gap:8px">
+                <input type="text" id="birth_place" value="{{ profile.birth_place }}" required
+                    style="flex:1; background:var(--bg); color:var(--text); border:1px solid var(--border); padding:10px; border-radius:4px; font-size:1em"
+                    placeholder="Type city name" autocomplete="off">
+                <button type="button" onclick="searchLocation()"
+                    style="background:var(--card); color:var(--text); border:1px solid var(--border); padding:10px 16px; border-radius:4px; cursor:pointer; white-space:nowrap">
+                    Search
+                </button>
+            </div>
+            <div id="searchResults" style="display:none; position:absolute; z-index:10; width:100%; background:var(--card); border:1px solid var(--border); border-radius:4px; margin-top:4px; max-height:200px; overflow-y:auto"></div>
+            <div id="searchStatus" style="color:var(--muted); font-size:0.8em; margin-top:4px"></div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:16px">
+            <div>
+                <label style="color:var(--muted); font-size:0.85em; display:block; margin-bottom:4px">Latitude *</label>
+                <input type="number" step="0.0001" id="latitude" value="{{ profile.latitude }}" required
+                    style="width:100%; background:var(--bg); color:var(--text); border:1px solid var(--border); padding:10px; border-radius:4px; font-size:1em">
+            </div>
+            <div>
+                <label style="color:var(--muted); font-size:0.85em; display:block; margin-bottom:4px">Longitude *</label>
+                <input type="number" step="0.0001" id="longitude" value="{{ profile.longitude }}" required
+                    style="width:100%; background:var(--bg); color:var(--text); border:1px solid var(--border); padding:10px; border-radius:4px; font-size:1em">
+            </div>
+            <div>
+                <label style="color:var(--muted); font-size:0.85em; display:block; margin-bottom:4px">UTC Offset</label>
+                <select id="tz_offset"
+                    style="width:100%; background:var(--bg); color:var(--text); border:1px solid var(--border); padding:10px; border-radius:4px; font-size:1em">
+                    {% for tz in [(-3,'-3 (Brazil BRT)'),(-5,'-5 (US EST)'),(-6,'-6 (US CST)'),(-7,'-7 (US MST)'),(-8,'-8 (US PST)'),(0,'+0 (UK GMT)'),(1,'+1 (CET)'),(5.5,'+5:30 (India)'),(8,'+8 (China/Singapore)'),(9,'+9 (Japan/Korea)')] %}
+                    <option value="{{ tz[0] }}" {% if profile.tz_offset == tz[0] %}selected{% endif %}>{{ tz[1] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div style="margin-bottom:20px">
+            <label style="color:var(--muted); font-size:0.85em; display:block; margin-bottom:4px">Notes</label>
+            <textarea id="notes" rows="2"
+                style="width:100%; background:var(--bg); color:var(--text); border:1px solid var(--border); padding:10px; border-radius:4px; font-size:1em; resize:vertical">{{ profile.notes or '' }}</textarea>
+        </div>
+
+        <div style="display:flex; gap:12px">
+            <button type="submit" id="saveBtn"
+                style="background:var(--accent); color:#111; border:none; padding:12px 24px; border-radius:4px; cursor:pointer; font-weight:600; font-size:1em; flex:1">
+                Save Changes
+            </button>
+            <a href="/dashboard?profile_id={{ profile.id }}"
+                style="background:var(--card); color:var(--muted); border:1px solid var(--border); padding:12px 24px; border-radius:4px; text-decoration:none; text-align:center; display:flex; align-items:center">
+                Cancel
+            </a>
+        </div>
+    </form>
+    <div id="status" style="margin-top:12px; font-size:0.9em"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Location search
+async function searchLocation() {
+    const query = document.getElementById('birth_place').value.trim();
+    if (query.length < 2) return;
+    const results = document.getElementById('searchResults');
+    try {
+        const resp = await fetch('/geocode?q=' + encodeURIComponent(query));
+        const data = await resp.json();
+        if (data.results && data.results.length > 0) {
+            results.innerHTML = '';
+            data.results.forEach(r => {
+                const div = document.createElement('div');
+                div.style.cssText = 'padding:10px; cursor:pointer; border-bottom:1px solid var(--border); font-size:0.9em';
+                div.innerHTML = `<strong>${r.name}</strong><br><span style="color:var(--muted); font-size:0.8em">${r.display_name}</span>`;
+                div.onmouseenter = () => div.style.background = 'rgba(255,255,255,0.05)';
+                div.onmouseleave = () => div.style.background = '';
+                div.onclick = () => {
+                    document.getElementById('birth_place').value = r.display_name;
+                    document.getElementById('latitude').value = r.lat;
+                    document.getElementById('longitude').value = r.lon;
+                    results.style.display = 'none';
+                    document.getElementById('searchStatus').innerHTML = `<span style="color:var(--green)">Found: ${r.lat}, ${r.lon}</span>`;
+                };
+                results.appendChild(div);
+            });
+            results.style.display = 'block';
+        }
+    } catch(e) {}
+}
+document.getElementById('birth_place').addEventListener('keydown', (e) => { if(e.key==='Enter'){e.preventDefault();searchLocation();} });
+
+// Save changes
+document.getElementById('editForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('saveBtn');
+    const status = document.getElementById('status');
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+
+    const data = {
+        name: document.getElementById('name').value,
+        birth_date: document.getElementById('birth_date').value,
+        birth_time: document.getElementById('birth_time').value,
+        birth_place: document.getElementById('birth_place').value,
+        latitude: parseFloat(document.getElementById('latitude').value),
+        longitude: parseFloat(document.getElementById('longitude').value),
+        tz_offset: parseFloat(document.getElementById('tz_offset').value),
+        notes: document.getElementById('notes').value,
+    };
+
+    try {
+        const resp = await fetch('/profiles/{{ profile.id }}', {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data),
+        });
+        const result = await resp.json();
+        if (result.message) {
+            status.innerHTML = '<span style="color:var(--green)">Saved! Redirecting...</span>';
+            setTimeout(() => window.location.href = '/dashboard?profile_id={{ profile.id }}', 500);
+        } else {
+            status.innerHTML = '<span style="color:var(--accent2)">Error</span>';
+            btn.disabled = false;
+            btn.textContent = 'Save Changes';
+        }
+    } catch(err) {
+        status.innerHTML = '<span style="color:var(--accent2)">Error: ' + err.message + '</span>';
+        btn.disabled = false;
+        btn.textContent = 'Save Changes';
+    }
+});
+</script>
+{% endblock %}

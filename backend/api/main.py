@@ -492,6 +492,32 @@ async def page_new_profile(request: Request):
     })
 
 
+@app.get("/edit/{profile_id}", response_class=HTMLResponse)
+async def page_edit_profile(request: Request, profile_id: int):
+    profiles = list_profiles()
+    profile = get_profile(profile_id)
+    if not profile:
+        raise HTTPException(404, "Profile not found")
+    return templates.TemplateResponse("edit_profile.html", {
+        "request": request, "page": "edit_profile", "profiles": profiles,
+        "profile_id": profile_id, "profile": profile,
+    })
+
+
+@app.put("/profiles/{profile_id}")
+async def api_update_profile(profile_id: int, data: ProfileCreate):
+    """Update a profile's birth data."""
+    updated = update_profile(
+        profile_id,
+        name=data.name, birth_date=data.birth_date, birth_time=data.birth_time,
+        birth_place=data.birth_place, latitude=data.latitude, longitude=data.longitude,
+        tz_offset=data.tz_offset, notes=data.notes,
+    )
+    if updated:
+        return {'message': f'Profile updated', 'id': profile_id}
+    raise HTTPException(404, "Profile not found")
+
+
 def _serialize_chart_for_json(chart) -> dict:
     """Serialize chart for JavaScript consumption."""
     planets = {}
