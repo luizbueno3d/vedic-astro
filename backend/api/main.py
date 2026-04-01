@@ -6,7 +6,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from fastapi import FastAPI, HTTPException, Request, Query
-from fastapi.staticfiles import StaticFiles
+
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
@@ -42,14 +42,15 @@ from data.database import (
 
 app = FastAPI(title="Vedic Astro", version="1.0.0")
 
-# Templates & Static
-templates_dir = Path(__file__).parent.parent.parent / 'templates'
-static_dir = Path(__file__).parent.parent / 'static'
-static_dir.mkdir(parents=True, exist_ok=True)
-templates_dir.mkdir(parents=True, exist_ok=True)
+# Templates
+import os as _os
+_base_dir = _os.path.dirname(_os.path.dirname(_os.path.dirname(__file__)))
+templates_dir = _os.path.join(_base_dir, 'templates')
 
-app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
-templates = Jinja2Templates(directory=str(templates_dir))
+# Ensure templates dir exists
+_os.makedirs(templates_dir, exist_ok=True)
+
+templates = Jinja2Templates(directory=templates_dir)
 
 
 # ===== Pydantic Models =====
