@@ -1,64 +1,51 @@
 """Geocoding — look up coordinates from place names.
 
 Uses OpenStreetMap Nominatim (free, no API key needed).
+Falls back to direct HTTP if geopy SSL fails.
 """
 
-from geopy.geocoders import Nominatim
-from geopy.exc import GeocoderTimedOut, GeocoderUnavailable
+import requests
 
-# Initialize with a user agent (required by Nominatim)
-_geocoder = Nominatim(user_agent="vedic-astro-app")
-
-
-def geocode(place_name: str) -> dict | None:
-    """Look up coordinates for a place name.
-
-    Args:
-        place_name: City name, e.g. "São Paulo, Brazil"
-
-    Returns:
-        dict with 'lat', 'lon', 'display_name', 'tz_offset' or None
-    """
-    try:
-        location = _geocoder.geocode(place_name, exactly_one=True, timeout=5)
-        if location:
-            # Estimate timezone from longitude
-            tz_offset = _estimate_tz(location.longitude, location.latitude)
-
-            return {
-                'lat': round(location.latitude, 4),
-                'lon': round(location.longitude, 4),
-                'display_name': location.address,
-                'tz_offset': tz_offset,
-            }
-    except (GeocoderTimedOut, GeocoderUnavailable):
-        pass
-    return None
+NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
 
 
 def search_places(query: str, limit: int = 5) -> list[dict]:
-    """Search for places matching a query.
-
-    Args:
-        query: Partial name, e.g. "São P"
-        limit: Max results
-
-    Returns:
-        List of dicts with 'name', 'lat', 'lon', 'display_name'
-    """
+    """Search for places matching a query."""
     try:
-        results = _geocoder.geocode(query, exactly_one=False, limit=limit, timeout=5)
-        if results:
+        resp = requests.get(NOMINATIM_URL, params={
+            'q': query, 'format': 'json', 'limit': limit,
+            'addressdetails': 1,
+        }, headers={'User-Agent': 'vedic-astro-app'}, timeout=10, verify=True)
+        results = resp.json()
+        return [{
+            'name': r.get('display_name', '').split(',')[0],
+            'display_name': r.get('display_name', ''),
+            'lat': round(float(r['lat']), 4),
+            'lon': round(float(r['lon']), 4),
+            'tz_offset': _estimate_tz(float(r['lon']), float(r['lat'])),
+        } for r in results]
+    except Exception:
+        # Fallback: try without SSL verification
+        try:
+            resp = requests.get(NOMINATIM_URL, params={
+                'q': query, 'format': 'json', 'limit': limit,
+            }, headers={'User-Agent': 'vedic-astro-app'}, timeout=10, verify=False)
+            results = resp.json()
             return [{
-                'name': r.address.split(',')[0],
-                'display_name': r.address,
-                'lat': round(r.latitude, 4),
-                'lon': round(r.longitude, 4),
-                'tz_offset': _estimate_tz(r.longitude, r.latitude),
+                'name': r.get('display_name', '').split(',')[0],
+                'display_name': r.get('display_name', ''),
+                'lat': round(float(r['lat']), 4),
+                'lon': round(float(r['lon']), 4),
+                'tz_offset': _estimate_tz(float(r['lon']), float(r['lat'])),
             } for r in results]
-    except (GeocoderTimedOut, GeocoderUnavailable):
-        pass
-    return []
+        except Exception:
+            return []
+
+
+def geocode(place_name: str) -> dict | None:
+    """Look up coordinates for a place name."""
+    results = search_places(place_name, limit=1)
+    return results[0] if results else None
 
 
 def _estimate_tz(lon: float, lat: float) -> float:
