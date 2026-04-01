@@ -91,10 +91,7 @@ async def api_root():
 
 @app.get("/")
 async def root():
-    return {"app": "Vedic Astro", "version": "1.0.0", "endpoints": [
-        "/profiles", "/chart", "/chart/{profile_id}", "/dasha/{profile_id}",
-        "/transits/{profile_id}", "/vargas/{profile_id}", "/compatibility"
-    ]}
+    return RedirectResponse(url="/dashboard")
 
 
 # --- Profiles ---
