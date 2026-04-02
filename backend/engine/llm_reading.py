@@ -28,113 +28,120 @@ except ImportError:
 def build_chart_context(chart, rulerships, yogas, doshas, shadbala,
                         ashtakavarga, dasha_data, transits, vargas,
                         conjunctions, aspects) -> str:
-    """Build a comprehensive context string from all chart data."""
+    """Build PRE-INTERPRETED context — the AI receives meanings, not raw data."""
+
+    from .interpretations import (
+        interpret_full, interpret_conjunction, interpret_yoga,
+        interpret_dosha, interpret_dasha, NAKSHATRA_INTERPS
+    )
+    from .shadbala import _get_dignity
+    from .jaimini import calculate_chara_karakas, get_karakas_summary
 
     asc = chart.ascendant
     planets = chart.planets
 
     lines = []
-    lines.append(f"BIRTH DATA: {chart.name}, born {chart.birth_date} at {chart.birth_time} in {chart.birth_place}")
+    lines.append(f"CHART: {chart.name}, born {chart.birth_date} {chart.birth_time} in {chart.birth_place}")
     lines.append(f"ASCENDANT: {asc.rashi} {asc.nakshatra} Pada {asc.pada}")
     lines.append("")
 
-    # All planet positions
-    lines.append("PLANETARY POSITIONS (D1):")
+    # === JAIMINI CHARA KARAKAS ===
+    karakas = calculate_chara_karakas(planets)
+    lines.append("JAIMINI CHARA KARAKAS:")
+    lines.append(get_karakas_summary(karakas))
+    lines.append("")
+
+    # === PLANETS WITH PRE-COMPUTED INTERPRETATIONS ===
+    lines.append("=== PLANETARY POSITIONS (with interpretations) ===")
     for name in ['Sun','Moon','Mars','Mercury','Jupiter','Venus','Saturn','Rahu','Ketu']:
         p = planets[name]
-        retro = " (R)" if p.retrograde else ""
-        lines.append(f"  {name}: {p.rashi} {p.degree_in_sign:.2f}° in H{p.house}, {p.nakshatra} Pada {p.pada}{retro}")
+        houses_ruled = rulerships.get(name, [])
+        dignity = _get_dignity(name, p.rashi_index)
+        d9_sign = vargas['D9']['signs'].get(name, '') if vargas else ''
+        d10_sign = vargas['D10']['signs'].get(name, '') if vargas else ''
 
+        interp = interpret_full(
+            name, p.rashi, p.house, p.nakshatra, p.pada,
+            p.retrograde, houses_ruled, dignity, d9_sign, d10_sign
+        )
+        lines.append(f"\n{name} ({p.rashi} {p.degree_in_sign:.1f}° H{p.house}):")
+        lines.append(f"  {interp}")
     lines.append("")
 
-    # House rulerships
-    lines.append("HOUSE RULERSHIPS:")
-    for planet, houses in sorted(rulerships.items()):
-        p = planets[planet]
-        lines.append(f"  {planet}: rules H{houses}, placed in H{p.house} ({p.rashi})")
+    # === CONJUNCTIONS WITH MEANINGS ===
+    if conjunctions:
+        lines.append("=== CONJUNCTIONS ===")
+        for c in conjunctions:
+            interp = interpret_conjunction(
+                c['planets'][0], c['planets'][1],
+                c['house'], c['sign'], c['orb']
+            )
+            lines.append(f"  {interp}")
+        lines.append("")
 
-    lines.append("")
-
-    # Yogas
+    # === YOGAS WITH MEANINGS ===
     if yogas:
-        lines.append("YOGAS:")
+        lines.append("=== YOGAS ===")
         for y in yogas:
-            lines.append(f"  {y.name}: {y.description} [{y.strength}]")
+            interp = interpret_yoga(y.name, y.planets, y.description, y.strength)
+            lines.append(f"  {interp}")
+        lines.append("")
 
-    lines.append("")
-
-    # Doshas
+    # === DOSHAS WITH MEANINGS ===
     if doshas:
-        lines.append("DOSHAS:")
+        lines.append("=== DOSHAS ===")
         for d in doshas:
-            lines.append(f"  {d.name} ({d.severity}): {d.description}")
-    else:
-        lines.append("DOSHAS: None active")
+            interp = interpret_dosha(d.name, d.severity, d.description, d.remedy)
+            lines.append(f"  {interp}")
+        lines.append("")
 
-    lines.append("")
-
-    # Shadbala ranking
+    # === SHADBALA ===
     if shadbala and shadbala.get('ranking'):
-        lines.append("SHADBALA (planetary strength ranking):")
+        lines.append("=== PLANETARY STRENGTH ===")
         for r in shadbala['ranking']:
             p = shadbala['planets'][r['planet']]
             lines.append(f"  #{r['rank']} {r['planet']}: {r['score']:.3f} ({p['dignity']}, H{p['house']})")
+        lines.append("")
 
-    lines.append("")
-
-    # Ashtakavarga
+    # === ASHTAKAVARGA ===
     if ashtakavarga and ashtakavarga.get('house_scores'):
-        lines.append("ASHTAKAVARGA (house strength):")
-        for h in range(1, 13):
-            lines.append(f"  H{h}: {ashtakavarga['house_scores'][h]} bindus")
+        scores = ashtakavarga['house_scores']
+        strong = [f"H{h}" for h, s in scores.items() if s >= 5]
+        weak = [f"H{h}" for h, s in scores.items() if s < 4]
+        lines.append("=== HOUSE STRENGTH ===")
+        lines.append(f"  Strong: {', '.join(strong) if strong else 'none'}")
+        lines.append(f"  Weak: {', '.join(weak) if weak else 'none'}")
+        lines.append("")
 
-    lines.append("")
-
-    # D9 Navamsha
-    if vargas and 'D9' in vargas:
-        lines.append("D9 NAVAMSHA:")
-        for p, s in vargas['D9']['signs'].items():
-            lines.append(f"  {p}: {s}")
-
-    lines.append("")
-
-    # D10 Career
-    if vargas and 'D10' in vargas:
-        lines.append("D10 DASHAMAMSHA (career):")
-        for p, s in vargas['D10']['signs'].items():
-            lines.append(f"  {p}: {s}")
-
-    lines.append("")
-
-    # Conjunctions
-    if conjunctions:
-        lines.append("CONJUNCTIONS:")
-        for c in conjunctions:
-            lines.append(f"  {c['planets'][0]} + {c['planets'][1]} in H{c['house']} ({c['sign']}), orb {c['orb']}°")
-
-    lines.append("")
-
-    # Current dasha
+    # === DASHA WITH INTERPRETATION ===
     current = dasha_data.get('current', {})
     if current.get('mahadasha'):
         md = current['mahadasha']
-        lines.append(f"CURRENT DASHA: {md['lord']} Mahadasha ({md['start']} to {md['end']})")
-    if current.get('antardasha'):
-        ad = current['antardasha']
-        lines.append(f"  Antardasha: {ad['lord']} ({ad['start']} to {ad['end']})")
-    if current.get('pratyantardasha'):
-        pd = current['pratyantardasha']
-        lines.append(f"  Pratyantardasha: {pd['lord']} ({pd['start']} to {pd['end']})")
+        ad = current.get('antardasha', {})
+        pd = current.get('pratyantardasha', {})
+        lines.append("=== CURRENT PERIOD ===")
+        interp = interpret_dasha(md['lord'], ad.get('lord', '?'), pd.get('lord', '?'))
+        lines.append(f"  {interp}")
+        from datetime import date
+        end = date.fromisoformat(md['end'])
+        remaining = (end - date.today()).days
+        lines.append(f"  {remaining} days ({remaining/365.25:.1f}y) remaining in {md['lord']} MD")
+        if ad:
+            end_ad = date.fromisoformat(ad['end'])
+            remaining_ad = (end_ad - date.today()).days
+            lines.append(f"  {remaining_ad} days remaining in {ad['lord']} AD")
+        lines.append("")
 
-    lines.append("")
-
-    # Current transits (key planets)
+    # === TRANSITS ===
     if transits:
-        lines.append("CURRENT TRANSITS:")
-        for name in ['Saturn','Jupiter','Rahu','Mars','Moon']:
+        lines.append("=== CURRENT TRANSITS ===")
+        for name in ['Saturn','Jupiter','Rahu','Mars']:
             if name in transits:
                 t = transits[name]
-                lines.append(f"  {name}: {t['rashi']} H{t['house']} (orb from natal: {t['orb']:+.1f}°)")
+                lines.append(f"  {name}: transiting {t['rashi']} H{t['house']}")
+        lines.append("")
+
+    return "\n".join(lines)
 
     return "\n".join(lines)
 
