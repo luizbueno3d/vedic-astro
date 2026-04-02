@@ -146,14 +146,14 @@
 </head>
 <body>
     <nav>
-        <a href="/" class="brand">☿ Vedic Astro</a>
-        <a href="/dashboard" class="{% if page == 'dashboard' %}active{% endif %}">Dashboard</a>
-        <a href="/vargas" class="{% if page == 'vargas' %}active{% endif %}">Divisionals</a>
-        <a href="/analysis" class="{% if page == 'analysis' %}active{% endif %}">Analysis</a>
-        <a href="/reading" class="{% if page == 'reading' %}active{% endif %}">Reading</a>
+        <a href="/dashboard?profile_id={{ profile_id }}" class="brand">☿ Vedic Astro</a>
+        <a href="/dashboard?profile_id={{ profile_id }}" class="{% if page == 'dashboard' %}active{% endif %}">Dashboard</a>
+        <a href="/vargas?profile_id={{ profile_id }}" class="{% if page == 'vargas' %}active{% endif %}">Divisionals</a>
+        <a href="/analysis?profile_id={{ profile_id }}" class="{% if page == 'analysis' %}active{% endif %}">Analysis</a>
+        <a href="/reading?profile_id={{ profile_id }}" class="{% if page == 'reading' %}active{% endif %}">Reading</a>
         <a href="/ai-settings" class="{% if page == 'ai_reading' %}active{% endif %}">AI Interpretations</a>
-        <a href="/dasha" class="{% if page == 'dasha' %}active{% endif %}">Dasha</a>
-        <a href="/compatibility" class="{% if page == 'compatibility' %}active{% endif %}">Compatibility</a>
+        <a href="/dasha?profile_id={{ profile_id }}" class="{% if page == 'dasha' %}active{% endif %}">Dasha</a>
+        <a href="/compatibility?profile_id={{ profile_id }}" class="{% if page == 'compatibility' %}active{% endif %}">Compatibility</a>
         <select id="profileSelect" onchange="switchProfile(this.value)">
             {% for p in profiles %}
             <option value="{{ p.id }}" {% if p.id == profile_id %}selected{% endif %}>{{ p.name }}</option>
