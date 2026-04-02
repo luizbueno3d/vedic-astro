@@ -1,0 +1,62 @@
+{
+  "openai": {
+    "name": "openai",
+    "label": "OpenAI",
+    "api_key": "",
+    "model": "gpt-4o-mini",
+    "base_url": "https://api.openai.com/v1",
+    "enabled": false,
+    "max_tokens": 4000,
+    "temperature": 0.7
+  },
+  "anthropic": {
+    "name": "anthropic",
+    "label": "Anthropic (Claude)",
+    "api_key": "",
+    "model": "claude-sonnet-4-20250514",
+    "base_url": "https://api.anthropic.com/v1",
+    "enabled": false,
+    "max_tokens": 4000,
+    "temperature": 0.7
+  },
+  "minimax": {
+    "name": "minimax",
+    "label": "MiniMax",
+    "api_key": "sk-cp-EMEoC2oXf2luvqVRsLx8PN0JTZgToQ95bMDZOOIYpo_e_S-vvDQkBIXr67LYF8AzMKQBo6ko-La7xywLqptRPE4WToTvdot5BmUx9EGcuOqKnMlEY7pXr_c",
+    "model": "MiniMax-M2.5",
+    "base_url": "https://api.minimaxi.chat/v1",
+    "enabled": true,
+    "max_tokens": 4000,
+    "temperature": 0.7
+  },
+  "groq": {
+    "name": "groq",
+    "label": "Groq (Free)",
+    "api_key": "",
+    "model": "llama-3.3-70b-versatile",
+    "base_url": "https://api.groq.com/openai/v1",
+    "enabled": false,
+    "max_tokens": 4000,
+    "temperature": 0.7
+  },
+  "openrouter": {
+    "name": "openrouter",
+    "label": "OpenRouter",
+    "api_key": "",
+    "model": "meta-llama/llama-3.1-70b-instruct",
+    "base_url": "https://openrouter.ai/api/v1",
+    "enabled": false,
+    "max_tokens": 4000,
+    "temperature": 0.7
+  },
+  "ollama": {
+    "name": "ollama",
+    "label": "Ollama (Local)",
+    "api_key": "",
+    "model": "llama3.1",
+    "base_url": "http://localhost:11434/v1",
+    "enabled": false,
+    "max_tokens": 4000,
+    "temperature": 0.7
+  }
+}

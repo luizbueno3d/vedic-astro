@@ -241,7 +241,13 @@ def _call_openai_compatible(provider: AIProvider, system: str, user: str) -> str
     resp.raise_for_status()
     data = resp.json()
 
-    return data['choices'][0]['message']['content']
+    result = data['choices'][0]['message']['content']
+
+    # Clean up: remove <think> tags (some models include reasoning)
+    import re
+    result = re.sub(r'<think>.*?</think>', '', result, flags=re.DOTALL).strip()
+
+    return result
 
 
 def test_provider(name: str) -> dict:
