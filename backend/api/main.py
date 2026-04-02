@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from fastapi import FastAPI, HTTPException, Request, Query
+from fastapi import FastAPI, HTTPException, Request, Query, UploadFile, File
 
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -36,6 +36,7 @@ from engine.ai_provider import (
     DEFAULT_PROVIDERS, AIProvider
 )
 from engine.geocoding import geocode, search_places
+from engine.transcription import transcribe_audio
 from data.database import (
     list_profiles, get_profile, add_profile, update_profile,
     delete_profile, seed_default_profiles
@@ -488,6 +489,17 @@ async def api_geocode(q: str = Query(...)):
     """Look up coordinates for a place name."""
     results = search_places(q, limit=5)
     return {'results': results}
+
+
+@app.post("/transcribe")
+async def api_transcribe(audio: UploadFile = File(...)):
+    """Transcribe uploaded audio file using local Whisper."""
+    try:
+        audio_bytes = await audio.read()
+        result = transcribe_audio(audio_bytes, audio.filename or 'audio.ogg')
+        return result
+    except Exception as e:
+        raise HTTPException(500, f"Transcription error: {str(e)}")
 
 
 # ===== HTML PAGE ROUTES =====
