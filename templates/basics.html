@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}Astrology Basics — Vedic Astro{% endblock %}
+
+{% block content %}
+<h2>Astrology Basics</h2>
+<p class="subtitle">A beginner-friendly guide to reading the app without getting lost in jargon</p>
+
+<div class="card" style="margin-bottom:20px; border-color:var(--blue)">
+    <h3>What To Read First</h3>
+    <p style="margin:0; line-height:1.75">
+        Astrology can become confusing when everything looks equally important. It is not. In this app,
+        the best reading order is: <strong>first the D1 birth chart</strong>, <strong>second the Ascendant and its ruler</strong>,
+        <strong>third the Moon</strong>, <strong>fourth the main planetary placements and house rulers</strong>,
+        <strong>fifth yogas and strengths</strong>, <strong>sixth timing through dashas</strong>, and <strong>finally transits and BCC/KP manifestation shifts</strong>.
+        If something appears later, it usually refines the earlier layers instead of replacing them.
+    </p>
+</div>
+
+<div class="grid grid-2">
+    <div class="card">
+        <h3>D1 / Rashi Chart</h3>
+        <p style="line-height:1.7">This is the main birth chart. Think of it as the master blueprint. If you only looked at one chart, this would be the one.</p>
+
+        <h3>Ascendant</h3>
+        <p style="line-height:1.7">The Ascendant is the sign rising at birth. It describes the person carrying the whole chart: body, direction, instinct, and how life begins to unfold.</p>
+
+        <h3>Ascendant Lord</h3>
+        <p style="line-height:1.7">This is the ruler of the Ascendant sign. Many astrologers treat it as one of the most important planets because it shows how the native actually operates in life.</p>
+
+        <h3>Moon</h3>
+        <p style="line-height:1.7">The Moon shows the lived mind: emotions, habits, inner experience, and what a person feels day to day. It is also central to dasha timing.</p>
+
+        <h3>Sun</h3>
+        <p style="line-height:1.7">The Sun shows vitality, confidence, authority, purpose, and the drive to express oneself.</p>
+    </div>
+
+    <div class="card">
+        <h3>Sign</h3>
+        <p style="line-height:1.7">A sign shows the style or flavor of a planet.</p>
+
+        <h3>House</h3>
+        <p style="line-height:1.7">A house shows the life area where something happens: relationships, career, money, home, spirituality, and so on.</p>
+
+        <h3>Nakshatra</h3>
+        <p style="line-height:1.7">A nakshatra is a lunar mansion. It adds a deeper psychological script or motive behind the planet.</p>
+
+        <h3>Pada</h3>
+        <p style="line-height:1.7">A pada is one quarter of a nakshatra. It gives a finer detail, like a micro-tone inside the nakshatra.</p>
+
+        <h3>House Lord</h3>
+        <p style="line-height:1.7">Each house has a ruling planet. Astrologers often judge a house by looking at its ruler first, because the ruler carries that house's results into another part of the chart.</p>
+    </div>
+</div>
+
+<div class="grid grid-2" style="margin-top:20px">
+    <div class="card">
+        <h3>Dasha</h3>
+        <p style="line-height:1.7">Dasha means planetary time period. This is one of the most important timing tools in Vedic astrology.</p>
+
+        <h3>Mahadasha</h3>
+        <p style="line-height:1.7">The main chapter of life. It sets the broader tone for years.</p>
+
+        <h3>Antardasha</h3>
+        <p style="line-height:1.7">The sub-period inside the Mahadasha. It explains why the same major period changes flavor over time.</p>
+
+        <h3>Pratyantardasha</h3>
+        <p style="line-height:1.7">A smaller trigger inside the Antardasha. It is useful for the current active wave.</p>
+
+        <h3>Transit / Gochar</h3>
+        <p style="line-height:1.7">This shows where planets are moving now. Transits usually trigger what the birth chart and dasha already made possible.</p>
+    </div>
+
+    <div class="card">
+        <h3>Jaimini Karakas</h3>
+        <p style="line-height:1.7">These are role-significators based on planetary degree. In this app, they use the 7 classical planets only.</p>
+
+        <h3>Atmakaraka</h3>
+        <p style="line-height:1.7">The planet with the highest degree. It points to the soul-pressure, deepest lesson, or life purpose theme.</p>
+
+        <h3>Amatyakaraka</h3>
+        <p style="line-height:1.7">The second-highest degree planet. It is strongly tied to work, implementation, career direction, and how the soul purpose becomes action.</p>
+
+        <h3>Darakaraka</h3>
+        <p style="line-height:1.7">The partnership significator in Jaimini astrology. It helps describe what kind of relationship karma the person carries.</p>
+
+        <h3>Important Note</h3>
+        <p style="line-height:1.7">Rahu and Ketu are not used as Jaimini Chara Karakas in this app.</p>
+    </div>
+</div>
+
+<div class="grid grid-2" style="margin-top:20px">
+    <div class="card">
+        <h3>Yoga</h3>
+        <p style="line-height:1.7">A yoga is a special planetary combination. Some yogas are powerful, but they should support the chart basics rather than replace them.</p>
+
+        <h3>Shadbala</h3>
+        <p style="line-height:1.7">A strength score for planets. Useful, but not more important than the actual chart structure.</p>
+
+        <h3>Aspects</h3>
+        <p style="line-height:1.7">Aspects show which planets are influencing each other across the chart.</p>
+
+        <h3>Conjunction</h3>
+        <p style="line-height:1.7">A conjunction means planets are together in the same sign/house area, blending their energies.</p>
+    </div>
+
+    <div class="card">
+        <h3>D9 / Navamsha</h3>
+        <p style="line-height:1.7">A divisional chart used for inner maturity, marriage, and the deeper condition of planets. It confirms the D1; it does not replace it.</p>
+
+        <h3>D10 / Dashamsha</h3>
+        <p style="line-height:1.7">A divisional chart used mainly for career and public work.</p>
+
+        <h3>BCC / KP Bhava Chalit</h3>
+        <p style="line-height:1.7">This is the manifestation layer. The D1 chart shows the natal setup, while BCC helps show where results land in lived experience, especially in dashas.</p>
+
+        <h3>How To Think About It</h3>
+        <p style="line-height:1.7">A simple rule: D1 tells you what the planet is; BCC tells you where that result tends to show up in real life.</p>
+    </div>
+</div>
+{% endblock %}

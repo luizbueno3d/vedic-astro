@@ -16,6 +16,7 @@ import json
 from engine.ephemeris import calculate_chart, deg_to_dms, get_rashi_lord, RASHIS
 from engine.charts import get_varga_signs, VARGA_FUNCTIONS
 from engine.kp import calculate_kp_bhava_chalit, kp_to_dict
+from engine.jaimini import calculate_chara_karakas, calculate_jaimini_raja_yoga, get_jaimini_interpretation
 from engine.dasha import (
     calculate_mahadasha, calculate_antardasha, calculate_pratyantardasha,
     get_current_dasha_periods, dasha_to_dict, get_starting_dasha
@@ -355,6 +356,17 @@ async def api_bhavat_bhavam(profile_id: int):
     return {'bhavat_bhavam': bb}
 
 
+@app.get("/jaimini/{profile_id}")
+async def api_jaimini(profile_id: int):
+    chart = _chart_from_profile(profile_id)
+    karakas = calculate_chara_karakas(chart.planets)
+    return {
+        'karakas': karakas,
+        'interpretation': get_jaimini_interpretation(karakas),
+        'raja_yogas': calculate_jaimini_raja_yoga(karakas),
+    }
+
+
 @app.get("/doshas/{profile_id}")
 async def api_doshas(profile_id: int):
     chart = _chart_from_profile(profile_id)
@@ -469,6 +481,18 @@ async def api_update_ai_settings(request: Request):
 async def api_test_provider(provider_name: str):
     result = test_provider(provider_name)
     return result
+
+
+@app.get("/basics", response_class=HTMLResponse)
+async def page_basics(request: Request, profile_id: int = Query(None)):
+    profiles = list_profiles()
+    pid = profile_id or _get_default_profile_id()
+    return templates.TemplateResponse("basics.html", {
+        "request": request,
+        "page": "basics",
+        "profiles": profiles,
+        "profile_id": pid,
+    })
 
 
 @app.get("/geocode")

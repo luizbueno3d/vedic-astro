@@ -4,6 +4,14 @@
 {% block content %}
 <h2>Divisional Charts — {{ chart.name }}</h2>
 <p class="subtitle">Shodasha Varga (16 divisions) — D9, D10, D7 verified against AstroSage</p>
+<div class="card" style="margin-bottom:20px; border-color:var(--blue)">
+    <h3>What These Charts Are</h3>
+    <p style="margin:0; line-height:1.7">
+        Divisional charts are support charts. They do not replace the birth chart; they refine it.
+        A simple way to think about them: the D1 chart gives the main life structure, and these charts zoom in on specific topics.
+        For example, <strong>D9</strong> is often used for marriage and inner maturity, <strong>D10</strong> for career, and <strong>D7</strong> for children and creative lineage.
+    </p>
+</div>
 
 <div class="grid grid-3">
     {% for varga_id, varga in vargas.items() %}

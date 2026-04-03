@@ -7,7 +7,7 @@ analysis so the final reading is deeper than a single prompt dump.
 
 from .ai_provider import generate_reading as ai_generate_reading, get_active_provider
 from .interpretations import interpret_conjunction, interpret_dasha, interpret_dosha, interpret_full, interpret_yoga
-from .jaimini import calculate_chara_karakas, get_karakas_summary
+from .jaimini import calculate_chara_karakas, get_karakas_priority_notes, get_karakas_summary
 from .kp import calculate_kp_bhava_chalit
 
 
@@ -25,6 +25,117 @@ HOUSE_TOPICS = {
     11: 'gains, networks, ambitions',
     12: 'loss, solitude, foreign lands, moksha',
 }
+
+
+READING_PRIORITIES = """READING PRIORITY HIERARCHY
+
+1. Start with D1 baseline: lagna, lagna lord, Moon, Sun, house lords, dignity, conjunctions, aspects.
+2. Judge houses through their lords before jumping to yogas.
+3. Use strength as a filter, not as the main story.
+4. Use nakshatra and pada to refine expression after sign-house-lordship is understood.
+5. Use Jaimini karakas as a second-pass lens, not as a replacement for D1 structure.
+6. Use D9 and D10 as confirmation layers, not standalone charts.
+7. Read dasha before transits for timing.
+8. Use BCC/KP to explain where results manifest, not to erase natal sign nature.
+"""
+
+
+READING_BLUEPRINT = """FINAL READING BLUEPRINT
+
+Write the reading in this exact order, with explicit section headers.
+
+1. Cosmic Blueprint
+- 2-4 paragraphs only.
+- Start by telling the reader why this section comes first.
+- State the core paradox of the chart.
+- Name the D1 ascendant, Moon, Atmakaraka, and the main BCC shift pattern.
+- Say what kind of human being this chart describes before discussing life areas.
+
+2. Key BCC Shifts
+- Bullet list.
+- One-line intro explaining that D1 shows natal setup, while BCC shows where results land in real life.
+- Use literal notation such as: Mercury: D1 H8 -> BCC H7.
+- Only include the most meaningful shifts.
+- After each shift, add one short clause about how manifestation changes.
+
+3. Identity and Psychology
+- Explain the inner self using D1.
+- Explain how the world experiences the person using BCC when relevant.
+- Resolve contradictions instead of listing them.
+
+4. Strengths and Natural Gifts
+- Focus on the strongest planets, yogas, house strengths, and supportive varga confirmations.
+- Explain why these strengths matter in real life.
+
+5. Friction, Blind Spots, and Lessons
+- Cover difficult planets, weak houses, doshas, and internal tensions.
+- Be honest but not dramatic.
+- Every challenge must include the mechanism of the problem, not just the label.
+
+6. Career, Work, and Material Direction
+- Use 10th house logic, relevant yogas, D10, and BCC operational shifts.
+- Explain how work actually manifests, not just ideal professions.
+
+7. Relationships and Intimacy
+- Use 7th house logic, Venus, Moon, D9, and BCC when it changes the lived expression.
+- Distinguish between what the native wants, what they attract, and how relationship karma manifests.
+
+8. Health, Energy, and Nervous System
+- Keep it grounded.
+- Talk about stress patterns, depletion patterns, recovery style, and practical regulation.
+
+9. Spiritual Pattern and Inner Evolution
+- Use 8th, 9th, 12th houses, Ketu, Jupiter, Moon, and any strong moksha signatures.
+- Explain the actual doorway to growth.
+
+10. Current Dasha and Active Timing
+- This is one of the most important sections.
+- Briefly explain in plain language that dasha means time period, antardasha means sub-period, and pratyantardasha means the smaller active trigger inside it.
+- For Mahadasha, Antardasha, and Pratyantardasha lords, explain:
+  - what the planet means naturally
+  - what it does in D1
+  - where it manifests in BCC
+  - what this means in lived reality now
+- If D1 and BCC differ, explicitly explain the blend.
+
+11. Practical Advice Now
+- End with concrete advice.
+- Give specific behavioral guidance, not generic spirituality.
+- Make it feel earned by the chart.
+
+EXPLANATION RULES FOR NON-ASTROLOGERS
+- Assume the reader is intelligent but new to astrology.
+- Whenever you introduce a Sanskrit or technical term, explain it in plain English immediately.
+- Tell the reader why each section matters before interpreting it.
+- Make the order visible: say first, second, third, next, finally when useful.
+- Do not drown the reader in jargon. Translate, then interpret.
+- If something is especially important, say that clearly and explain why it outranks the next layer.
+- In the opening sections, explicitly orient the reader with phrases like "First we look at..." and "Next we look at...".
+
+STYLE RULES
+- Follow the reading priority hierarchy supplied in the context.
+- No example stories unless directly tied to chart logic.
+- No generic astrology filler.
+- No unsupported claims.
+- Never invent placements or karakas.
+- Rahu and Ketu are NOT Jaimini chara karakas.
+- Do not rename BCC as D7, Saptamsha, or any other varga.
+- Use only the data explicitly present in the supplied context.
+- If something is uncertain, speak cautiously instead of hallucinating.
+"""
+
+
+FACT_GUARDRAILS = """FACT GUARDRAILS
+
+- Chara karakas in this system use 7 classical planets only.
+- Rahu and Ketu never become Atmakaraka, Amatyakaraka, Darakaraka, or any other chara karaka here.
+- D1 = natal architecture.
+- Moon is the secondary lived lens after lagna, especially for mental and emotional experience.
+- BCC = operative manifestation field, especially important for dasha results.
+- BCC is not D7.
+- Do not override the supplied chart facts with your own remembered astrology rules.
+- If the context says a planet is D1 H8 and BCC H7, preserve that exactly.
+"""
 
 
 def _format_house_list(houses: list[int]) -> str:
@@ -107,6 +218,7 @@ def build_chart_context(chart, rulerships, yogas, doshas, shadbala,
 
     lines = []
     lines.append(f'CHART: {chart.name}, born {chart.birth_date} {chart.birth_time} in {chart.birth_place}')
+    lines.append(READING_PRIORITIES)
     lines.append(f'D1 ASCENDANT: {asc.rashi} {asc.nakshatra} Pada {asc.pada}')
     lines.append(
         f'BCC ASCENDANT: {kp_data.kp_asc_rashi} (KP effective ascendant, idx={kp_data.kp_asc_idx}) | '
@@ -118,6 +230,12 @@ def build_chart_context(chart, rulerships, yogas, doshas, shadbala,
     karakas = calculate_chara_karakas(planets)
     lines.append('=== JAIMINI CHARA KARAKAS ===')
     lines.append(get_karakas_summary(karakas))
+    lines.append(get_karakas_priority_notes(karakas))
+    lines.append('')
+
+    lines.append('=== FOUNDATIONAL READING ORDER ===')
+    lines.append('Read lagna, lagna lord, Moon, Sun, house lords, conjunctions, and aspects before yogas or timing.')
+    lines.append('Use nakshatra/pada for refinement, vargas for confirmation, dasha for timing, and BCC for manifestation.')
     lines.append('')
 
     lines.append('=== PLANETARY POSITIONS (D1 + BCC) ===')
@@ -162,6 +280,16 @@ def build_chart_context(chart, rulerships, yogas, doshas, shadbala,
                     conjunction['sign'],
                     conjunction['orb'],
                 )
+            )
+        lines.append('')
+
+    if aspects:
+        lines.append('=== ASPECTS ===')
+        sorted_aspects = sorted(aspects, key=lambda aspect: aspect.get('orb', 999))
+        for aspect in sorted_aspects[:18]:
+            lines.append(
+                f"{aspect['from']} -> {aspect['to']} | {aspect['type']} | "
+                f"H{aspect['from_house']} -> H{aspect['to_house']} | orb {aspect['orb']}"
             )
         lines.append('')
 
@@ -218,7 +346,8 @@ def build_chart_context(chart, rulerships, yogas, doshas, shadbala,
 
 
 def _run_stage(system_prompt: str, user_prompt: str) -> str:
-    result = ai_generate_reading(system_prompt, user_prompt)
+    full_system_prompt = f"{FACT_GUARDRAILS}\n\n{system_prompt}"
+    result = ai_generate_reading(full_system_prompt, user_prompt)
     return result.strip()
 
 
@@ -242,15 +371,17 @@ def generate_llm_reading(chart, rulerships, yogas, doshas, shadbala,
         """You are a senior Vedic astrologer. Produce analyst notes, not the final reading.
 
 Focus on:
-- core identity from D1 Ascendant, Moon, Atmakaraka, strongest planets, yogas
+- core identity from D1 Ascendant, lagna lord, Moon, Sun, Atmakaraka, strongest planets, yogas
 - contradictions and tensions in the chart
 - what is psychologically central versus socially visible
 
 Rules:
+- foundation first: lagna, lagna lord, Moon, Sun, house lords, conjunctions, aspects before yogas
 - be concrete and chart-specific
 - mention exact signs, nakshatras, houses when relevant
 - write 5-8 dense bullet points
-- do not write generic astrology filler""",
+- do not write generic astrology filler
+- do not invent or re-rank karakas beyond the supplied Jaimini summary""",
         f"""Study this chart context and extract the deepest identity-level notes.
 
 {context}""",
@@ -267,9 +398,11 @@ Your job is to explain Bhava Chalit Chart (BCC) shifts.
 
 Rules:
 - focus hard on planets that shift houses
+- preserve natal sign nature; explain only the house manifestation shift
 - give practical examples of blended manifestation
 - especially analyze the current Mahadasha, Antardasha, and Pratyantardasha lords
-- write 6-10 bullet points""",
+- write 6-10 bullet points
+- do not discuss Jaimini karakas unless they appear in the supplied context""",
         f"""Analyze this chart with special emphasis on BCC/KP shifts and dasha activation.
 
 {context}""",
@@ -284,17 +417,19 @@ Focus on:
 - concrete near-term themes and what the person should actually do
 
 Rules:
+- dasha first, transit second
 - prioritize what is active now over abstract potential
 - use D9 and D10 where helpful
 - include tensions, not just strengths
-- write 6-10 bullet points""",
+- write 6-10 bullet points
+- ground every prediction in supplied chart facts""",
         f"""Extract predictive and practical timing notes from this chart context.
 
 {context}""",
     )
 
     return _run_stage(
-        """You are an expert Vedic astrologer writing a long-form premium reading.
+        f"""You are an expert Vedic astrologer writing a long-form premium reading.
 
 This reading must feel deep, specific, and layered - not shallow.
 
@@ -303,12 +438,12 @@ Core framework:
 - BCC (Bhava Chalit Chart, KP / Nakshatra Nadi) = operative field where results manifest
 - During dasha interpretation, always integrate both, but give BCC special weight for event manifestation
 
+{READING_BLUEPRINT}
+
 Writing requirements:
-- 1400 to 2200 words
-- use section headers
-- include a short section named "Key BCC Shifts" near the top
-- in that section, use literal notation like "Mercury: D1 H8 -> BCC H7"
-- cover: Identity, Strengths, Friction/Challenges, Career, Relationships, Health/Energy, Spiritual Pattern, Current Dasha, Timing Ahead, Advice
+- 1600 to 2600 words
+- follow the blueprint exactly
+- make the reading pedagogical: explain what the reader should look at first and why
 - explicitly explain important D1 vs BCC house shifts
 - if a dasha lord shifts houses in BCC, name both houses and explain how the result blends
 - be warm, intelligent, direct, and nuanced

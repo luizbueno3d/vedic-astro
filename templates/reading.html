@@ -4,6 +4,18 @@
 {% block content %}
 <h2>Synthesized Reading — {{ chart.name }}</h2>
 <p class="subtitle">{{ chart.birth_date }} · {{ chart.birth_time }} · {{ chart.birth_place }}</p>
+<div class="card" style="margin-bottom:20px; border-color:var(--blue)">
+    <h3>Reading Order</h3>
+    <p style="margin:0; line-height:1.7">
+        This reading works in layers. First comes the birth-chart foundation, because that is the base promise of the chart.
+        Then come strengths and tensions, then timing, and only after that the more advanced refinements. If a section appears earlier, it is because it matters more for understanding the rest.
+    </p>
+    <p style="margin:12px 0 0; line-height:1.7">
+        If words like nakshatra, dasha, or karaka are new to you, open the
+        <a href="/basics?profile_id={{ profile_id }}" style="color:var(--blue)">Astrology Basics guide</a>
+        first.
+    </p>
+</div>
 
 <!-- Summary -->
 <div class="card" style="margin-bottom:20px; border-color: var(--accent)">

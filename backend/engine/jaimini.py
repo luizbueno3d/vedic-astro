@@ -32,7 +32,9 @@ def calculate_chara_karakas(planets: dict) -> dict:
 
     The planet with the HIGHEST degree (within its sign) is the Atmakaraka.
     Second highest = Amatyakaraka, and so on.
-    Rahu is included but counted in reverse (highest degree = lowest karaka).
+    This implementation follows the 7 classical chara karakas only:
+    Sun, Moon, Mars, Mercury, Jupiter, Venus, Saturn.
+    Rahu and Ketu do not participate.
 
     Args:
         planets: dict of {name: PlanetPosition} with .degree_in_sign attribute
@@ -40,7 +42,7 @@ def calculate_chara_karakas(planets: dict) -> dict:
     Returns:
         dict of {karaka_name: {'planet': name, 'degree': float, 'sign': str, ...}}
     """
-    # Collect degrees for 7 classical planets + Rahu
+    # Collect degrees for the 7 classical planets only.
     degrees = []
     for name in ['Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn']:
         if name in planets:
@@ -55,20 +57,6 @@ def calculate_chara_karakas(planets: dict) -> dict:
                 'pada': p.pada,
                 'retrograde': p.retrograde,
             })
-
-    # Add Rahu (counted in reverse for degree comparison)
-    if 'Rahu' in planets:
-        p = planets['Rahu']
-        degrees.append({
-            'planet': 'Rahu',
-            'degree': p.degree_in_sign,
-            'sign': p.rashi,
-            'sign_index': p.rashi_index,
-            'house': p.house,
-            'nakshatra': p.nakshatra,
-            'pada': p.pada,
-            'retrograde': False,
-        })
 
     # Sort by degree (highest first)
     degrees.sort(key=lambda x: x['degree'], reverse=True)
@@ -123,10 +111,6 @@ def interpret_atmakaraka(ak_data: dict) -> str:
             "Your Atmakaraka is the Moon — the planet of emotions and nurturing. "
             "Your soul's purpose is to feel deeply and nurture others."
         ),
-        'Rahu': (
-            "Your Atmakaraka is Rahu — the north node, the planet of desire and obsession. "
-            "Your soul's purpose is to break boundaries and explore the unknown."
-        ),
     }
 
     text = ak_meanings.get(planet, f"Your Atmakaraka is {planet}.")
@@ -169,7 +153,6 @@ def interpret_darakaraka(dk_data: dict) -> str:
         'Jupiter': 'Your spouse has Jupiterian qualities — wise, generous, philosophical. They may be in teaching, law, or spirituality. They bring wisdom and expansion.',
         'Venus': 'Your spouse has Venusian qualities — beautiful, artistic, diplomatic. They may be in arts, beauty, or diplomacy. They bring harmony and charm.',
         'Saturn': 'Your spouse has Saturnian qualities — disciplined, mature, responsible. They may be older in spirit or experience. They bring structure and commitment.',
-        'Rahu': 'Your spouse is unconventional — from a different background, culture, or field. They bring excitement and the unexpected.',
     }
 
     text = dk_meanings.get(planet, f'Your Darakaraka is {planet}.')
@@ -235,6 +218,21 @@ def get_karakas_summary(karakas: dict) -> str:
             k = karakas[role]
             info = KARAKA_ROLES[role]
             lines.append(f"  {info['short']} {role}: {k['planet']} ({k['degree']:.2f}° in {k['sign']}, H{k['house']}) — {info['meaning']}")
+    return "\n".join(lines)
+
+
+def get_karakas_priority_notes(karakas: dict) -> str:
+    """Readable Jaimini notes for interpretation prompts."""
+    lines = []
+    lines.append('JAIMINI PRIORITY NOTES:')
+    lines.append('  Read Atmakaraka first for soul-pressure and core lesson.')
+    lines.append('  Read Amatyakaraka second for vocation, implementation, and worldly role.')
+    lines.append('  Read Darakaraka for spouse/partnership pattern.')
+    lines.append('  Remaining karakas refine siblings, mother, children/creativity, and conflict/relatives.')
+    for role in ['Atmakaraka', 'Amatyakaraka', 'Darakaraka', 'Putrakaraka', 'Matrukaraka', 'Bhratrukaraka', 'Gnatikaraka']:
+        if role in karakas:
+            k = karakas[role]
+            lines.append(f"  {role}: {k['planet']} in {k['sign']} H{k['house']}")
     return "\n".join(lines)
 
 

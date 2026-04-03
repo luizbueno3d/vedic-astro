@@ -8,17 +8,30 @@
     <button onclick="deleteProfile()" style="background:none; border:1px solid var(--accent2); color:var(--accent2); padding:4px 10px; border-radius:4px; cursor:pointer; font-size:0.7em; margin-left:4px; vertical-align:middle">Delete</button>
 </h2>
 <div class="subtitle">{{ chart.birth_date }} · {{ chart.birth_time }} · {{ chart.birth_place }} · Ayanamsa: {{ "%.4f"|format(chart.ayanamsa) }}°</div>
+<div style="margin:12px 0 20px">
+    <a href="/basics?profile_id={{ profile_id }}" style="display:inline-block; background:var(--blue); color:white; text-decoration:none; padding:8px 12px; border-radius:6px; font-size:0.9em; font-weight:600">New here? Read Astrology Basics</a>
+</div>
 
 <div class="grid grid-2">
     <!-- North Indian Chart -->
     <div class="card">
         <h3>D1 — Rashi Chart (North Indian)</h3>
+        <p style="color:var(--muted); font-size:0.9em; margin:-6px 0 12px">
+            Start here first. This is the base chart of the whole reading: your sky map at birth.
+            In plain English, it shows the main structure of your life. The Ascendant and its ruler are usually the first things to judge,
+            because they describe the person carrying the whole chart.
+        </p>
         <div id="chart-container" style="text-align:center"></div>
     </div>
 
     <!-- Planet Table -->
     <div class="card">
         <h3>Planetary Positions</h3>
+        <p style="color:var(--muted); font-size:0.9em; margin:-6px 0 12px">
+            This table shows where each planet sits in your birth chart. Think of it like this:
+            sign = style, house = life area, nakshatra = deeper motive, pada = fine detail.
+            These positions matter before timing, because dashas and transits can only activate what is already promised here.
+        </p>
         <table>
             <tr><th>Planet</th><th>Sign</th><th>Deg</th><th>Nakshatra</th><th>H</th><th>Lord</th></tr>
             {% for name, p in chart.planets.items() %}
@@ -39,6 +52,10 @@
     <!-- Current Dasha -->
     <div class="card">
         <h3>Current Dasha</h3>
+        <p style="color:var(--muted); font-size:0.9em; margin:-6px 0 12px">
+            Dashas are planetary time periods. Mahadasha is the big chapter of life, Antardasha is the sub-chapter,
+            and Pratyantardasha is the smaller trigger inside it. If you want to know what is most active now, this is one of the most important places to look.
+        </p>
         {% if dasha.current.mahadasha %}
         <table>
             <tr><th>Level</th><th>Lord</th><th>Start</th><th>End</th></tr>
@@ -85,6 +102,10 @@
     <!-- Current Transits -->
     <div class="card">
         <h3>Current Transits (Gochar)</h3>
+        <p style="color:var(--muted); font-size:0.9em; margin:-6px 0 12px">
+            Transits show where planets are moving now. They are important, but they come after the birth chart and the dasha.
+            In simple terms: the natal chart shows the promise, the dasha shows the active period, and transits show what is triggering it now.
+        </p>
         <table>
             <tr><th>Planet</th><th>Sign</th><th>Deg</th><th>House</th><th>From Natal</th></tr>
             {% for name, t in transits.items() %}
@@ -103,6 +124,10 @@
 <!-- D9 Quick View -->
 <div class="card" style="margin-top:20px">
     <h3>D9 Navamsha (Quick View)</h3>
+    <p style="color:var(--muted); font-size:0.9em; margin:-6px 0 12px">
+        D9 is a divisional chart used as a confirmation layer. Many astrologers use it for marriage, inner maturity, and the deeper strength of planets.
+        It should support the birth chart, not replace it.
+    </p>
     <table style="max-width:600px">
         <tr><th>Planet</th><th>D9 Sign</th></tr>
         {% for planet, sign in vargas.D9.signs.items() %}
@@ -115,6 +140,10 @@
 <div class="card" style="margin-top:20px">
     <h3>KP Bhava Chalit — Nakshatra Nadi System</h3>
     <p style="color:var(--muted); font-size:0.85em; margin:-8px 0 12px">House placement based on sub-lord of nakshatra pada — the system Babajeet uses for real Dasha results.</p>
+    <p style="color:var(--muted); font-size:0.9em; margin:-4px 0 12px">
+        Read this after the D1 chart, not before it. The D1 chart shows the natal setup; this BCC/KP layer shows where results tend to land in real life,
+        especially during dashas. So a planet keeps its natal nature, but its lived manifestation may shift houses here.
+    </p>
     <div id="kp-chart-container" style="text-align:center"></div>
 
     <h4 style="margin-top:20px">Planet Placements — Regular vs KP</h4>
@@ -146,6 +175,10 @@
     <!-- House Rulerships -->
     <div class="card">
         <h3>House Rulerships</h3>
+        <p style="color:var(--muted); font-size:0.9em; margin:-6px 0 12px">
+            This shows which planet governs which life area. Astrologers often judge a house through its ruler first,
+            because the ruler tells you how that part of life behaves and where its results are carried.
+        </p>
         <table>
             <tr><th>House</th><th>Lord</th><th>Placed In</th></tr>
             {% for planet, houses in house_rulerships.items() %}
@@ -161,6 +194,10 @@
     <!-- Yogas Detected -->
     <div class="card">
         <h3>Yogas Detected</h3>
+        <p style="color:var(--muted); font-size:0.9em; margin:-6px 0 12px">
+            Yogas are special planetary combinations. They matter, but they do not come before the basics of the chart.
+            A yoga is strongest when the involved planets are actually strong and active in timing.
+        </p>
         {% if yogas %}
         <table>
             {% for y in yogas %}
@@ -185,6 +222,10 @@
 <!-- Conjunctions -->
 <div class="card" style="margin-top:20px">
     <h3>Conjunctions</h3>
+    <p style="color:var(--muted); font-size:0.9em; margin:-6px 0 12px">
+        Conjunction means two planets are sitting together in the same sign/house area. This blends their energies,
+        which can be powerful, complicated, or both depending on the planets involved.
+    </p>
     {% if conjunctions %}
     <table style="max-width:500px">
         <tr><th>Planets</th><th>House</th><th>Sign</th><th>Orb</th></tr>

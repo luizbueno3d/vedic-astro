@@ -4,11 +4,23 @@
 {% block content %}
 <h2>Dasha Timeline — {{ chart.name }}</h2>
 <p class="subtitle">Starting Dasha: {{ dasha.starting_dasha }} · Moon in {{ chart.planets.Moon.nakshatra }} {{ chart.planets.Moon.rashi }}</p>
+<div class="card" style="margin-bottom:20px; border-color:var(--blue)">
+    <h3>How To Read This</h3>
+    <p style="margin:0; line-height:1.7">
+        Dasha means planetary time period. In simple language, this page shows which planet is running your life chapter now.
+        <strong>Mahadasha</strong> is the main chapter, <strong>Antardasha</strong> is the sub-chapter, and <strong>Pratyantardasha</strong> is the smaller active trigger.
+        If you want to understand what is unfolding right now, start with the currently active periods before looking at future timelines.
+    </p>
+</div>
 
 <!-- Current Period -->
 {% if dasha.current.mahadasha %}
 <div class="card" style="margin-bottom:20px; border-color: var(--accent)">
     <h3>Currently Active</h3>
+    <p style="color:var(--muted); font-size:0.9em; margin:-6px 0 12px">
+        This is the most important block on the page because it shows the period you are living now.
+        Read top-down: Mahadasha first, then Antardasha, then Pratyantardasha.
+    </p>
     <table>
         <tr><th>Level</th><th>Lord</th><th>Start</th><th>End</th><th>Duration</th></tr>
         <tr>
@@ -50,6 +62,10 @@
 {% if antardashas %}
 <div class="card" style="margin-bottom:20px">
     <h3>Antardashas within {{ dasha.current.mahadasha.lord }} MD</h3>
+    <p style="color:var(--muted); font-size:0.9em; margin:-6px 0 12px">
+        Once you know the big chapter, look here to see the sub-periods inside it.
+        This helps explain why the same Mahadasha can feel different from year to year.
+    </p>
     <table>
         <tr><th>Lord</th><th>Start</th><th>End</th><th>Duration</th><th></th></tr>
         {% for ad in antardashas %}
@@ -69,6 +85,9 @@
 {% if pratyantardashas %}
 <div class="card" style="margin-bottom:20px">
     <h3>Pratyantardashas within {{ dasha.current.antardasha.lord }} AD</h3>
+    <p style="color:var(--muted); font-size:0.9em; margin:-6px 0 12px">
+        This is the smallest timing layer shown here. Use it for the fine-grained trigger inside the active sub-period.
+    </p>
     <table>
         <tr><th>Lord</th><th>Start</th><th>End</th><th>Duration</th><th></th></tr>
         {% for pd in pratyantardashas %}
@@ -87,6 +106,10 @@
 <!-- Full Mahadasha Timeline -->
 <div class="card">
     <h3>Full Mahadasha Timeline (120 years)</h3>
+    <p style="color:var(--muted); font-size:0.9em; margin:-6px 0 12px">
+        This is the long-range timeline of the whole Vimshottari cycle. It is useful for context,
+        but for practical reading the current period block above matters more.
+    </p>
     <table>
         <tr><th>#</th><th>Lord</th><th>Start</th><th>End</th><th>Duration</th><th></th></tr>
         {% for md in dasha.mahadashas %}
