@@ -3,7 +3,7 @@
 
 {% block content %}
 <h2>AI Interpretations</h2>
-<p class="subtitle">Configure an AI provider, then generate personalized readings on demand</p>
+<p class="subtitle">Configure an AI provider, then generate deeper layered readings that combine D1 with the Bhava Chalit Chart (BCC)</p>
 
 <!-- Provider Selection -->
 <div class="card" style="margin-bottom:20px">
@@ -112,21 +112,22 @@
 <!-- What the AI Sees -->
 <div class="card">
     <h3>What the AI Receives</h3>
-    <p class="subtitle">Our calculated data is already highly structured — the AI just synthesizes it</p>
+    <p class="subtitle">Our calculated data is already highly structured, and the AI now analyzes it in multiple passes instead of one shallow shot</p>
     <table>
         <tr><th>Data Layer</th><th>What's Included</th></tr>
-        <tr><td>Positions</td><td>All 9 planets, exact degrees, nakshatras, padas, houses</td></tr>
+        <tr><td>Positions</td><td>All 9 planets, exact degrees, nakshatras, padas, natal D1 houses</td></tr>
+        <tr><td>BCC / KP</td><td>Bhava Chalit Chart operative houses, KP ascendant shift, D1 -> BCC house changes</td></tr>
         <tr><td>Rulerships</td><td>Which planet rules which house, where it's placed</td></tr>
         <tr><td>Yogas</td><td>Raja, Dhana, Viparita, Gaja Kesari, Budhaditya, etc.</td></tr>
         <tr><td>Doshas</td><td>Mangal, Kaal Sarpa, Sade Sati</td></tr>
         <tr><td>Strength</td><td>Shadbala ranking, Ashtakavarga scores</td></tr>
         <tr><td>Divisionals</td><td>D9 (marriage), D10 (career)</td></tr>
         <tr><td>Aspects</td><td>Conjunctions, Vedic Drishti</td></tr>
-        <tr><td>Timing</td><td>Current MD/AD/PD, Saturn/Jupiter transits</td></tr>
+        <tr><td>Timing</td><td>Current MD/AD/PD, with BCC house activation for dasha lords, plus Saturn/Jupiter transits</td></tr>
     </table>
     <div style="margin-top:12px; color:var(--muted); font-size:0.85em">
-        The AI doesn't need to calculate anything — it just needs to CONNECT the dots and produce narrative.
-        This means even cheap/free models produce good readings.
+        The AI does not calculate astrology from scratch. It receives the computed chart, BCC shifts, current dasha activations,
+        then builds the final reading layer by layer.
     </div>
 </div>
 {% endblock %}

@@ -30,10 +30,10 @@ from engine.doshas import detect_all_doshas, dosha_to_dict
 from engine.guna_milan import calculate_guna_milan
 from engine.reading import generate_reading
 from engine.synthesis import synthesize
-from engine.llm_reading import generate_llm_reading, build_chart_context
+from engine.llm_reading import generate_llm_reading
 from engine.ai_provider import (
     load_config, save_config, get_active_provider, update_provider,
-    generate_reading as ai_generate_reading, test_provider, PROVIDER_MODELS,
+    test_provider, PROVIDER_MODELS,
     DEFAULT_PROVIDERS, AIProvider
 )
 from engine.geocoding import geocode, search_places
@@ -405,37 +405,14 @@ async def api_llm_reading(profile_id: int):
     transits = calculate_transits(chart)
     transits_data = {k: transit_to_dict(v) for k, v in transits.items()}
 
-    # Build context
-    context = build_chart_context(
-        chart, rulerships, yogas, doshas, sb, sav,
-        dasha_data, transits_data, vargas,
-        [conjunction_to_dict(c) for c in conjs], asps
-    )
-
-    system_prompt = """You are an expert Vedic astrologer writing a personalized reading. The chart data is PRE-CALCULATED — you don't need to compute anything. Your job is to SYNTHESIZE and NARRATE.
-
-TONE: Warm, honest, empowering. Follow this structure for every point:
-1. REALITY — what this actually means (honest, no sugarcoating)
-2. HOW TO HANDLE IT — practical advice
-3. THE MAGIC — what becomes possible when mastered
-
-RULES:
-- Lead with strengths, not problems
-- Every challenge is framed as a growth opportunity
-- Never exaggerate — keep it grounded
-- Be specific: reference exact degrees, nakshatras, houses
-- Connect the dots between different parts of the chart
-- Keep it under 800 words
-- Use clear sections with headers"""
-
-    user_prompt = f"""Analyze this Vedic chart and write a reading covering: Identity, Strengths, Challenges, Career, Relationships, Health, Current Period, Timing, Advice.
-
-{context}"""
-
     provider = get_active_provider()
     provider_name = provider.label if provider else 'none'
 
-    llm_text = ai_generate_reading(system_prompt, user_prompt)
+    llm_text = generate_llm_reading(
+        chart, rulerships, yogas, doshas, sb, sav,
+        dasha_data, transits_data, vargas,
+        [conjunction_to_dict(c) for c in conjs], asps,
+    )
 
     return {'reading': llm_text, 'provider': provider_name}
 
