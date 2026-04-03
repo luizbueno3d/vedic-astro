@@ -52,6 +52,13 @@ def _get_kp_house_midpoint(chart: ChartData, house_number: int) -> float:
     return _forward_midpoint(cusps[idx], cusps[(idx + 1) % 12])
 
 
+def _longitude_in_forward_arc(longitude: float, start: float, end: float) -> bool:
+    """Return whether longitude falls in the forward arc [start, end)."""
+    rel_longitude = (_normalize_angle(longitude) - _normalize_angle(start)) % 360.0
+    rel_end = (_normalize_angle(end) - _normalize_angle(start)) % 360.0
+    return rel_longitude < rel_end
+
+
 def get_kp_ascendant_index(chart: ChartData) -> int:
     """Compute the KP effective ascendant sign from the 1st-house midpoint.
 
@@ -64,9 +71,18 @@ def get_kp_ascendant_index(chart: ChartData) -> int:
     return int(midpoint / 30)
 
 
-def calculate_kp_house(planet: PlanetPosition, kp_asc_idx: int) -> int:
-    """Calculate KP house from the planet's actual natal rashi."""
-    return ((planet.rashi_index - kp_asc_idx) % 12) + 1
+def calculate_kp_house(planet: PlanetPosition, chart: ChartData) -> int:
+    """Calculate KP house from the planet's longitude within cusp intervals."""
+    cusps = chart.house_cusps_placidus
+    if len(cusps) != 12:
+        raise ValueError('KP house calculation requires 12 placidus cusps')
+
+    for idx, start in enumerate(cusps):
+        end = cusps[(idx + 1) % 12]
+        if _longitude_in_forward_arc(planet.longitude, start, end):
+            return idx + 1
+
+    return 12
 
 
 @dataclass
@@ -120,7 +136,7 @@ def calculate_kp_bhava_chalit(chart: ChartData) -> KPBhavaChalit:
 
     for name, planet in chart.planets.items():
         sl = get_sub_lord(planet.nakshatra_index, planet.pada)
-        kp_house = calculate_kp_house(planet, kp_asc_idx)
+        kp_house = calculate_kp_house(planet, chart)
 
         kp_planets[name] = KPPlanetPlacement(
             planet=name,
