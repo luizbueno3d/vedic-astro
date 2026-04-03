@@ -111,6 +111,37 @@
     </table>
 </div>
 
+<!-- KP Bhava Chalit -->
+<div class="card" style="margin-top:20px">
+    <h3>KP Bhava Chalit — Nakshatra Nadi System</h3>
+    <p style="color:var(--muted); font-size:0.85em; margin:-8px 0 12px">House placement based on sub-lord of nakshatra pada — the system Babajeet uses for real Dasha results.</p>
+    <div id="kp-chart-container" style="text-align:center"></div>
+
+    <h4 style="margin-top:20px">Planet Placements — Regular vs KP</h4>
+    <table style="max-width:600px">
+        <tr><th>Planet</th><th>Nakshatra</th><th>Sub-Lord</th><th>Regular H</th><th>KP House</th></tr>
+        {% for name, p in chart.planets.items() %}
+        <tr>
+            <td><strong>{{ name }}</strong></td>
+            <td>{{ p.nakshatra }} {{ p.pada }}</td>
+            <td class="kp-sl-{{ name }}">{{ kp.planets[name].sub_lord }}</td>
+            <td>{{ p.house }}</td>
+            <td class="current">H{{ kp.planets[name].kp_house }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <h4 style="margin-top:16px">Sub-Lord House Rulerships</h4>
+    <table style="max-width:400px">
+        <tr><th>Sub-Lord</th><th>KP Houses Ruled</th></tr>
+        {% for lord, houses in kp.house_rulerships.items() %}
+        {% if houses %}
+        <tr><td><strong>{{ lord }}</strong></td><td>H{{ houses | join(', H') }}</td></tr>
+        {% endif %}
+        {% endfor %}
+    </table>
+</div>
+
 <div class="grid grid-2" style="margin-top:20px">
     <!-- House Rulerships -->
     <div class="card">
@@ -294,6 +325,87 @@ function deleteProfile() {
 
     s += '</svg>';
     document.getElementById('chart-container').innerHTML = s;
+})();
+</script>
+<script>
+// KP Bhava Chalit Chart
+(function() {
+    const kpData = {{ kp | tojson | safe }};
+    const W = 440, H = 440, PAD = 24, C = W/2;
+    const asc = {{ asc_json | safe }};
+
+    const signShort = ['Ar','Ta','Ge','Cn','Le','Vi','Li','Sc','Sg','Cp','Aq','Pi'];
+    const elemColor = ['#ef4444','#22c55e','#3b82f6','#a855f7'];
+    const elemIdx = [0,1,2,3,0,1,2,3,0,1,2,3];
+    const pAbbr = {Sun:'Su',Moon:'Mo',Mars:'Ma',Mercury:'Me',Jupiter:'Ju',Venus:'Ve',Saturn:'Sa',Rahu:'Ra',Ketu:'Ke'};
+    const pColors = {Sun:'#f59e0b',Moon:'#e2e8f0',Mars:'#ef4444',Mercury:'#22c55e',Jupiter:'#f59e0b',Venus:'#ec4899',Saturn:'#6366f1',Rahu:'#8b5cf6',Ketu:'#8b5cf6'};
+
+    const ascIdx = asc.rashi_index;
+    function getSign(h) { return (ascIdx + h - 1) % 12; }
+
+    const hc = {
+        1:  {x: 220, y: 75}, 2:  {x: 135, y: 75}, 3:  {x: 75,  y: 135},
+        4:  {x: 75,  y: 220}, 5:  {x: 75,  y: 305}, 6:  {x: 135, y: 365},
+        7:  {x: 220, y: 365}, 8:  {x: 305, y: 365}, 9:  {x: 365, y: 305},
+        10: {x: 365, y: 220}, 11: {x: 365, y: 135}, 12: {x: 305, y: 75},
+    };
+
+    let s = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="max-width:100%;border-radius:12px" xmlns="http://www.w3.org/2000/svg">`;
+    s += `<defs>
+        <linearGradient id="kp-bg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#0f172a"/>
+            <stop offset="100%" stop-color="#1e1b4b"/>
+        </linearGradient>
+        <filter id="kp-glow"><feGaussianBlur stdDeviation="2" result="g"/><feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    </defs>`;
+    s += `<rect width="${W}" height="${H}" fill="url(#kp-bg)" rx="12"/>`;
+    s += `<rect x="${PAD}" y="${PAD}" width="${W-PAD*2}" height="${H-PAD*2}" fill="none" stroke="#8b5cf6" stroke-width="2.5" rx="4"/>`;
+
+    const T = PAD, B = H-PAD, L = PAD, R = W-PAD;
+    const LCOL = '#4c1d95', LW = 1.2;
+    s += `<line x1="${L}" y1="${T}" x2="${R}" y2="${B}" stroke="${LCOL}" stroke-width="${LW}"/>`;
+    s += `<line x1="${R}" y1="${T}" x2="${L}" y2="${B}" stroke="${LCOL}" stroke-width="${LW}"/>`;
+    s += `<line x1="${C}" y1="${T}" x2="${R}" y2="${C}" stroke="${LCOL}" stroke-width="${LW}"/>`;
+    s += `<line x1="${R}" y1="${C}" x2="${C}" y2="${B}" stroke="${LCOL}" stroke-width="${LW}"/>`;
+    s += `<line x1="${C}" y1="${B}" x2="${L}" y2="${C}" stroke="${LCOL}" stroke-width="${LW}"/>`;
+    s += `<line x1="${L}" y1="${C}" x2="${C}" y2="${T}" stroke="${LCOL}" stroke-width="${LW}"/>`;
+
+    // Draw each house with KP planets
+    for (let h = 1; h <= 12; h++) {
+        const p = hc[h];
+        const si = getSign(h);
+        const ec = elemColor[elemIdx[si]];
+
+        // KP house label
+        s += `<text x="${p.x-24}" y="${p.y-18}" fill="${ec}" font-size="11" font-weight="700" opacity="0.9">${signShort[si]}</text>`;
+        s += `<text x="${p.x+24}" y="${p.y+32}" fill="#7c3aed" font-size="9" text-anchor="end" font-weight="700">H${h}</text>`;
+
+        // KP planets in this house
+        let here = [];
+        for (const [nm, kpp] of Object.entries(kpData.planets)) {
+            if (kpp.kp_house === h) {
+                const ab = pAbbr[nm] || nm.slice(0,2);
+                const col = pColors[nm] || '#e2e8f0';
+                const retro = {{ planets_json | safe }}[nm] && {{ planets_json | safe }}[nm].retrograde;
+                here.push({ab, col, retro, sl: kpp.sub_lord});
+            }
+        }
+
+        if (here.length > 0) {
+            const fs = here.length > 3 ? 9 : here.length > 2 ? 11 : 13;
+            here.forEach((pl, i) => {
+                const yOff = (i - (here.length-1)/2) * (fs + 5);
+                const label = pl.retro ? pl.ab + '℞' : pl.ab;
+                const col = pl.retro ? '#f87171' : pl.col;
+                s += `<text x="${p.x}" y="${p.y + yOff - 4}" fill="${col}" font-size="${fs}" text-anchor="middle" font-weight="800" filter="url(#kp-glow)">${label}</text>`;
+                s += `<text x="${p.x}" y="${p.y + yOff + (fs - 2)}" fill="#a78bfa" font-size="7" text-anchor="middle">${pl.sl}</text>`;
+            });
+        }
+    }
+
+    s += `<text x="${C}" y="${H-6}" fill="#7c3aed" font-size="7" text-anchor="middle" letter-spacing="1">KP BHAVA CHALIT · NAKSHATRA NADI</text>`;
+    s += '</svg>';
+    document.getElementById('kp-chart-container').innerHTML = s;
 })();
 </script>
 {% endblock %}

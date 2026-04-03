@@ -15,6 +15,7 @@ import json
 
 from engine.ephemeris import calculate_chart, deg_to_dms, get_rashi_lord, RASHIS
 from engine.charts import get_varga_signs, VARGA_FUNCTIONS
+from engine.kp import calculate_kp_bhava_chalit, kp_to_dict
 from engine.dasha import (
     calculate_mahadasha, calculate_antardasha, calculate_pratyantardasha,
     get_current_dasha_periods, dasha_to_dict, get_starting_dasha
@@ -212,6 +213,15 @@ async def api_vargas(profile_id: int, varga: str = None):
         return {varga: all_vargas[varga]}
 
     return all_vargas
+
+
+# --- KP Bhava Chalit ---
+
+@app.get("/kp/{profile_id}")
+async def api_kp(profile_id: int):
+    chart = _chart_from_profile(profile_id)
+    kp = calculate_kp_bhava_chalit(chart)
+    return kp_to_dict(kp)
 
 
 # --- Dasha ---
@@ -591,6 +601,10 @@ async def page_dashboard(request: Request, profile_id: int = Query(None)):
         # Vargas
         vargas = get_varga_signs(chart)
 
+        # KP Bhava Chalit
+        kp = calculate_kp_bhava_chalit(chart)
+        kp_data = kp_to_dict(kp)
+
         # Aspects & Yogas
         conjs = find_conjunctions(chart.planets)
         asps = find_aspects(chart.planets)
@@ -606,6 +620,7 @@ async def page_dashboard(request: Request, profile_id: int = Query(None)):
             "dasha": dasha_data,
             "transits": transits_data,
             "vargas": vargas,
+            "kp": kp_data,
             "conjunctions": [conjunction_to_dict(c) for c in conjs],
             "aspects": [aspect_to_dict(a) for a in asps],
             "yogas": [yoga_to_dict(y) for y in yogas],
