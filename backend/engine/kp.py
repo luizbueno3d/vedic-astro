@@ -1,16 +1,12 @@
 """KP (Krishnamurti Paddhati) Bhava Chalit system.
 
-In KP, house positions differ from Whole Sign because the KP system
-uses a different ascendant reference point for Bhava Chalit house calculation.
-The sub-lord sequence is used for finer significations, not for the
-primary house shift.
+KP Bhava Chalit uses unequal house cusps, but the sign-based house mapping used
+by this app is derived from the midpoint between adjacent cusps. That midpoint
+can shift the effective ascendant sign away from the raw D1 ascendant sign.
 """
 
 from dataclasses import dataclass
-from .ephemeris import (
-    PlanetPosition, ChartData, RASHIS, NAKSHATRAS, NAKSHATRA_LORDS,
-    NAK_SPAN
-)
+from .ephemeris import PlanetPosition, ChartData, RASHIS, NAK_SPAN
 
 SUB_LORD_SEQUENCE = [
     'Ketu', 'Venus', 'Sun', 'Moon', 'Mars', 'Rahu', 'Jupiter', 'Saturn', 'Mercury'
@@ -36,18 +32,41 @@ def get_sub_lord_from_longitude(longitude: float) -> str:
     return get_sub_lord(nak_idx, pada)
 
 
-def get_kp_ascendant_index(chart: ChartData) -> int:
-    """Compute the KP effective ascendant sign index.
+def _normalize_angle(angle: float) -> float:
+    return angle % 360.0
 
-    When the natal ascendant falls in the LAST pada of its nakshatra
-    (pada 4), and is approaching the next sign cusp, KP Bhava Chalit
-    uses the NEXT sign as the effective ascendant for house calculations.
-    This is the key difference from D1 Whole Sign houses.
+
+def _forward_midpoint(start: float, end: float) -> float:
+    """Return the midpoint when moving forward from start to end."""
+    span = (_normalize_angle(end) - _normalize_angle(start)) % 360.0
+    return _normalize_angle(start + span / 2.0)
+
+
+def _get_kp_house_midpoint(chart: ChartData, house_number: int) -> float:
+    """Return the midpoint between a house cusp and the next cusp."""
+    cusps = chart.house_cusps_placidus
+    if len(cusps) != 12:
+        raise ValueError('KP house calculation requires 12 placidus cusps')
+
+    idx = house_number - 1
+    return _forward_midpoint(cusps[idx], cusps[(idx + 1) % 12])
+
+
+def get_kp_ascendant_index(chart: ChartData) -> int:
+    """Compute the KP effective ascendant sign from the 1st-house midpoint.
+
+    KP Bhava Chalit cusps come from the unequal house system. For the compact
+    sign-based mapping used elsewhere in the app, we take the midpoint between
+    the 1st and 2nd cusps and use the sign containing that midpoint as the
+    effective ascendant sign.
     """
-    asc = chart.ascendant
-    if asc.pada == 4:
-        return (asc.rashi_index + 1) % 12
-    return asc.rashi_index
+    midpoint = _get_kp_house_midpoint(chart, 1)
+    return int(midpoint / 30)
+
+
+def calculate_kp_house(planet: PlanetPosition, kp_asc_idx: int) -> int:
+    """Calculate KP house from the planet's actual natal rashi."""
+    return ((planet.rashi_index - kp_asc_idx) % 12) + 1
 
 
 @dataclass
@@ -87,6 +106,9 @@ def calculate_kp_bhava_chalit(chart: ChartData) -> KPBhavaChalit:
     interpretation and Dasha signification work.
     """
     asc = chart.ascendant
+    if asc is None:
+        raise ValueError('KP calculation requires a chart ascendant')
+
     d1_asc_idx = asc.rashi_index
     kp_asc_idx = get_kp_ascendant_index(chart)
 
@@ -98,7 +120,7 @@ def calculate_kp_bhava_chalit(chart: ChartData) -> KPBhavaChalit:
 
     for name, planet in chart.planets.items():
         sl = get_sub_lord(planet.nakshatra_index, planet.pada)
-        kp_house = ((planet.rashi_index - kp_asc_idx) % 12) + 1
+        kp_house = calculate_kp_house(planet, kp_asc_idx)
 
         kp_planets[name] = KPPlanetPlacement(
             planet=name,
