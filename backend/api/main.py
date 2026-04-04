@@ -24,7 +24,7 @@ from engine.dasha import (
 from engine.transits import calculate_transits, find_sign_changes, transit_to_dict
 from engine.aspects import find_conjunctions, find_aspects, conjunction_to_dict, aspect_to_dict
 from engine.yogas import detect_all_yogas, yoga_to_dict, calculate_house_rulerships
-from engine.bhavat_bhavam import get_all_bhavat_bhavam, get_planet_bhavat_bhavam
+from engine.bhavat_bhavam import get_all_bhavat_bhavam, get_planet_bhavat_bhavam, get_planet_house_from_house_analysis
 from engine.ashtakavarga import calculate_sarva_ashtakavarga, interpret_sav_score
 from engine.shadbala import calculate_shadbala
 from engine.doshas import detect_all_doshas, dosha_to_dict
@@ -353,7 +353,8 @@ async def api_yogas(profile_id: int):
 async def api_bhavat_bhavam(profile_id: int):
     chart = _chart_from_profile(profile_id)
     bb = get_planet_bhavat_bhavam(chart.planets, {})
-    return {'bhavat_bhavam': bb}
+    planet_bb = get_planet_house_from_house_analysis(chart.planets)
+    return {'bhavat_bhavam': bb, 'planet_bhavat_bhavam': planet_bb}
 
 
 @app.get("/jaimini/{profile_id}")
@@ -774,6 +775,7 @@ async def page_analysis(request: Request, profile_id: int = Query(None)):
     asps = find_aspects(chart.planets)
     yogas = detect_all_yogas(chart.planets, rulerships)
     bb = get_planet_bhavat_bhavam(chart.planets, {})
+    planet_bb = get_planet_house_from_house_analysis(chart.planets)
     sav = calculate_sarva_ashtakavarga(chart.planets, chart.ascendant.rashi_index)
     shadbala = calculate_shadbala(chart.planets)
     doshas = detect_all_doshas(chart.planets)
@@ -792,6 +794,7 @@ async def page_analysis(request: Request, profile_id: int = Query(None)):
         "aspects": [aspect_to_dict(a) for a in asps],
         "yogas": [yoga_to_dict(y) for y in yogas],
         "bhavat_bhavam": bb,
+        "planet_bhavat_bhavam": planet_bb,
         "ashtakavarga": sav,
         "shadbala": shadbala,
         "doshas": [dosha_to_dict(d) for d in doshas],

@@ -11,6 +11,33 @@ For example:
 This creates deeper layers of meaning for each house.
 """
 
+HOUSE_NAMES = {
+    1: 'self and identity',
+    2: 'money, speech, and family resources',
+    3: 'courage, skills, and initiative',
+    4: 'home, mother, and emotional security',
+    5: 'creativity, children, and intelligence',
+    6: 'work, service, health, and conflict',
+    7: 'relationships, partner, and public life',
+    8: 'transformation, intimacy, and hidden processes',
+    9: 'dharma, belief, teachers, and fortune',
+    10: 'career, status, and visible karma',
+    11: 'gains, networks, and long-term goals',
+    12: 'loss, retreat, sleep, and liberation',
+}
+
+PLANET_THEMES = {
+    'Sun': 'purpose, authority, and visibility',
+    'Moon': 'emotional life and daily experience',
+    'Mars': 'drive, courage, and force',
+    'Mercury': 'thinking, speech, and analysis',
+    'Jupiter': 'growth, guidance, and wisdom',
+    'Venus': 'love, pleasure, and harmony',
+    'Saturn': 'pressure, discipline, and long-term work',
+    'Rahu': 'ambition, appetite, and worldly hunger',
+    'Ketu': 'detachment, inner severance, and spiritual filtering',
+}
+
 # Bhavat Bhavam mapping: house → bhavat bhavam house
 # Formula: BH(h) = (h + h - 2) % 12 + 1 = (2h - 2) % 12 + 1
 # Or simply: count h houses forward from house h
@@ -132,6 +159,47 @@ def get_planet_bhavat_bhavam(planets: dict, house_lords: dict) -> list[dict]:
             'title': bb['title'],
             'planets_in_house': planets_in_house,
             'planets_in_bb_house': planets_in_bb,
+        })
+
+    return results
+
+
+def get_planet_house_from_house_analysis(planets: dict) -> list[dict]:
+    """Useful per-planet Bhavat Bhavam analysis.
+
+    For each planet, read the natal house first, then the Bhavat Bhavam house of that
+    natal house as the secondary support/output channel.
+    """
+    results = []
+    for name, planet in planets.items():
+        source_house = planet.house
+        bb = get_bhavat_bhavam(source_house)
+        derived_house = bb['bhavat_bhavam_house']
+
+        source_topic = HOUSE_NAMES[source_house]
+        derived_topic = HOUSE_NAMES[derived_house]
+        planet_theme = PLANET_THEMES.get(name, name.lower())
+
+        summary = (
+            f'{name} sits in H{source_house}, so its core expression starts in {source_topic}. '
+            f'By Bhavat Bhavam, H{source_house} is reinforced through H{derived_house}, meaning this planet often delivers results '
+            f'through {derived_topic} as the second layer.'
+        )
+
+        practical = (
+            f'In plain English: {planet_theme} is not only about H{source_house}; it tends to complete itself through H{derived_house}. '
+            f'Read H{source_house} as the main story and H{derived_house} as the supporting mechanism.'
+        )
+
+        results.append({
+            'planet': name,
+            'rashi': planet.rashi,
+            'house': source_house,
+            'bb_house': derived_house,
+            'house_topic': source_topic,
+            'bb_topic': derived_topic,
+            'summary': summary,
+            'practical': practical,
         })
 
     return results

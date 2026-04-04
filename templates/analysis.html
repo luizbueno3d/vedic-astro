@@ -145,6 +145,7 @@
 <!-- Bhavat Bhavam -->
 <div class="card" style="margin-top:20px">
     <h3>Bhavat Bhavam — House-from-House</h3>
+    <p class="subtitle">This is the structural map: each house gets reinforced through another house. Useful, but still abstract on its own.</p>
     <table>
         <tr><th>House</th><th>BH House</th><th>Title</th><th>Planets in H</th><th>Planets in BH</th></tr>
         {% for b in bhavat_bhavam %}
@@ -157,6 +158,21 @@
         </tr>
         {% endfor %}
     </table>
+</div>
+
+<div class="card" style="margin-top:20px; border-color:var(--blue)">
+    <h3>Bhavat Bhavam By Planet</h3>
+    <p style="margin:0 0 12px; line-height:1.7">
+        This is the useful version. Instead of only showing house math, we read it planet by planet.
+        First read the house where the planet sits. Then read the Bhavat Bhavam house of that house as the secondary way its results tend to unfold.
+    </p>
+    {% for p in planet_bhavat_bhavam %}
+    <div style="margin-bottom:12px; padding:12px; background:rgba(74,158,255,0.06); border-radius:8px; border-left:3px solid var(--blue)">
+        <div><strong>{{ p.planet }}</strong> in {{ p.rashi }} · H{{ p.house }} -> BH H{{ p.bb_house }}</div>
+        <div style="color:var(--muted); font-size:0.92em; margin-top:6px; line-height:1.6">{{ p.summary }}</div>
+        <div style="font-size:0.9em; margin-top:6px; line-height:1.6">{{ p.practical }}</div>
+    </div>
+    {% endfor %}
 </div>
 
 <!-- Ashtakavarga -->
