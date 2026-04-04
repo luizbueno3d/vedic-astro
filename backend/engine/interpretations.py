@@ -278,6 +278,9 @@ def interpret_yoga(name: str, planets: list, description: str, strength: str) ->
         'Bhadra Yoga': 'Communication genius — Mercury makes you a natural writer/speaker',
         'Neechabhanga Raja Yoga': 'The alchemist — your weakness becomes your greatest strength when transformed',
         'Chandra Mangala Yoga': 'Bold action — you act on instinct with financial intelligence',
+        'Maha Parivartana Yoga': 'Mutual reinforcement — two life areas trade power and strengthen each other through sign exchange',
+        'Khala Parivartana Yoga': 'Restless growth — a sign exchange that creates movement, struggle, and practical development',
+        'Dainya Parivartana Yoga': 'Karmic entanglement — a sign exchange that binds difficult houses together and demands conscious handling',
     }
 
     base = yoga_gifts.get(name, name)

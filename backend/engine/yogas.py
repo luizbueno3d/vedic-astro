@@ -332,6 +332,67 @@ def detect_chandra_mangala_yoga(planets: dict[str, PlanetPosition]) -> list[Yoga
     return yogas
 
 
+def detect_parivartana_yoga(planets: dict[str, PlanetPosition],
+                            planet_houses_ruled: dict[str, list[int]] = None) -> list[Yoga]:
+    """Parivartana Yoga: two planets occupying each other's signs.
+
+    This detects sign exchange even when the exchange is not purely benefic.
+    Subtypes are labeled conservatively:
+    - Dainya: any 6/8/12 involvement
+    - Khala: otherwise any 3/6/11 involvement
+    - Maha: otherwise
+    """
+    yogas = []
+    if not planet_houses_ruled:
+        return yogas
+
+    names = ['Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn']
+    seen: set[tuple[str, str]] = set()
+
+    for name in names:
+        if name not in planets:
+            continue
+
+        planet = planets[name]
+        other_name = get_rashi_lord(planet.rashi_index)
+        if other_name == name or other_name not in planets:
+            continue
+
+        other = planets[other_name]
+        if get_rashi_lord(other.rashi_index) != name:
+            continue
+
+        pair = tuple(sorted((name, other_name)))
+        if pair in seen:
+            continue
+        seen.add(pair)
+
+        houses_ruled = sorted(set(planet_houses_ruled.get(name, []) + planet_houses_ruled.get(other_name, [])))
+        if any(h in DUSTHANA for h in houses_ruled):
+            yoga_name = 'Dainya Parivartana Yoga'
+            strength = 'moderate'
+        elif any(h in UPACHAYA for h in houses_ruled):
+            yoga_name = 'Khala Parivartana Yoga'
+            strength = 'moderate'
+        else:
+            yoga_name = 'Maha Parivartana Yoga'
+            strength = 'strong'
+
+        yogas.append(Yoga(
+            name=yoga_name,
+            planets=[name, other_name],
+            description=(
+                f'{name} in {planet.rashi} exchanges signs with {other_name} in {other.rashi}. '
+                f'This links H{planet.house} and H{other.house} in D1 and ties together the houses they rule '
+                f'({", ".join(f"H{h}" for h in houses_ruled)}).'
+            ),
+            strength=strength,
+            houses_involved=sorted(set([planet.house, other.house] + houses_ruled))
+        ))
+
+    return yogas
+
+
 # ===== DETECT ALL =====
 
 def detect_all_yogas(planets: dict[str, PlanetPosition],
@@ -355,6 +416,7 @@ def detect_all_yogas(planets: dict[str, PlanetPosition],
     all_yogas.extend(detect_neechabhanga(planets, planet_houses_ruled))
     all_yogas.extend(detect_pancha_mahapurusha(planets))
     all_yogas.extend(detect_chandra_mangala_yoga(planets))
+    all_yogas.extend(detect_parivartana_yoga(planets, planet_houses_ruled))
     return all_yogas
 
 
