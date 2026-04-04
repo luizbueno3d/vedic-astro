@@ -40,7 +40,7 @@ DEFAULT_PROVIDERS = {
         model='gpt-4o-mini',
         base_url='https://api.openai.com/v1',
         enabled=False,
-        max_tokens=4000,
+        max_tokens=8000,
         temperature=0.7,
     ),
     'anthropic': AIProvider(
@@ -50,7 +50,7 @@ DEFAULT_PROVIDERS = {
         model='claude-sonnet-4-20250514',
         base_url='https://api.anthropic.com/v1',
         enabled=False,
-        max_tokens=4000,
+        max_tokens=8000,
         temperature=0.7,
     ),
     'minimax': AIProvider(
@@ -60,7 +60,7 @@ DEFAULT_PROVIDERS = {
         model='MiniMax-M2.5',
         base_url='https://api.minimax.chat/v1',
         enabled=False,
-        max_tokens=4000,
+        max_tokens=8000,
         temperature=0.7,
     ),
     'groq': AIProvider(
@@ -70,7 +70,7 @@ DEFAULT_PROVIDERS = {
         model='llama-3.3-70b-versatile',
         base_url='https://api.groq.com/openai/v1',
         enabled=False,
-        max_tokens=4000,
+        max_tokens=8000,
         temperature=0.7,
     ),
     'openrouter': AIProvider(
@@ -80,7 +80,7 @@ DEFAULT_PROVIDERS = {
         model='meta-llama/llama-3.1-70b-instruct',
         base_url='https://openrouter.ai/api/v1',
         enabled=False,
-        max_tokens=4000,
+        max_tokens=8000,
         temperature=0.7,
     ),
     'ollama': AIProvider(
@@ -90,7 +90,7 @@ DEFAULT_PROVIDERS = {
         model='llama3.1',
         base_url='http://localhost:11434/v1',
         enabled=False,
-        max_tokens=4000,
+        max_tokens=8000,
         temperature=0.7,
     ),
 }
@@ -124,8 +124,20 @@ def load_config() -> dict:
                     result[k] = AIProvider(**v)
                 else:
                     result[k] = v
+            _upgrade_provider_limits(result)
             return result
-    return {k: v for k, v in DEFAULT_PROVIDERS.items()}
+    result = {k: v for k, v in DEFAULT_PROVIDERS.items()}
+    _upgrade_provider_limits(result)
+    return result
+
+
+def _upgrade_provider_limits(config: dict):
+    """Raise stale low output limits from older configs."""
+    for provider in config.values():
+        if not isinstance(provider, AIProvider):
+            continue
+        if provider.max_tokens < 8000:
+            provider.max_tokens = 8000
 
 
 def save_config(config: dict):

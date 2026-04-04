@@ -93,6 +93,7 @@ Write the reading in this exact order, with explicit section headers.
 - Use literal notation such as: Mercury: D1 H8 -> BCC H7.
 - Only include the most meaningful shifts.
 - After each shift, add one short clause about how manifestation changes.
+- Do not force BCC into planets that do not materially shift or into sections where D1 already explains the point well.
 
 3. Identity and Psychology
 - Explain the inner self using D1.
@@ -171,6 +172,7 @@ FACT_GUARDRAILS = """FACT GUARDRAILS
 - Planet condition must include dignity, relationship to sign lord (friend/enemy/neutral), and combustion when available.
 - BCC = operative manifestation field, especially important for dasha results.
 - BCC is not D7.
+- Use BCC selectively: strongest in dasha/event manifestation, secondary in character reading unless the house shift is highly meaningful.
 - Do not override the supplied chart facts with your own remembered astrology rules.
 - If the context says a planet is D1 H8 and BCC H7, preserve that exactly.
 """
@@ -475,6 +477,7 @@ Rules:
 - focus hard on planets that shift houses
 - preserve natal sign nature; explain only the house manifestation shift
 - explicitly call BCC a secondary manifestation layer, not the base chart
+- do not mention BCC where there is no meaningful shift or where it adds no interpretive value
 - give practical examples of blended manifestation
 - especially analyze the current Mahadasha, Antardasha, and Pratyantardasha lords
 - write 6-10 bullet points
@@ -515,6 +518,7 @@ Core framework:
 - D1 = natal architecture and psychological baseline
 - BCC (Bhava Chalit Chart, KP / Nakshatra Nadi) = operative field where results manifest
 - During dasha interpretation, always integrate both, but give BCC special weight for event manifestation
+- Outside timing, use BCC only when a shift materially changes interpretation.
 
 Priority discipline:
 - primary layers outrank secondary layers
