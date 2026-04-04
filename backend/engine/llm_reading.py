@@ -30,15 +30,49 @@ HOUSE_TOPICS = {
 
 READING_PRIORITIES = """READING PRIORITY HIERARCHY
 
-1. Start with D1 baseline: lagna, lagna lord, Moon, Sun, house lords, dignity, conjunctions, aspects.
-1b. Before concluding on a planet, check if it is in a friend sign, enemy sign, or combust by the Sun.
-2. Judge houses through their lords before jumping to yogas.
-3. Use strength as a filter, not as the main story.
-4. Use nakshatra and pada to refine expression after sign-house-lordship is understood.
-5. Use Jaimini karakas as a second-pass lens, not as a replacement for D1 structure.
-6. Use D9 and D10 as confirmation layers, not standalone charts.
-7. Read dasha before transits for timing.
-8. Use BCC/KP to explain where results manifest, not to erase natal sign nature.
+PRIMARY LAYERS - these build the core reading and outrank everything below:
+1. D1 baseline: lagna, lagna lord, Moon, Sun, house lords, dignity, conjunctions, aspects.
+2. Planet condition check: before concluding on a planet, inspect dignity, friend/enemy sign, combustion, and rulership.
+3. House judgment: judge houses through their lords before jumping to yogas or abstractions.
+4. Timing backbone: current dasha first, then sub-periods, then transits.
+
+SECONDARY LAYERS - these refine the main reading but must not override the primary layers:
+5. Nakshatra and pada refine expression after sign-house-lordship is understood.
+6. BCC/KP shows where results manifest, especially in dasha. It does not erase natal D1 nature.
+7. Jaimini karakas add a second-pass lens for soul purpose, vocation, and partnership patterns.
+8. Bhavat Bhavam shows the derived house through which a placement matures or manifests secondarily.
+9. Shadbala and Ashtakavarga are weighting tools. Use them to judge intensity and ease, not to replace chart structure.
+
+TOPIC-SPECIFIC LAYERS - only use when the topic requires them:
+10. D9 for relationship, inner maturity, and deeper planetary support.
+11. D10 for career, public role, and professional manifestation.
+12. D7 and D12 only when discussing children/lineage or parents/ancestry.
+
+CONSTRAINTS:
+- Never let a secondary or topic-specific layer overrule a clear primary-layer statement unless the context explicitly says it modifies manifestation rather than replacing it.
+- If two layers disagree, explain the hierarchy and the blend instead of flattening them into one vague statement.
+"""
+
+
+LAYER_USAGE_PROTOCOL = """LAYER USAGE PROTOCOL
+
+When writing the reading, explicitly signal why a layer is being used.
+
+- Primary layer wording: "First we look at... because this is the base structure." 
+- Secondary layer wording: "Next we refine that picture with..."
+- Topic-specific layer wording: "For career specifically..." or "In relationship matters..."
+
+Do not introduce D9, D10, Jaimini, Bhavat Bhavam, BCC, Shadbala, or Ashtakavarga as if they are equal to the D1 foundation.
+Always tell the reader whether a layer is:
+- foundational
+- refining
+- timing
+- topic-specific
+
+If using BCC, say it modifies manifestation.
+If using Jaimini, say it adds a role-based lens.
+If using Bhavat Bhavam, say it adds a derivative-house reinforcement layer.
+If using D9 or D10, say they confirm and specialize rather than replace D1.
 """
 
 
@@ -116,6 +150,7 @@ EXPLANATION RULES FOR NON-ASTROLOGERS
 
 STYLE RULES
 - Follow the reading priority hierarchy supplied in the context.
+- Follow the layer usage protocol supplied in the context.
 - No example stories unless directly tied to chart logic.
 - No generic astrology filler.
 - No unsupported claims.
@@ -222,6 +257,7 @@ def build_chart_context(chart, rulerships, yogas, doshas, shadbala,
     lines = []
     lines.append(f'CHART: {chart.name}, born {chart.birth_date} {chart.birth_time} in {chart.birth_place}')
     lines.append(READING_PRIORITIES)
+    lines.append(LAYER_USAGE_PROTOCOL)
     lines.append(f'D1 ASCENDANT: {asc.rashi} {asc.nakshatra} Pada {asc.pada}')
     lines.append(
         f'BCC ASCENDANT: {kp_data.kp_asc_rashi} (KP effective ascendant, idx={kp_data.kp_asc_idx}) | '
@@ -415,6 +451,7 @@ Focus on:
 Rules:
 - foundation first: lagna, lagna lord, Moon, Sun, house lords, conjunctions, aspects before yogas
 - do not ignore friend sign, enemy sign, or combustion status when judging a planet
+- clearly label what is primary structure versus later refinement
 - be concrete and chart-specific
 - mention exact signs, nakshatras, houses when relevant
 - write 5-8 dense bullet points
@@ -437,6 +474,7 @@ Your job is to explain Bhava Chalit Chart (BCC) shifts.
 Rules:
 - focus hard on planets that shift houses
 - preserve natal sign nature; explain only the house manifestation shift
+- explicitly call BCC a secondary manifestation layer, not the base chart
 - give practical examples of blended manifestation
 - especially analyze the current Mahadasha, Antardasha, and Pratyantardasha lords
 - write 6-10 bullet points
@@ -458,6 +496,7 @@ Rules:
 - dasha first, transit second
 - prioritize what is active now over abstract potential
 - if a dasha lord is combust or placed in an enemy sign, factor that into the tone of results
+- when using D9, D10, D7, or D12, state that these are topic-specific support layers
 - use D9 and D10 where helpful
 - include tensions, not just strengths
 - write 6-10 bullet points
@@ -477,12 +516,19 @@ Core framework:
 - BCC (Bhava Chalit Chart, KP / Nakshatra Nadi) = operative field where results manifest
 - During dasha interpretation, always integrate both, but give BCC special weight for event manifestation
 
+Priority discipline:
+- primary layers outrank secondary layers
+- secondary layers refine but do not replace primary layers
+- topic-specific layers should appear only when the life area calls for them
+- if there is tension between layers, explain the hierarchy before explaining the blend
+
 {READING_BLUEPRINT}
 
 Writing requirements:
 - 1600 to 2600 words
 - follow the blueprint exactly
 - make the reading pedagogical: explain what the reader should look at first and why
+- explicitly tell the reader whether a section is foundational, refining, timing-based, or topic-specific
 - explicitly explain important D1 vs BCC house shifts
 - if a dasha lord shifts houses in BCC, name both houses and explain how the result blends
 - be warm, intelligent, direct, and nuanced
