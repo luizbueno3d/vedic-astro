@@ -14,7 +14,7 @@ from datetime import date
 import json
 
 from engine.ephemeris import calculate_chart, deg_to_dms, get_rashi_lord, RASHIS
-from engine.charts import get_varga_signs, VARGA_FUNCTIONS
+from engine.charts import get_varga_signs, VARGA_FUNCTIONS, VARGA_META
 from engine.kp import calculate_kp_bhava_chalit, kp_to_dict
 from engine.jaimini import calculate_chara_karakas, calculate_jaimini_raja_yoga, get_jaimini_interpretation
 from engine.dasha import (
@@ -646,13 +646,29 @@ async def page_vargas(request: Request, profile_id: int = Query(None)):
     serial = _serialize_chart(chart)
     vargas = get_varga_signs(chart)
 
+    core_vargas = {}
+    topic_vargas = {}
+    hidden_vargas = {}
+    for varga_id, varga in vargas.items():
+        meta = VARGA_META.get(varga_id, {})
+        enriched = {**varga, **meta}
+        tier = meta.get('tier', 'hidden')
+        if tier == 'core':
+            core_vargas[varga_id] = enriched
+        elif tier == 'topic':
+            topic_vargas[varga_id] = enriched
+        else:
+            hidden_vargas[varga_id] = enriched
+
     return templates.TemplateResponse("vargas.html", {
         "request": request,
         "page": "vargas",
         "profiles": profiles,
         "profile_id": pid,
         "chart": serial,
-        "vargas": vargas,
+        "core_vargas": core_vargas,
+        "topic_vargas": topic_vargas,
+        "hidden_vargas": hidden_vargas,
     })
 
 

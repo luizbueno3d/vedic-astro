@@ -3,7 +3,7 @@
 
 {% block content %}
 <h2>Divisional Charts — {{ chart.name }}</h2>
-<p class="subtitle">Shodasha Varga (16 divisions) — core vargas like D7, D9, and D10 are checked carefully; higher divisions are still being verified</p>
+<p class="subtitle">Divisional charts help you zoom into specific life topics. We now separate the trusted core charts from advanced or still-verifying ones.</p>
 <div class="card" style="margin-bottom:20px; border-color:var(--blue)">
     <h3>What These Charts Are</h3>
     <p style="margin:0; line-height:1.7">
@@ -13,11 +13,22 @@
     </p>
 </div>
 
-<div class="grid grid-3">
-    {% for varga_id, varga in vargas.items() %}
+<div class="card" style="margin-bottom:20px; border-color:var(--accent)">
+    <h3>How To Read This Page</h3>
+    <p style="margin:0; line-height:1.7">
+        First trust the birth chart (D1). Then use <strong>D9</strong> and <strong>D10</strong> as the main confirmation charts.
+        The topic charts lower on the page are useful, but only for specific questions. Some higher vargas are intentionally hidden until their formulas are individually verified.
+    </p>
+</div>
+
+<div class="section-title">Core Varga Charts</div>
+<p class="subtitle">These are the safest and most useful divisional charts for general reading.</p>
+<div class="grid grid-2">
+    {% for varga_id, varga in core_vargas.items() %}
     <div class="card">
         <h3>{{ varga_id }} — {{ varga.name }}</h3>
-        <div class="subtitle">{{ varga.purpose }}</div>
+        <div class="subtitle">{{ varga.purpose }} · {{ varga.status }}</div>
+        <p style="color:var(--muted); font-size:0.9em; line-height:1.6; margin-bottom:12px">{{ varga.plain_english }}</p>
         <table>
             <tr><th>Planet</th><th>Sign</th></tr>
             {% for planet, sign in varga.signs.items() %}
@@ -29,5 +40,45 @@
         </table>
     </div>
     {% endfor %}
+</div>
+
+<div class="section-title">Topic-Specific Varga Charts</div>
+<p class="subtitle">These are useful for focused questions, but they should not outrank D1, D9, or D10.</p>
+<div class="grid grid-3">
+    {% for varga_id, varga in topic_vargas.items() %}
+    <div class="card">
+        <h3>{{ varga_id }} — {{ varga.name }}</h3>
+        <div class="subtitle">{{ varga.purpose }} · {{ varga.status }}</div>
+        <p style="color:var(--muted); font-size:0.9em; line-height:1.6; margin-bottom:12px">{{ varga.plain_english }}</p>
+        <table>
+            <tr><th>Planet</th><th>Sign</th></tr>
+            {% for planet, sign in varga.signs.items() %}
+            <tr>
+                <td>{{ planet }}</td>
+                <td>{{ sign }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="section-title">Hidden For Now</div>
+<div class="card">
+    <h3>Advanced Vargas Under Review</h3>
+    <p style="margin:0 0 12px; line-height:1.7">
+        We are intentionally not showing every divisional chart yet. Some higher vargas are extremely sensitive to birth time,
+        method differences, or still need formula-by-formula verification. Hiding them is safer than pretending they are reliable.
+    </p>
+    <table>
+        <tr><th>Varga</th><th>What It Covers</th><th>Status</th></tr>
+        {% for varga_id, varga in hidden_vargas.items() %}
+        <tr>
+            <td><strong>{{ varga_id }} — {{ varga.name }}</strong></td>
+            <td>{{ varga.plain_english }}</td>
+            <td>{{ varga.status }}</td>
+        </tr>
+        {% endfor %}
+    </table>
 </div>
 {% endblock %}

@@ -155,6 +155,115 @@ VARGA_FUNCTIONS = {
 }
 
 
+VARGA_META = {
+    'D2': {
+        'tier': 'topic',
+        'audience': 'advanced',
+        'ai_eligible': False,
+        'status': 'method-sensitive',
+        'plain_english': 'Money style, assets, and how wealth is handled.',
+    },
+    'D3': {
+        'tier': 'topic',
+        'audience': 'advanced',
+        'ai_eligible': False,
+        'status': 'topic-specific',
+        'plain_english': 'Courage, effort, initiative, and siblings.',
+    },
+    'D4': {
+        'tier': 'topic',
+        'audience': 'advanced',
+        'ai_eligible': False,
+        'status': 'topic-specific',
+        'plain_english': 'Home, property, roots, and settlement.',
+    },
+    'D7': {
+        'tier': 'topic',
+        'audience': 'advanced',
+        'ai_eligible': False,
+        'status': 'use with birth-time care',
+        'plain_english': 'Children, fertility, lineage, and creative offspring.',
+    },
+    'D9': {
+        'tier': 'core',
+        'audience': 'beginner',
+        'ai_eligible': True,
+        'status': 'core and verified',
+        'plain_english': 'Marriage, deeper maturity, dharma, and the inner strength of planets.',
+    },
+    'D10': {
+        'tier': 'core',
+        'audience': 'beginner',
+        'ai_eligible': True,
+        'status': 'core and verified',
+        'plain_english': 'Career, role, reputation, and professional direction.',
+    },
+    'D12': {
+        'tier': 'topic',
+        'audience': 'advanced',
+        'ai_eligible': False,
+        'status': 'topic-specific',
+        'plain_english': 'Parents, ancestry, and inherited family patterns.',
+    },
+    'D16': {
+        'tier': 'hidden',
+        'audience': 'expert',
+        'ai_eligible': False,
+        'status': 'simplified formula',
+        'plain_english': 'Comforts, vehicles, and luxuries.',
+    },
+    'D20': {
+        'tier': 'hidden',
+        'audience': 'expert',
+        'ai_eligible': False,
+        'status': 'simplified formula',
+        'plain_english': 'Spiritual practice, devotion, and inner sadhana.',
+    },
+    'D24': {
+        'tier': 'hidden',
+        'audience': 'expert',
+        'ai_eligible': False,
+        'status': 'simplified formula',
+        'plain_english': 'Education, study, learning path, and scholarship.',
+    },
+    'D27': {
+        'tier': 'hidden',
+        'audience': 'expert',
+        'ai_eligible': False,
+        'status': 'simplified formula',
+        'plain_english': 'Inner strength, resilience, and weak spots.',
+    },
+    'D30': {
+        'tier': 'hidden',
+        'audience': 'expert',
+        'ai_eligible': False,
+        'status': 'hidden until verified',
+        'plain_english': 'Troubles, faults, and vulnerability patterns.',
+    },
+    'D40': {
+        'tier': 'hidden',
+        'audience': 'expert',
+        'ai_eligible': False,
+        'status': 'hidden until verified',
+        'plain_english': 'Maternal lineage and subtle background karma.',
+    },
+    'D45': {
+        'tier': 'hidden',
+        'audience': 'expert',
+        'ai_eligible': False,
+        'status': 'hidden until verified',
+        'plain_english': 'Paternal lineage and inherited character patterns.',
+    },
+    'D60': {
+        'tier': 'hidden',
+        'audience': 'expert',
+        'ai_eligible': False,
+        'status': 'hidden until verified',
+        'plain_english': 'Very fine karmic background; extremely birth-time sensitive.',
+    },
+}
+
+
 def calculate_all_vargas(planet_longitudes: dict[str, float]) -> dict[str, dict[str, str]]:
     """Calculate all 15 divisional charts for all planets.
 
