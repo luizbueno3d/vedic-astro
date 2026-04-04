@@ -2,12 +2,50 @@
 
 from dataclasses import dataclass
 from .ephemeris import PlanetPosition, RASHI_LORDS, get_rashi_lord
+from .aspects import find_aspects
 
 # Kendra houses (1, 4, 7, 10) and Trikona houses (1, 5, 9)
 KENDRA = {1, 4, 7, 10}
 TRIKONA = {1, 5, 9}
 UPACHAYA = {3, 6, 10, 11}  # Houses that grow with time
 DUSTHANA = {6, 8, 12}       # Houses of difficulty
+
+
+def _get_mutual_aspect_pairs(planets: dict[str, PlanetPosition]) -> set[tuple[str, str]]:
+    """Return unordered planet pairs in mutual aspectual relationship."""
+    aspects = find_aspects(planets)
+    directed = {(aspect.from_planet, aspect.to_planet) for aspect in aspects}
+    mutual = set()
+    for from_planet, to_planet in directed:
+        if (to_planet, from_planet) in directed:
+            pair = (from_planet, to_planet) if from_planet < to_planet else (to_planet, from_planet)
+            mutual.add(pair)
+    return mutual
+
+
+def _has_sambandha(planets: dict[str, PlanetPosition], planet_a: str, planet_b: str,
+                   mutual_aspects: set[tuple[str, str]] | None = None) -> bool:
+    """Conservative sambandha: conjunction, mutual aspect, or sign exchange."""
+    if planet_a not in planets or planet_b not in planets:
+        return False
+
+    pos_a = planets[planet_a]
+    pos_b = planets[planet_b]
+    if pos_a.rashi_index == pos_b.rashi_index:
+        return True
+
+    pair = (planet_a, planet_b) if planet_a < planet_b else (planet_b, planet_a)
+    if mutual_aspects and pair in mutual_aspects:
+        return True
+
+    return get_rashi_lord(pos_a.rashi_index) == planet_b and get_rashi_lord(pos_b.rashi_index) == planet_a
+
+
+def _find_house_lord(planet_houses_ruled: dict[str, list[int]], house: int) -> str | None:
+    for planet, houses in planet_houses_ruled.items():
+        if house in houses:
+            return planet
+    return None
 
 
 def calculate_house_rulerships(asc_rashi_index: int) -> dict[str, list[int]]:
@@ -50,6 +88,8 @@ def detect_raja_yoga(planets: dict[str, PlanetPosition],
     if not planet_houses_ruled:
         return yogas  # Can't detect without rulership info
 
+    mutual_aspects = _get_mutual_aspect_pairs(planets)
+
     # Find which planets rule Kendra and Trikona houses
     # H1 is excluded from both (it's an overlap, not a true Kendra+Trikona)
     PURE_KENDRA = {4, 7, 10}
@@ -71,17 +111,16 @@ def detect_raja_yoga(planets: dict[str, PlanetPosition],
             if k_lord in planets and t_lord in planets:
                 k = planets[k_lord]
                 t = planets[t_lord]
-                # Same sign = conjunction
-                if k.rashi_index == t.rashi_index:
+                if _has_sambandha(planets, k_lord, t_lord, mutual_aspects):
                     # Check if same planet is both Kendra and Trikona lord (Yogakaraka)
                     is_yogakaraka = k_lord in trikona_lords or t_lord in kendra_lords
                     label = 'Yogakaraka Raja Yoga' if is_yogakaraka else 'Raja Yoga'
                     yogas.append(Yoga(
                         name=label,
                         planets=[k_lord, t_lord],
-                        description=f'{k_lord} (rules H{planet_houses_ruled[k_lord]}) conjunct {t_lord} (rules H{planet_houses_ruled[t_lord]}) in H{k.house}',
+                        description=f'{k_lord} (rules H{planet_houses_ruled[k_lord]}) is in sambandha with {t_lord} (rules H{planet_houses_ruled[t_lord]}) — a Kendra/Trikona power link',
                         strength='strong',
-                        houses_involved=[k.house]
+                        houses_involved=sorted(set([k.house, t.house] + planet_houses_ruled[k_lord] + planet_houses_ruled[t_lord]))
                     ))
 
     return yogas
@@ -94,27 +133,160 @@ def detect_dhana_yoga(planets: dict[str, PlanetPosition],
     if not planet_houses_ruled:
         return yogas
 
-    # Find planets that rule 2nd and 11th houses
-    lord_2 = None
-    lord_11 = None
-    for planet, houses in planet_houses_ruled.items():
-        if 2 in houses:
-            lord_2 = planet
-        if 11 in houses:
-            lord_11 = planet
+    mutual_aspects = _get_mutual_aspect_pairs(planets)
 
-    if lord_2 and lord_11 and lord_2 != lord_11 and lord_2 in planets and lord_11 in planets:
-        p2 = planets[lord_2]
-        p11 = planets[lord_11]
-        if p2.rashi_index == p11.rashi_index:
+    wealth_lords = {_find_house_lord(planet_houses_ruled, 2), _find_house_lord(planet_houses_ruled, 11)}
+    fortune_lords = {_find_house_lord(planet_houses_ruled, 1), _find_house_lord(planet_houses_ruled, 5), _find_house_lord(planet_houses_ruled, 9)}
+    wealth_lords.discard(None)
+    fortune_lords.discard(None)
+
+    seen = set()
+    for wealth_lord in wealth_lords:
+        for fortune_lord in fortune_lords:
+            if not wealth_lord or not fortune_lord:
+                continue
+            if wealth_lord == fortune_lord:
+                continue
+            pair = (wealth_lord, fortune_lord) if wealth_lord < fortune_lord else (fortune_lord, wealth_lord)
+            if pair in seen:
+                continue
+            seen.add(pair)
+            if wealth_lord in planets and fortune_lord in planets and _has_sambandha(planets, wealth_lord, fortune_lord, mutual_aspects):
+                pw = planets[wealth_lord]
+                pf = planets[fortune_lord]
+                yogas.append(Yoga(
+                    name='Dhana Yoga',
+                    planets=[wealth_lord, fortune_lord],
+                    description=f'{wealth_lord} (wealth lord) is in sambandha with {fortune_lord} (fortune lord) — a classical prosperity combination',
+                    strength='strong',
+                    houses_involved=sorted(set([2, 11, pw.house, pf.house] + planet_houses_ruled[wealth_lord] + planet_houses_ruled[fortune_lord]))
+                ))
+
+    return yogas
+
+
+def detect_dharma_karmadhipati_yoga(planets: dict[str, PlanetPosition],
+                                    planet_houses_ruled: dict[str, list[int]] = None) -> list[Yoga]:
+    """Dharma-Karmadhipati Yoga: 9th and 10th lords in sambandha."""
+    yogas = []
+    if not planet_houses_ruled:
+        return yogas
+
+    lord_9 = _find_house_lord(planet_houses_ruled, 9)
+    lord_10 = _find_house_lord(planet_houses_ruled, 10)
+    if not lord_9 or not lord_10 or lord_9 == lord_10:
+        return yogas
+
+    mutual_aspects = _get_mutual_aspect_pairs(planets)
+    if lord_9 in planets and lord_10 in planets and _has_sambandha(planets, lord_9, lord_10, mutual_aspects):
+        p9 = planets[lord_9]
+        p10 = planets[lord_10]
+        yogas.append(Yoga(
+            name='Dharma-Karmadhipati Yoga',
+            planets=[lord_9, lord_10],
+            description=f'{lord_9} (9th lord) is in sambandha with {lord_10} (10th lord) — dharma and career support each other directly',
+            strength='strong',
+            houses_involved=sorted(set([9, 10, p9.house, p10.house]))
+        ))
+    return yogas
+
+
+def detect_amala_yoga(planets: dict[str, PlanetPosition], moon_rashi_index: int | None = None) -> list[Yoga]:
+    """Amala Yoga: benefic in 10th from Lagna or Moon."""
+    yogas = []
+    benefics = ['Mercury', 'Jupiter', 'Venus', 'Moon']
+    for name in benefics:
+        if name not in planets:
+            continue
+        planet = planets[name]
+        if planet.house == 10:
             yogas.append(Yoga(
-                name='Dhana Yoga',
-                planets=[lord_2, lord_11],
-                description=f'{lord_2} (2nd lord) conjunct {lord_11} (11th lord) — strong wealth indicator',
-                strength='strong',
-                houses_involved=[2, 11]
+                name='Amala Yoga',
+                planets=[name],
+                description=f'{name} in the 10th from Lagna supports clean reputation and visible good works',
+                strength='moderate',
+                houses_involved=[10, planet.house]
             ))
+        if moon_rashi_index is not None:
+            moon_distance = ((planet.rashi_index - moon_rashi_index) % 12) + 1
+            if moon_distance == 10:
+                yogas.append(Yoga(
+                    name='Amala Yoga',
+                    planets=[name],
+                    description=f'{name} in the 10th from Moon supports public grace, reputation, and clean visible karma',
+                    strength='moderate',
+                    houses_involved=[planet.house]
+                ))
+    return yogas
 
+
+def detect_adhi_yoga(planets: dict[str, PlanetPosition]) -> list[Yoga]:
+    """Adhi Yoga: benefics in 6th, 7th, or 8th from Moon."""
+    yogas = []
+    if 'Moon' not in planets:
+        return yogas
+
+    moon = planets['Moon']
+    benefics = []
+    for name in ['Mercury', 'Jupiter', 'Venus']:
+        if name not in planets:
+            continue
+        distance = ((planets[name].rashi_index - moon.rashi_index) % 12) + 1
+        if distance in (6, 7, 8):
+            benefics.append(name)
+
+    if benefics:
+        yogas.append(Yoga(
+            name='Adhi Yoga',
+            planets=benefics,
+            description=f"Benefics {', '.join(benefics)} occupy the 6th/7th/8th from Moon — supporting status, resilience, and social protection",
+            strength='strong' if len(benefics) >= 2 else 'moderate',
+            houses_involved=sorted(set(planets[name].house for name in benefics))
+        ))
+    return yogas
+
+
+def detect_saraswati_yoga(planets: dict[str, PlanetPosition]) -> list[Yoga]:
+    """Conservative Saraswati Yoga detector."""
+    yogas = []
+    if not all(name in planets for name in ['Mercury', 'Jupiter', 'Venus']):
+        return yogas
+
+    good_houses = KENDRA | TRIKONA | {2}
+    key_planets = [planets['Mercury'], planets['Jupiter'], planets['Venus']]
+    strong_count = sum(1 for planet in key_planets if planet.house in good_houses)
+    if strong_count >= 2:
+        yogas.append(Yoga(
+            name='Saraswati Yoga',
+            planets=['Mercury', 'Jupiter', 'Venus'],
+            description='Mercury, Jupiter, and Venus are strongly placed in learning-friendly houses — supporting intelligence, speech, culture, and study',
+            strength='strong' if strong_count == 3 else 'moderate',
+            houses_involved=sorted(set(planet.house for planet in key_planets))
+        ))
+    return yogas
+
+
+def detect_lagnesh_seventh_lord_sambandha(planets: dict[str, PlanetPosition],
+                                          planet_houses_ruled: dict[str, list[int]] = None) -> list[Yoga]:
+    """Useful relationship yoga: Lagna lord in sambandha with 7th lord."""
+    yogas = []
+    if not planet_houses_ruled:
+        return yogas
+
+    lagnesh = _find_house_lord(planet_houses_ruled, 1)
+    seventh_lord = _find_house_lord(planet_houses_ruled, 7)
+    if not lagnesh or not seventh_lord or lagnesh == seventh_lord:
+        return yogas
+
+    mutual_aspects = _get_mutual_aspect_pairs(planets)
+    if lagnesh in planets and seventh_lord in planets and _has_sambandha(planets, lagnesh, seventh_lord, mutual_aspects):
+        yogas.append(Yoga(
+            name='Lagnesh-Seventh Lord Yoga',
+            planets=[lagnesh, seventh_lord],
+            description=f'{lagnesh} (self) is in sambandha with {seventh_lord} (partnership) — relationships become a major karmic shaping force',
+            strength='moderate',
+            houses_involved=sorted(set([1, 7, planets[lagnesh].house, planets[seventh_lord].house]))
+        ))
     return yogas
 
 
@@ -362,7 +534,7 @@ def detect_parivartana_yoga(planets: dict[str, PlanetPosition],
         if get_rashi_lord(other.rashi_index) != name:
             continue
 
-        pair = tuple(sorted((name, other_name)))
+        pair = (name, other_name) if name < other_name else (other_name, name)
         if pair in seen:
             continue
         seen.add(pair)
@@ -409,13 +581,18 @@ def detect_all_yogas(planets: dict[str, PlanetPosition],
 
     all_yogas = []
     all_yogas.extend(detect_raja_yoga(planets, planet_houses_ruled))
+    all_yogas.extend(detect_dharma_karmadhipati_yoga(planets, planet_houses_ruled))
     all_yogas.extend(detect_dhana_yoga(planets, planet_houses_ruled))
     all_yogas.extend(detect_viparita_raja_yoga(planets, planet_houses_ruled))
+    all_yogas.extend(detect_adhi_yoga(planets))
     all_yogas.extend(detect_gaja_kesari_yoga(planets))
+    all_yogas.extend(detect_amala_yoga(planets, planets['Moon'].rashi_index if 'Moon' in planets else None))
     all_yogas.extend(detect_budhaditya_yoga(planets))
     all_yogas.extend(detect_neechabhanga(planets, planet_houses_ruled))
     all_yogas.extend(detect_pancha_mahapurusha(planets))
     all_yogas.extend(detect_chandra_mangala_yoga(planets))
+    all_yogas.extend(detect_saraswati_yoga(planets))
+    all_yogas.extend(detect_lagnesh_seventh_lord_sambandha(planets, planet_houses_ruled))
     all_yogas.extend(detect_parivartana_yoga(planets, planet_houses_ruled))
     return all_yogas
 
