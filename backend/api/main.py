@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from fastapi import FastAPI, HTTPException, Request, Query, UploadFile, File
+from fastapi import FastAPI, HTTPException, Request, Query, UploadFile, File, Form
 
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from starlette.middleware.sessions import SessionMiddleware
@@ -153,7 +153,7 @@ async def root():
 
 
 @app.get("/login", response_class=HTMLResponse)
-async def page_login(request: Request):
+async def page_login(request: Request, error: str = Query(None)):
     if _is_authenticated(request):
         return RedirectResponse(url="/dashboard", status_code=303)
     return templates.TemplateResponse("login.html", {
@@ -162,17 +162,27 @@ async def page_login(request: Request):
         "profiles": [],
         "profile_id": None,
         "is_authenticated": False,
+        "error": error,
     })
 
 
 @app.post("/login")
-async def api_login(request: Request):
-    data = await request.json()
-    password = data.get("password", "")
+async def api_login(request: Request, password_form: str = Form(None)):
+    password = password_form or ""
+
+    content_type = request.headers.get("content-type", "")
+    if not password and "application/json" in content_type:
+        data = await request.json()
+        password = data.get("password", "")
+
     if password != APP_PASSWORD:
+        if _is_html_request(request):
+            return RedirectResponse(url="/login?error=Invalid%20password", status_code=303)
         return JSONResponse({"error": "Invalid password"}, status_code=401)
 
     request.session["authenticated"] = True
+    if _is_html_request(request):
+        return RedirectResponse(url="/dashboard", status_code=303)
     return {"success": True}
 
 

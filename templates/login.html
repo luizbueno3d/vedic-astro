@@ -19,35 +19,12 @@
     <div class="card">
         <h1>Protected Access</h1>
         <p>This app contains private stored charts and readings. Enter the shared password to continue.</p>
-        <input id="password" type="password" placeholder="Password" autofocus>
-        <button onclick="login()">Enter App</button>
-        <div id="status"></div>
+        <form method="post" action="/login">
+            <input id="password" name="password_form" type="password" placeholder="Password" autofocus>
+            <button type="submit">Enter App</button>
+        </form>
+        <div id="status">{% if error %}{{ error }}{% endif %}</div>
         <div class="hint">Session stays active in this browser until you log out.</div>
     </div>
-
-    <script>
-    async function login() {
-        const password = document.getElementById('password').value;
-        const status = document.getElementById('status');
-        status.textContent = 'Checking password...';
-
-        try {
-            const resp = await fetch('/login', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({password})
-            });
-            const data = await resp.json();
-            if (!resp.ok) throw new Error(data.error || 'Login failed');
-            window.location.href = '/dashboard';
-        } catch (err) {
-            status.textContent = err.message;
-        }
-    }
-
-    document.getElementById('password').addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') login();
-    });
-    </script>
 </body>
 </html>
