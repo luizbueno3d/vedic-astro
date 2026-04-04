@@ -1,14 +1,16 @@
-"""Bhavat Bhavam — House-from-house analysis.
+"""Bhavat Bhavam — derivative house analysis.
 
-Each house has a Bhavat Bhavam relationship with another house.
-Bhavat Bhavam means "house of the house" — you analyze a house by
-looking at the same-numbered house from that house.
+Bhavat Bhavam means "the house of the house". In practice, a house is read not
+only by its own natural meaning, but also by the same-numbered house counted from
+itself.
 
-For example:
-- Bhavat Bhavam of H2 = H2 from H2 = H3 (2nd from 2nd)
-- Bhavat Bhavam of H7 = H7 from H7 = H1 (7th from 7th)
+Examples:
+- H2 is further understood through the 2nd from H2 -> H3
+- H5 is further understood through the 5th from H5 -> H9
+- H8 is further understood through the 8th from H8 -> H3
 
-This creates deeper layers of meaning for each house.
+This does not replace the original house. It shows the derived field through which
+that house's results mature, reinforce themselves, or become more visible.
 """
 
 HOUSE_NAMES = {
@@ -87,51 +89,51 @@ BHAVAT_BHAVAM = {
 INTERPRETATIONS = {
     1: {
         'title': 'Self — Reinforced Self',
-        'description': 'The self is analyzed through itself. H1 Bhavat Bhavam = H1 means your identity is self-referential — who you are is deeply connected to how you see yourself. Planets here amplify your core personality.'
+        'description': 'The 1st from the 1st is again the 1st, so identity refers back to itself. This is the purest self-reference in the chart: body, personality, and direction are strengthened directly through self-awareness, self-effort, and personal presence.'
     },
     2: {
         'title': 'Wealth — Through Courage & Siblings',
-        'description': 'Your wealth (H2) is connected to your courage, skills, and younger siblings (H3). Money comes through your own efforts, communication, and short journeys. The 3rd house is the Bhavat Bhavam of wealth.'
+        'description': 'The 2nd from the 2nd is the 3rd, so stored wealth is derived through effort, skill, initiative, communication, and enterprise. This is why H3 helps explain how H2 resources are built, used, and defended.'
     },
     3: {
         'title': 'Courage — Through Creativity & Children',
-        'description': 'Your courage and skills (H3) are connected to creativity, romance, and children (H5). Bravery is expressed through artistic or romantic pursuits. Skills are refined through creative practice.'
+        'description': 'The 3rd from the 3rd is the 5th, so courage matures through intelligence, creativity, judgment, and inspired self-expression. H5 shows how skill becomes talent, and effort becomes something more refined and meaningful.'
     },
     4: {
         'title': 'Home — Through Partnerships',
-        'description': 'Your home and mother (H4) are connected to partnerships and marriage (H7). Domestic happiness comes through your partner. Your mother may influence your choice of partner, or vice versa.'
+        'description': 'The 4th from the 4th is the 7th, so inner security and domestic life are reflected through relationship, agreement, and public interaction. H7 shows how private foundations seek balance through another person or through external exchange.'
     },
     5: {
         'title': 'Creativity — Through Dharma & Fortune',
-        'description': 'Your creativity and children (H5) are connected to dharma, higher learning, and fortune (H9). Creative expression follows your life purpose. Children bring good fortune.'
+        'description': 'The 5th from the 5th is the 9th, so intelligence, children, and creativity are fulfilled through dharma, teachers, higher knowledge, and grace. H9 shows the higher meaning or destiny-pattern behind H5 matters.'
     },
     6: {
         'title': 'Enemies — Through Gains & Networks',
-        'description': 'Your enemies and health (H6) are connected to gains and social networks (H11). Enemies may come through your social circle. Health improves through group activities. Victory over enemies brings gains.'
+        'description': 'The 6th from the 6th is the 11th, so struggle, work, illness, and opposition are linked with gains, alliances, systems, and outcomes. H11 shows what comes out of disciplined 6th-house effort: improvement, results, and consequences.'
     },
     7: {
         'title': 'Partnerships — Through Self',
-        'description': 'Your partnerships (H7) are connected to the self (H1). What you seek in a partner reflects who you are. Marriage transforms your identity. The partner mirrors your own qualities.'
+        'description': 'The 7th from the 7th is the 1st, so partnership ultimately reflects back to the self. H1 shows how relationships reshape identity, and why the partner often becomes a mirror of one’s own unfinished development.'
     },
     8: {
         'title': 'Transformation — Through Courage',
-        'description': 'Transformation and longevity (H8) are connected to courage and siblings (H3). Major changes come through brave actions. Siblings may go through transformative experiences.'
+        'description': 'The 8th from the 8th is the 3rd, so crisis, transformation, secrets, and deep change push toward courage, initiative, skill, and effort. H3 shows the active response required when 8th-house processes demand movement.'
     },
     9: {
         'title': 'Dharma — Through Creativity',
-        'description': 'Your dharma and fortune (H9) are connected to creativity and children (H5). Life purpose is expressed through creative work. Good fortune comes through children or students.'
+        'description': 'The 9th from the 9th is the 5th, so dharma, wisdom, and blessing are carried through intelligence, creativity, students, and inspired expression. H5 shows how higher meaning becomes something personal and generative.'
     },
     10: {
         'title': 'Career — Through Partnerships',
-        'description': 'Your career (H10) is connected to partnerships (H7). Professional success comes through collaborations. Business partnerships are key to career growth.'
+        'description': 'The 10th from the 10th is the 7th, so status, profession, and public karma are strongly tied to relationship, contracts, clients, and visibility before others. H7 explains how career often becomes relational in its execution.'
     },
     11: {
         'title': 'Gains — Through Dharma',
-        'description': 'Your gains and income (H11) are connected to dharma and fortune (H9). Wealth comes through righteous means, higher education, or foreign connections. Following your purpose brings financial rewards.'
+        'description': 'The 11th from the 11th is the 9th, so gains, fulfillment, and networks are sustained by belief, ethics, blessings, teachers, and long-view purpose. H9 shows the higher principle that stabilizes H11 results.'
     },
     12: {
         'title': 'Losses — Through Gains',
-        'description': 'Your losses and expenses (H12) are connected to gains (H11). What you earn may be spent quickly. Foreign gains offset domestic losses. Spiritual spending (donations, retreats) is favorable.'
+        'description': 'The 12th from the 12th is the 11th, so loss, expenditure, retreat, and liberation are tied to gains, circles, and the fruits of one’s larger life network. H11 helps explain where 12th-house leakage, sacrifice, or release is feeding into a wider outcome.'
     },
 }
 
@@ -143,6 +145,7 @@ def get_bhavat_bhavam(house: int) -> dict:
     return {
         'house': house,
         'bhavat_bhavam_house': bb_house,
+        'counting_rule': f'Take the {house}th house and count {house} houses from it. That lands in H{bb_house}.',
         'title': interp.get('title', ''),
         'description': interp.get('description', ''),
     }
@@ -207,14 +210,14 @@ def get_planet_house_from_house_analysis(planets: dict) -> list[dict]:
         derived_topic = HOUSE_NAMES[derived_house]
         planet_theme = PLANET_THEMES.get(name, name.lower())
         count_explanation = (
-            f'Because {name} is in H{source_house}, Bhavat Bhavam reads it through the {source_house}th from H{source_house}. '
-            f'Counting {source_house} houses from H{source_house} lands in H{derived_house}.'
+            f'Bhavat Bhavam uses derivative-house logic: take the {source_house}th house and count {source_house} houses from it. '
+            f'Because {name} is in H{source_house}, that count lands in H{derived_house}, which becomes the derived house of manifestation for this placement.'
         )
 
         action = PLANET_ACTIONS.get(name, f'express {planet_theme}')
         summary = (
             f'{name} starts in H{source_house}, so the first story is {source_topic}. '
-            f'{count_explanation} That is why H{derived_house} becomes the echo house, where this planet tends to unfold {HOUSE_CHANNELS[derived_house]}.'
+            f'{count_explanation} That is why H{derived_house} becomes the secondary field through which this placement tends to unfold {HOUSE_CHANNELS[derived_house]}.'
         )
 
         practical = (

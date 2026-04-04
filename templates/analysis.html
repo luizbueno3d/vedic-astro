@@ -145,14 +145,15 @@
 <!-- Bhavat Bhavam -->
 <div class="card" style="margin-top:20px">
     <h3>Bhavat Bhavam — House-from-House</h3>
-    <p class="subtitle">This is the structural map: each house gets reinforced through another house. Useful, but still abstract on its own.</p>
+    <p class="subtitle">This is the derivative-house map. For each house, we count that same number of houses from itself. The resulting house shows the secondary field through which the original house matures, reinforces itself, or becomes more visible.</p>
     <table>
-        <tr><th>House</th><th>BH House</th><th>Title</th><th>Planets in H</th><th>Planets in BH</th></tr>
+        <tr><th>House</th><th>BH House</th><th>Why</th><th>What It Adds</th><th>Planets in H</th><th>Planets in BH</th></tr>
         {% for b in bhavat_bhavam %}
         <tr>
             <td>H{{ b.house }}</td>
             <td>H{{ b.bb_house }}</td>
-            <td>{{ b.title }}</td>
+            <td style="font-size:0.9em">{{ b.counting_rule }}</td>
+            <td style="font-size:0.9em"><strong>{{ b.title }}</strong><br>{{ b.description }}</td>
             <td>{{ b.planets_in_house | join(', ') if b.planets_in_house else '-' }}</td>
             <td>{{ b.planets_in_bb_house | join(', ') if b.planets_in_bb_house else '-' }}</td>
         </tr>
@@ -165,9 +166,9 @@
     <p style="margin:0 0 12px; line-height:1.7">
         This is the useful version. Instead of only showing house math, we read it planet by planet.
         First read the house where the planet sits. Then apply the classical rule: count the same number of houses from that house.
-        That new house becomes the <strong>echo house</strong>, the secondary place where the planet's results unfold.
+        That new house becomes the <strong>derived house</strong>, the secondary place where the planet's results unfold.
         Example: if a planet sits in H8, count 8 houses from H8 and you land in H3. If a planet sits in H5, count 5 houses from H5 and you land in H9.
-        So Bhavat Bhavam is not an aspect - it is a house-from-itself echo rule.
+        So Bhavat Bhavam is not an aspect - it is a derivative-house rule.
     </p>
     {% for p in planet_bhavat_bhavam %}
     <div style="margin-bottom:12px; padding:12px; background:rgba(74,158,255,0.06); border-radius:8px; border-left:3px solid var(--blue)">
