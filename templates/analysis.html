@@ -164,11 +164,15 @@
     <h3>Bhavat Bhavam By Planet</h3>
     <p style="margin:0 0 12px; line-height:1.7">
         This is the useful version. Instead of only showing house math, we read it planet by planet.
-        First read the house where the planet sits. Then read the Bhavat Bhavam house of that house as the secondary way its results tend to unfold.
+        First read the house where the planet sits. Then apply the classical rule: count the same number of houses from that house.
+        That new house becomes the <strong>echo house</strong>, the secondary place where the planet's results unfold.
+        Example: if a planet sits in H8, count 8 houses from H8 and you land in H3. If a planet sits in H5, count 5 houses from H5 and you land in H9.
+        So Bhavat Bhavam is not an aspect - it is a house-from-itself echo rule.
     </p>
     {% for p in planet_bhavat_bhavam %}
     <div style="margin-bottom:12px; padding:12px; background:rgba(74,158,255,0.06); border-radius:8px; border-left:3px solid var(--blue)">
         <div><strong>{{ p.planet }}</strong> in {{ p.rashi }} · H{{ p.house }} -> BH H{{ p.bb_house }}</div>
+        <div style="font-size:0.9em; margin-top:6px; line-height:1.6"><strong>Why H{{ p.bb_house }}?</strong> {{ p.count_explanation }}</div>
         <div style="color:var(--muted); font-size:0.92em; margin-top:6px; line-height:1.6">{{ p.summary }}</div>
         <div style="font-size:0.9em; margin-top:6px; line-height:1.6">{{ p.practical }}</div>
     </div>

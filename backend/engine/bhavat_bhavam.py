@@ -206,11 +206,15 @@ def get_planet_house_from_house_analysis(planets: dict) -> list[dict]:
         source_topic = HOUSE_NAMES[source_house]
         derived_topic = HOUSE_NAMES[derived_house]
         planet_theme = PLANET_THEMES.get(name, name.lower())
+        count_explanation = (
+            f'Because {name} is in H{source_house}, Bhavat Bhavam reads it through the {source_house}th from H{source_house}. '
+            f'Counting {source_house} houses from H{source_house} lands in H{derived_house}.'
+        )
 
         action = PLANET_ACTIONS.get(name, f'express {planet_theme}')
         summary = (
             f'{name} starts in H{source_house}, so the first story is {source_topic}. '
-            f'Bhavat Bhavam sends that result to H{derived_house}, so this planet tends to unfold {HOUSE_CHANNELS[derived_house]}.'
+            f'{count_explanation} That is why H{derived_house} becomes the echo house, where this planet tends to unfold {HOUSE_CHANNELS[derived_house]}.'
         )
 
         practical = (
@@ -226,6 +230,7 @@ def get_planet_house_from_house_analysis(planets: dict) -> list[dict]:
             'bb_house': derived_house,
             'house_topic': source_topic,
             'bb_topic': derived_topic,
+            'count_explanation': count_explanation,
             'summary': summary,
             'practical': practical,
         })
