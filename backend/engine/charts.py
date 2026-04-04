@@ -7,6 +7,76 @@ fully validated until backed by reference checks.
 
 from .ephemeris import PlanetPosition, RASHIS
 
+HOUSE_TOPICS = {
+    1: 'self, identity, and approach to life',
+    2: 'money, speech, and family resources',
+    3: 'courage, skills, and initiative',
+    4: 'home, roots, and emotional foundation',
+    5: 'creativity, children, and intelligence',
+    6: 'work, service, stress, and problem-solving',
+    7: 'relationships, partners, and the public',
+    8: 'transformation, intimacy, and hidden processes',
+    9: 'belief, meaning, teachers, and luck',
+    10: 'career, reputation, and visible action',
+    11: 'gains, friends, and long-term goals',
+    12: 'rest, loss, retreat, and spiritual distance',
+}
+
+PLANET_KEYWORDS = {
+    'Sun': 'purpose and authority',
+    'Moon': 'emotions and daily experience',
+    'Mars': 'drive and action',
+    'Mercury': 'thinking and communication',
+    'Jupiter': 'growth and wisdom',
+    'Venus': 'love, pleasure, and harmony',
+    'Saturn': 'discipline and long-term lessons',
+    'Rahu': 'desire and appetite for experience',
+    'Ketu': 'detachment and spiritual filtering',
+}
+
+
+def _sign_index(sign: str) -> int:
+    return RASHIS.index(sign)
+
+
+def _varga_house(sign: str, asc_sign: str) -> int:
+    return ((_sign_index(sign) - _sign_index(asc_sign)) % 12) + 1
+
+
+def _planet_line(planet: str, sign: str, house: int) -> str:
+    return f'{planet} in {sign} in H{house} points to {PLANET_KEYWORDS.get(planet, planet.lower())} working through {HOUSE_TOPICS[house]}.'
+
+
+def build_varga_summary(varga_id: str, varga_signs: dict[str, str]) -> dict:
+    """Build a beginner-friendly varga summary using sign + whole-sign houses."""
+    asc_sign = varga_signs.get('Asc')
+    if not asc_sign:
+        return {'asc_sign': None, 'planet_houses': {}, 'summary': ''}
+
+    planet_houses = {
+        planet: _varga_house(sign, asc_sign)
+        for planet, sign in varga_signs.items()
+    }
+
+    focus_map = {
+        'D9': ['Venus', 'Jupiter', 'Moon', 'Sun'],
+        'D10': ['Sun', 'Saturn', 'Mercury', 'Jupiter'],
+        'D7': ['Jupiter', 'Venus', 'Moon'],
+        'D12': ['Sun', 'Moon', 'Saturn'],
+        'D4': ['Moon', 'Mars', 'Venus'],
+        'D3': ['Mars', 'Mercury', 'Saturn'],
+        'D2': ['Jupiter', 'Venus', 'Mercury'],
+    }
+    key_planets = [planet for planet in focus_map.get(varga_id, ['Sun', 'Moon', 'Jupiter']) if planet in varga_signs]
+    lines = [
+        f'This chart rises in {asc_sign}, so it approaches this topic through {HOUSE_TOPICS[1]}.',
+    ]
+    for planet in key_planets[:3]:
+        lines.append(_planet_line(planet, varga_signs[planet], planet_houses[planet]))
+
+    summary = ' '.join(lines)
+    return {'asc_sign': asc_sign, 'planet_houses': planet_houses, 'summary': summary}
+
 
 def get_part(longitude: float, divisions: int) -> tuple[int, int]:
     """Get sign index and 1-indexed part within sign."""
@@ -281,7 +351,8 @@ def calculate_all_vargas(planet_longitudes: dict[str, float]) -> dict[str, dict[
         results[varga_id] = {
             'name': name,
             'purpose': purpose,
-            'signs': varga_chart
+            'signs': varga_chart,
+            'reading': build_varga_summary(varga_id, varga_chart),
         }
     return results
 
