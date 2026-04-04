@@ -1,4 +1,4 @@
-"""Jaimini Astrology — Chara Karakas, sign aspects, Karakamsa, and Raja Yoga.
+"""Jaimini Astrology — Chara Karakas, sign aspects, Karakamsa, Raja Yoga, and Chara Dasha.
 
 Jaimini is a different system from Parashari (standard Vedic).
 Key differences:
@@ -8,12 +8,15 @@ Key differences:
 - Chara aspects (sign-based, not planet-based)
 """
 
+from datetime import date, timedelta
+
 from .charts import d9_navamsha
-from .ephemeris import RASHIS
+from .ephemeris import RASHIS, RASHI_LORDS
 
 MOVABLE_SIGNS = {0, 3, 6, 9}
 FIXED_SIGNS = {1, 4, 7, 10}
 DUAL_SIGNS = {2, 5, 8, 11}
+YEAR_DAYS = 365.2425
 
 
 # Chara Karaka roles
@@ -293,6 +296,91 @@ def interpret_karakamsa(karakamsa: dict) -> str:
     if karakamsa['aspected_by']:
         parts.append(f"Jaimini sign aspects to Karakamsa come from: {', '.join(karakamsa['aspected_by'])}. These planets shape how the soul-direction unfolds.")
     parts.append(f"The 10th from Karakamsa is {karakamsa['tenth_from_karakamsa']}, useful for vocation; the 7th from Karakamsa is {karakamsa['seventh_from_karakamsa']}, useful for partnership themes.")
+    return ' '.join(parts)
+
+
+def _format_date(d: date) -> str:
+    return d.isoformat()
+
+
+def _chara_direction(sign_index: int) -> int:
+    """Conservative v1 method: odd signs forward, even signs reverse."""
+    return 1 if sign_index % 2 == 0 else -1
+
+
+def _count_signs_in_direction(from_sign: int, to_sign: int, direction: int) -> int:
+    """Inclusive sign count in chosen direction. Same sign = 12 years."""
+    if direction == 1:
+        steps = (to_sign - from_sign) % 12
+    else:
+        steps = (from_sign - to_sign) % 12
+    return 12 if steps == 0 else steps
+
+
+def calculate_chara_dasha(planets: dict, asc_sign_index: int, start_date: date) -> dict:
+    """Calculate a conservative Chara Dasha v1 timeline.
+
+    Method used here is intentionally explicit:
+    - start from Lagna sign
+    - odd signs move forward, even signs move backward
+    - each sign duration = count from dasha sign to its lord's natal sign in the chosen direction
+    - if the lord is in the same sign, assign 12 years
+    - Scorpio uses Mars and Aquarius uses Saturn in this v1 implementation
+    """
+    timeline = []
+    current_start = start_date
+
+    for offset in range(12):
+        sign_index = (asc_sign_index + offset) % 12
+        direction = _chara_direction(sign_index)
+        lord = RASHI_LORDS[sign_index]
+        lord_sign = planets[lord].rashi_index
+        years = _count_signs_in_direction(sign_index, lord_sign, direction)
+        end_date = current_start + timedelta(days=round(years * YEAR_DAYS))
+
+        timeline.append({
+            'sign': RASHIS[sign_index],
+            'sign_index': sign_index,
+            'lord': lord,
+            'lord_sign': RASHIS[lord_sign],
+            'direction': 'forward' if direction == 1 else 'reverse',
+            'years': years,
+            'start': _format_date(current_start),
+            'end': _format_date(end_date),
+        })
+
+        current_start = end_date
+
+    today = date.today()
+    current_period = None
+    for period in timeline:
+        start_dt = date.fromisoformat(period['start'])
+        end_dt = date.fromisoformat(period['end'])
+        if start_dt <= today < end_dt:
+            current_period = period
+            break
+
+    return {
+        'method': 'Lagna-based Chara Dasha v1 (odd signs forward, even signs reverse)',
+        'start_sign': RASHIS[asc_sign_index],
+        'timeline': timeline,
+        'current': current_period,
+    }
+
+
+def interpret_chara_dasha(chara_dasha: dict, karakamsa: dict | None = None) -> str:
+    """Plain-language explanation of current Chara Dasha."""
+    current = chara_dasha.get('current')
+    if not current:
+        return 'No current Chara Dasha period could be identified from the present date.'
+
+    parts = [
+        f"Current Chara Dasha sign is {current['sign']}, ruled by {current['lord']}. In this Jaimini system, signs themselves run the periods rather than planets.",
+        f"This implementation uses a clear v1 rule: start from the Ascendant sign, move forward for odd signs and backward for even signs, then set the duration by counting to the sign where that sign's lord is placed.",
+        f"For the current period, {current['sign']} runs for {current['years']} years and its lord {current['lord']} is in {current['lord_sign']}.",
+    ]
+    if karakamsa:
+        parts.append(f"Relative to Karakamsa in {karakamsa['karakamsa_sign']}, this period can be read for soul-direction and activation of Jaimini themes.")
     return ' '.join(parts)
 
 

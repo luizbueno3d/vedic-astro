@@ -19,7 +19,7 @@ import json
 from engine.ephemeris import calculate_chart, deg_to_dms, get_rashi_lord, RASHIS
 from engine.charts import get_varga_signs, VARGA_FUNCTIONS, VARGA_META
 from engine.kp import calculate_kp_bhava_chalit, kp_to_dict
-from engine.jaimini import calculate_chara_karakas, calculate_jaimini_raja_yoga, calculate_karakamsa, get_jaimini_interpretation, get_jaimini_sign_aspects, interpret_karakamsa
+from engine.jaimini import calculate_chara_karakas, calculate_chara_dasha, calculate_jaimini_raja_yoga, calculate_karakamsa, get_jaimini_interpretation, get_jaimini_sign_aspects, interpret_chara_dasha, interpret_karakamsa
 from engine.dasha import (
     calculate_mahadasha, calculate_antardasha, calculate_pratyantardasha,
     get_current_dasha_periods, dasha_to_dict, get_starting_dasha
@@ -485,10 +485,15 @@ async def api_bhavat_bhavam(profile_id: int):
 async def api_jaimini(profile_id: int):
     chart = _chart_from_profile(profile_id)
     karakas = calculate_chara_karakas(chart.planets)
+    karakamsa = calculate_karakamsa(karakas, chart.planets)
+    chara_dasha = calculate_chara_dasha(chart.planets, chart.ascendant.rashi_index, date.fromisoformat(chart.birth_date))
     return {
         'karakas': karakas,
         'interpretation': get_jaimini_interpretation(karakas),
         'raja_yogas': calculate_jaimini_raja_yoga(karakas),
+        'karakamsa': karakamsa,
+        'sign_aspects': get_jaimini_sign_aspects(chart.planets),
+        'chara_dasha': chara_dasha,
     }
 
 
@@ -835,6 +840,10 @@ async def page_dasha(request: Request, profile_id: int = Query(None),
                 if current['pratyantardasha']:
                     dasha_data['current']['pratyantardasha'] = dasha_to_dict(current['pratyantardasha'])
 
+    jaimini_karakas = calculate_chara_karakas(chart.planets)
+    karakamsa = calculate_karakamsa(jaimini_karakas, chart.planets)
+    chara_dasha = calculate_chara_dasha(chart.planets, chart.ascendant.rashi_index, birth_date)
+
     return templates.TemplateResponse("dasha.html", {
         "request": request,
         "page": "dasha",
@@ -845,6 +854,8 @@ async def page_dasha(request: Request, profile_id: int = Query(None),
         "dasha": dasha_data,
         "antardashas": antardashas,
         "pratyantardashas": pratyantardashas,
+        "chara_dasha": chara_dasha,
+        "chara_dasha_text": interpret_chara_dasha(chara_dasha, karakamsa),
     })
 
 

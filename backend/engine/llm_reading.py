@@ -8,7 +8,9 @@ analysis so the final reading is deeper than a single prompt dump.
 from .ai_provider import generate_reading as ai_generate_reading, get_active_provider
 from .bhavat_bhavam import get_planet_house_from_house_analysis
 from .interpretations import interpret_conjunction, interpret_dasha, interpret_dosha, interpret_full, interpret_yoga
-from .jaimini import calculate_chara_karakas, calculate_jaimini_raja_yoga, calculate_karakamsa, get_jaimini_interpretation, get_jaimini_sign_aspects, get_karakas_priority_notes, get_karakas_summary, interpret_karakamsa
+from datetime import date
+
+from .jaimini import calculate_chara_karakas, calculate_chara_dasha, calculate_jaimini_raja_yoga, calculate_karakamsa, get_jaimini_interpretation, get_jaimini_sign_aspects, get_karakas_priority_notes, get_karakas_summary, interpret_chara_dasha, interpret_karakamsa
 from .kp import calculate_kp_bhava_chalit
 
 
@@ -273,6 +275,7 @@ def build_chart_context(chart, rulerships, yogas, doshas, shadbala,
     jaimini_raja_yogas = calculate_jaimini_raja_yoga(karakas)
     karakamsa = calculate_karakamsa(karakas, planets)
     jaimini_sign_aspects = get_jaimini_sign_aspects(planets)
+    chara_dasha = calculate_chara_dasha(planets, asc.rashi_index, date.fromisoformat(chart.birth_date))
     lines.append('=== JAIMINI CHARA KARAKAS ===')
     lines.append(get_karakas_summary(karakas))
     lines.append(get_karakas_priority_notes(karakas))
@@ -294,6 +297,14 @@ def build_chart_context(chart, rulerships, yogas, doshas, shadbala,
         lines.append('Jaimini sign aspects:')
         for aspect in jaimini_sign_aspects[:16]:
             lines.append(f"  {aspect['from']} in {aspect['from_sign']} -> {aspect['to']} in {aspect['to_sign']}")
+    if chara_dasha:
+        lines.append(f"Chara Dasha: {interpret_chara_dasha(chara_dasha, karakamsa)}")
+        if chara_dasha.get('current'):
+            current_cd = chara_dasha['current']
+            lines.append(
+                f"Current Chara Dasha sign: {current_cd['sign']} ({current_cd['start']} to {current_cd['end']}) | "
+                f"Lord {current_cd['lord']} in {current_cd['lord_sign']} | {current_cd['direction']}"
+            )
     lines.append('')
 
     lines.append('=== FOUNDATIONAL READING ORDER ===')

@@ -11,6 +11,10 @@
         <strong>Mahadasha</strong> is the main chapter, <strong>Antardasha</strong> is the sub-chapter, and <strong>Pratyantardasha</strong> is the smaller active trigger.
         If you want to understand what is unfolding right now, start with the currently active periods before looking at future timelines.
     </p>
+    <p style="margin:12px 0 0; line-height:1.7">
+        This page now shows <strong>two timing systems</strong>: the standard Vimshottari dasha below, and a Jaimini <strong>Chara Dasha</strong> section further down.
+        Vimshottari is planet-based. Chara Dasha is sign-based.
+    </p>
 </div>
 
 <!-- Current Period -->
@@ -120,6 +124,46 @@
             <td>{{ md.end }}</td>
             <td>{{ md.years }}y</td>
             <td>{% if md.is_current %}<span class="current">◄ NOW</span>{% endif %}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+
+<div class="card" style="margin-top:20px; border-color:var(--blue)">
+    <h3>Jaimini Chara Dasha</h3>
+    <p style="margin:0 0 12px; line-height:1.7">
+        Chara Dasha is a <strong>sign-based</strong> timing system from Jaimini astrology. Instead of planets running the periods, the signs themselves run them.
+        This app is using a clearly labeled conservative method: start from the Ascendant sign, move forward for odd signs and backward for even signs,
+        then measure each sign's duration by counting to the sign where its ruler sits.
+    </p>
+    <div style="color:var(--muted); line-height:1.7; margin-bottom:12px">{{ chara_dasha_text }}</div>
+    {% if chara_dasha.current %}
+    <table style="margin-bottom:16px">
+        <tr><th>Current Sign</th><th>Lord</th><th>Lord In</th><th>Direction</th><th>Start</th><th>End</th><th>Years</th></tr>
+        <tr>
+            <td><strong>{{ chara_dasha.current.sign }}</strong></td>
+            <td>{{ chara_dasha.current.lord }}</td>
+            <td>{{ chara_dasha.current.lord_sign }}</td>
+            <td>{{ chara_dasha.current.direction }}</td>
+            <td>{{ chara_dasha.current.start }}</td>
+            <td>{{ chara_dasha.current.end }}</td>
+            <td>{{ chara_dasha.current.years }}</td>
+        </tr>
+    </table>
+    {% endif %}
+
+    <table>
+        <tr><th>#</th><th>Sign</th><th>Lord</th><th>Lord In</th><th>Direction</th><th>Start</th><th>End</th><th>Years</th></tr>
+        {% for period in chara_dasha.timeline %}
+        <tr>
+            <td>{{ loop.index }}</td>
+            <td><strong>{{ period.sign }}</strong></td>
+            <td>{{ period.lord }}</td>
+            <td>{{ period.lord_sign }}</td>
+            <td>{{ period.direction }}</td>
+            <td>{{ period.start }}</td>
+            <td>{{ period.end }}</td>
+            <td>{{ period.years }}</td>
         </tr>
         {% endfor %}
     </table>
