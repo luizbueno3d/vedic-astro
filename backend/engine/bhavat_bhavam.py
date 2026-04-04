@@ -38,6 +38,33 @@ PLANET_THEMES = {
     'Ketu': 'detachment, inner severance, and spiritual filtering',
 }
 
+PLANET_ACTIONS = {
+    'Sun': 'build identity and direction',
+    'Moon': 'seek emotional safety and belonging',
+    'Mars': 'push, fight, and take initiative',
+    'Mercury': 'think, connect, and interpret',
+    'Jupiter': 'grow, teach, and make meaning',
+    'Venus': 'bond, attract, and harmonize',
+    'Saturn': 'work, endure, and mature slowly',
+    'Rahu': 'chase, amplify, and intensify desire',
+    'Ketu': 'detach, filter, and internalize',
+}
+
+HOUSE_CHANNELS = {
+    1: 'through personal presence and direct self-expression',
+    2: 'through money choices, speech, and value systems',
+    3: 'through skills, courage, writing, and self-effort',
+    4: 'through home life, roots, and inner emotional grounding',
+    5: 'through creativity, romance, children, and intelligence',
+    6: 'through work, discipline, conflict, healing, and service',
+    7: 'through partners, clients, agreements, and public interaction',
+    8: 'through crisis, transformation, research, and vulnerability',
+    9: 'through teachers, belief, higher learning, and life philosophy',
+    10: 'through career, public duty, visibility, and achievement',
+    11: 'through networks, gains, allies, and future goals',
+    12: 'through retreat, loss, foreignness, sleep, and spiritual distance',
+}
+
 # Bhavat Bhavam mapping: house → bhavat bhavam house
 # Formula: BH(h) = (h + h - 2) % 12 + 1 = (2h - 2) % 12 + 1
 # Or simply: count h houses forward from house h
@@ -180,15 +207,16 @@ def get_planet_house_from_house_analysis(planets: dict) -> list[dict]:
         derived_topic = HOUSE_NAMES[derived_house]
         planet_theme = PLANET_THEMES.get(name, name.lower())
 
+        action = PLANET_ACTIONS.get(name, f'express {planet_theme}')
         summary = (
-            f'{name} sits in H{source_house}, so its core expression starts in {source_topic}. '
-            f'By Bhavat Bhavam, H{source_house} is reinforced through H{derived_house}, meaning this planet often delivers results '
-            f'through {derived_topic} as the second layer.'
+            f'{name} starts in H{source_house}, so the first story is {source_topic}. '
+            f'Bhavat Bhavam sends that result to H{derived_house}, so this planet tends to unfold {HOUSE_CHANNELS[derived_house]}.'
         )
 
         practical = (
-            f'In plain English: {planet_theme} is not only about H{source_house}; it tends to complete itself through H{derived_house}. '
-            f'Read H{source_house} as the main story and H{derived_house} as the supporting mechanism.'
+            f'Practical reading: {name} will usually {action} first around H{source_house}, '
+            f'but the result becomes more visible or complete when it moves into H{derived_house} themes. '
+            f'That is why {source_topic} and {derived_topic} should be read together, not separately.'
         )
 
         results.append({
