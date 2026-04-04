@@ -6,8 +6,9 @@ analysis so the final reading is deeper than a single prompt dump.
 """
 
 from .ai_provider import generate_reading as ai_generate_reading, get_active_provider
+from .bhavat_bhavam import get_planet_house_from_house_analysis
 from .interpretations import interpret_conjunction, interpret_dasha, interpret_dosha, interpret_full, interpret_yoga
-from .jaimini import calculate_chara_karakas, get_karakas_priority_notes, get_karakas_summary
+from .jaimini import calculate_chara_karakas, calculate_jaimini_raja_yoga, get_jaimini_interpretation, get_karakas_priority_notes, get_karakas_summary
 from .kp import calculate_kp_bhava_chalit
 
 
@@ -230,9 +231,23 @@ def build_chart_context(chart, rulerships, yogas, doshas, shadbala,
     lines.append('')
 
     karakas = calculate_chara_karakas(planets)
+    jaimini_interpretation = get_jaimini_interpretation(karakas)
+    jaimini_raja_yogas = calculate_jaimini_raja_yoga(karakas)
     lines.append('=== JAIMINI CHARA KARAKAS ===')
     lines.append(get_karakas_summary(karakas))
     lines.append(get_karakas_priority_notes(karakas))
+    lines.append('')
+
+    lines.append('=== JAIMINI INTERPRETIVE LAYER ===')
+    if jaimini_interpretation.get('atmakaraka'):
+        lines.append(jaimini_interpretation['atmakaraka'])
+    if jaimini_interpretation.get('darakaraka'):
+        lines.append(jaimini_interpretation['darakaraka'])
+    if jaimini_raja_yogas:
+        for yoga in jaimini_raja_yogas:
+            lines.append(f"Jaimini Raja Yoga: {yoga['description']}")
+    else:
+        lines.append('No active Jaimini Raja Yoga detected from the current karaka relationships.')
     lines.append('')
 
     lines.append('=== FOUNDATIONAL READING ORDER ===')
@@ -330,6 +345,15 @@ def build_chart_context(chart, rulerships, yogas, doshas, shadbala,
         lines.append(f"Weak: {', '.join(weak) if weak else 'none'}")
         lines.append('')
 
+    planet_bb = get_planet_house_from_house_analysis(planets)
+    lines.append('=== BHAVAT BHAVAM BY PLANET ===')
+    lines.append('Use derivative-house logic: if a planet is in Hn, count n houses from Hn to get the secondary manifestation field.')
+    for item in planet_bb:
+        lines.append(f"{item['planet']}: D1 H{item['house']} -> derived H{item['bb_house']}")
+        lines.append(f"  {item['count_explanation']}")
+        lines.append(f"  {item['practical']}")
+    lines.append('')
+
     _append_dasha_lord_context(lines, chart, rulerships, dasha_data, kp_data)
 
     if transits:
@@ -344,8 +368,15 @@ def build_chart_context(chart, rulerships, yogas, doshas, shadbala,
         lines.append('=== DIVISIONAL SNAPSHOT ===')
         if 'D9' in vargas:
             lines.append(f"D9 Asc: {vargas['D9']['signs'].get('Asc', '?')}")
+            if vargas['D9'].get('reading', {}).get('summary'):
+                lines.append(f"D9 Summary: {vargas['D9']['reading']['summary']}")
         if 'D10' in vargas:
             lines.append(f"D10 Asc: {vargas['D10']['signs'].get('Asc', '?')}")
+            if vargas['D10'].get('reading', {}).get('summary'):
+                lines.append(f"D10 Summary: {vargas['D10']['reading']['summary']}")
+        for varga_id in ['D7', 'D12']:
+            if varga_id in vargas and vargas[varga_id].get('reading', {}).get('summary'):
+                lines.append(f"{varga_id} Summary: {vargas[varga_id]['reading']['summary']}")
         lines.append('')
 
     return '\n'.join(lines)
