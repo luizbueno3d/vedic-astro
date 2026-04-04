@@ -59,7 +59,7 @@ app.add_middleware(
     secret_key=APP_SESSION_SECRET,
     session_cookie="vedic_astro_session",
     same_site="lax",
-    https_only=False,
+    https_only=True,
 )
 
 # Templates
@@ -78,6 +78,12 @@ def _is_authenticated(request: Request) -> bool:
         return request.session.get("authenticated") is True
     except Exception:
         return False
+
+
+def _login_redirect() -> RedirectResponse:
+    response = RedirectResponse(url="/login", status_code=303)
+    response.delete_cookie("vedic_astro_session")
+    return response
 
 
 def _is_html_request(request: Request) -> bool:
@@ -99,7 +105,7 @@ async def auth_gate(request: Request, call_next):
         return await call_next(request)
 
     if _is_html_request(request):
-        return RedirectResponse(url="/login", status_code=303)
+        return _login_redirect()
 
     return JSONResponse({"error": "Authentication required"}, status_code=401)
 
