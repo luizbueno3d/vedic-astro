@@ -10,7 +10,7 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from engine.ephemeris import calculate_chart, deg_to_dms, get_julian_day
-from engine.charts import d9_navamsha, d7_saptamsha, d10_dashamsha
+from engine.charts import d9_navamsha, d7_saptamsha, d10_dashamsha, d3_drekkana, d4_chaturthamsa, d12_dwadasamsa
 from engine.dasha import calculate_mahadasha, get_starting_dasha
 import swisseph as swe
 from datetime import date
@@ -47,43 +47,42 @@ D1_EXPECTED = {
     'Ketu': {'degree': 265.6700, 'sign': 'Sagittarius', 'nakshatra': 'P.Ashadha', 'pada': 4},  # 25°40'12"
 }
 
-# T5: D9 Navamsha (from PDF Page 40, 1-indexed: 1=Aries)
-# Convert to 0-indexed for our code (subtract 1)
+# T5: D9 Navamsha (from PDF Page 40, corrected to 0-indexed sign indices)
 D9_EXPECTED = {
-    'Asc': 8-1,   # Scorpio
-    'Sun': 5-1,   # Cancer
-    'Moon': 8-1,  # Libra
-    'Mars': 5-1,  # Cancer
-    'Mercury': 10-1,  # Sagittarius
-    'Jupiter': 12-1,  # Aquarius
-    'Venus': 3-1,     # Taurus
-    'Saturn': 7-1,    # Virgo
-    'Rahu': 3-1,      # Taurus
-    'Ketu': 9-1,      # Sagittarius (note: differs from our calc by 1 for nodes)
+    'Asc': 7,      # Scorpio
+    'Sun': 3,      # Cancer
+    'Moon': 6,     # Libra
+    'Mars': 3,     # Cancer
+    'Mercury': 8,  # Sagittarius
+    'Jupiter': 10, # Aquarius
+    'Venus': 1,    # Taurus
+    'Saturn': 5,   # Virgo
+    'Rahu': 1,     # Taurus
+    'Ketu': 8,     # Sagittarius
 }
 
-# D7 Saptamamsha (from PDF Page 40, 1-indexed)
+# D7 Saptamamsha (from PDF Page 40, corrected to 0-indexed sign indices)
 D7_EXPECTED = {
-    'Asc': 2-1,   # Aries
-    'Sun': 7-1,   # Virgo
-    'Moon': 5-1,  # Cancer
-    'Mars': 6-1,  # Leo
-    'Mercury': 2-1,  # Aries
-    'Jupiter': 11-1, # Capricorn
-    'Venus': 8-1,    # Libra
-    'Saturn': 7-1,   # Virgo
+    'Asc': 0,      # Aries
+    'Sun': 5,      # Virgo
+    'Moon': 3,     # Cancer
+    'Mars': 4,     # Leo
+    'Mercury': 0,  # Aries
+    'Jupiter': 9,  # Capricorn
+    'Venus': 6,    # Libra
+    'Saturn': 5,   # Virgo
 }
 
-# D10 Dashamamsha (from PDF Page 40, 1-indexed)
+# D10 Dashamamsha (from PDF Page 40, corrected to 0-indexed sign indices)
 D10_EXPECTED = {
-    'Asc': 6-1,   # Leo
-    'Sun': 9-1,   # Scorpio
-    'Moon': 8-1,  # Libra
-    'Mars': 10-1,  # Sagittarius
-    'Mercury': 3-1,  # Taurus
-    'Jupiter': 12-1, # Pisces
-    'Venus': 11-1,   # Aquarius
-    'Saturn': 11-1,  # Aquarius
+    'Asc': 4,      # Leo
+    'Sun': 7,      # Scorpio
+    'Moon': 6,     # Libra
+    'Mars': 8,     # Sagittarius
+    'Mercury': 1,  # Taurus
+    'Jupiter': 11, # Pisces
+    'Venus': 10,   # Aquarius
+    'Saturn': 10,  # Aquarius
 }
 
 # T6.2: KP Cusps (from PDF Page 44)
@@ -242,6 +241,14 @@ def run_tests():
         d9_sign = d9_navamsha(lon)
         d9_idx = ['Aries','Taurus','Gemini','Cancer','Leo','Virgo','Libra','Scorpio','Sagittarius','Capricorn','Aquarius','Pisces'].index(d9_sign)
         qa.check(f'T5.{planet}', f'D9 {planet}', d9_idx, D9_EXPECTED[planet])
+
+    print("--- T5a: Division Boundary Sanity Checks ---")
+    qa.check('T5a.D3.AriesStart', 'D3 Aries 0deg starts in Aries', d3_drekkana(0.1), 'Aries')
+    qa.check('T5a.D4.AriesStart', 'D4 Aries 0deg starts in Aries', d4_chaturthamsa(0.1), 'Aries')
+    qa.check('T5a.D7.AriesStart', 'D7 Aries 0deg starts in Aries', d7_saptamsha(0.1), 'Aries')
+    qa.check('T5a.D9.AriesStart', 'D9 Aries 0deg starts in Aries', d9_navamsha(0.1), 'Aries')
+    qa.check('T5a.D10.AriesStart', 'D10 Aries 0deg starts in Aries', d10_dashamsha(0.1), 'Aries')
+    qa.check('T5a.D12.AriesStart', 'D12 Aries 0deg starts in Aries', d12_dwadasamsa(0.1), 'Aries')
 
     print("--- T5b: D7 Saptamamsha ---")
     for planet in ['Asc', 'Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn']:

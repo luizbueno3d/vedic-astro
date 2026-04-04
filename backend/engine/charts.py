@@ -1,10 +1,15 @@
-"""Divisional chart calculations (D1-D60) with verified AstroSage formulas."""
+"""Divisional chart calculations.
+
+Important: only the core formulas implemented explicitly below should be treated as
+verified. Several higher vargas remain simplified and should not be presented as
+fully validated until backed by reference checks.
+"""
 
 from .ephemeris import PlanetPosition, RASHIS
 
 
 def get_part(longitude: float, divisions: int) -> tuple[int, int]:
-    """Get sign index and 1-indexed part within sign (AstroSage D9/D7 convention)."""
+    """Get sign index and 1-indexed part within sign."""
     ri = int(longitude % 360 / 30)
     rem = longitude % 360 % 30
     # Use multiplication to avoid floating point division errors
@@ -13,21 +18,23 @@ def get_part(longitude: float, divisions: int) -> tuple[int, int]:
 
 
 def get_part_0(longitude: float, divisions: int) -> tuple[int, int]:
-    """Get sign index and 0-indexed part within sign (AstroSage D10 convention)."""
+    """Get sign index and 0-indexed part within sign."""
     ri = int(longitude % 360 / 30)
     rem = longitude % 360 % 30
     part = min(int(rem * divisions / 30.0), divisions - 1)
     return ri, part
 
 
-def calc_varga_sign(longitude: float, divisions: int, formula) -> str:
-    """Calculate the varga (divisional) sign for a planet."""
-    ri, part = get_part(longitude, divisions)
-    idx = formula(ri, part) % 12
-    return RASHIS[idx]
+def _sign_type_offset(rashi_index: int, movable_offset: int, fixed_offset: int, dual_offset: int) -> int:
+    """Return offset by sign modality."""
+    if rashi_index in {0, 3, 6, 9}:  # movable
+        return movable_offset
+    if rashi_index in {1, 4, 7, 10}:  # fixed
+        return fixed_offset
+    return dual_offset
 
 
-# ===== VERIFIED FORMULAS (matched to AstroSage) =====
+# ===== CORE FORMULAS (checked against reference outputs) =====
 
 def d2_hora(longitude: float) -> str:
     """D2 Hora — Wealth. Verified."""
@@ -41,95 +48,90 @@ def d2_hora(longitude: float) -> str:
 
 
 def d3_drekkana(longitude: float) -> str:
-    """D3 Drekkana — Siblings. Formula: (sign × 3 + part) % 12."""
-    return calc_varga_sign(longitude, 3, lambda ri, p: ri * 3 + p)
+    """D3 Drekkana — sign, 5th, 9th from the natal sign."""
+    ri, p0 = get_part_0(longitude, 3)
+    return RASHIS[(ri + p0 * 4) % 12]
 
 
 def d4_chaturthamsa(longitude: float) -> str:
-    """D4 Chaturthamsa — Property. Formula: (sign × 4 + part) % 12."""
-    return calc_varga_sign(longitude, 4, lambda ri, p: ri * 4 + p)
+    """D4 Chaturthamsa — sign, 4th, 7th, 10th from the natal sign."""
+    ri, p0 = get_part_0(longitude, 4)
+    return RASHIS[(ri + p0 * 3) % 12]
 
 
 def d7_saptamsha(longitude: float) -> str:
-    """D7 Saptamamsha — Children. Formula: (sign × 7 + part) % 12. Verified 8/10."""
-    return calc_varga_sign(longitude, 7, lambda ri, p: ri * 7 + p)
+    """D7 Saptamsha — odd signs start from same sign, even signs from the 7th."""
+    ri, p0 = get_part_0(longitude, 7)
+    start = ri if ri % 2 == 0 else (ri + 6) % 12
+    return RASHIS[(start + p0) % 12]
 
 
 def d9_navamsha(longitude: float) -> str:
-    """D9 Navamsha — Marriage. Formula: (sign × 9 + part) % 12. Verified 10/10."""
-    return calc_varga_sign(longitude, 9, lambda ri, p: ri * 9 + p)
-
-
-# D10: Direct lookup by (sign_index, part_0), verified 8/8 against AstroSage
-_D10_DIRECT = {
-    (3, 5): 8,   # Cancer p0=5 → Virgo
-    (11, 0): 8,  # Pisces p0=0 → Sagittarius
-    (7, 3): 7,   # Scorpio p0=3 → Scorpio
-    (5, 7): 9,   # Virgo p0=7 → Capricorn
-    (10, 3): 2,  # Aquarius p0=3 → Gemini
-    (6, 5): 11,  # Libra p0=5 → Pisces
-    (9, 5): 10,  # Capricorn p0=5 → Aquarius
-    (5, 9): 10,  # Virgo p0=9 → Aquarius
-}
+    """D9 Navamsha — movable signs start from same sign, fixed from 9th, dual from 5th."""
+    ri, p0 = get_part_0(longitude, 9)
+    start = (ri + _sign_type_offset(ri, 0, 8, 4)) % 12
+    return RASHIS[(start + p0) % 12]
 
 
 def d10_dashamsha(longitude: float) -> str:
-    """D10 Dashamamsha — Career. Direct lookup (8 verified)."""
-    ri = int(longitude % 360 / 30)
-    rem = longitude % 360 % 30
-    p0 = min(int(rem * 10 / 30.0), 9)
-
-    if (ri, p0) in _D10_DIRECT:
-        return RASHIS[_D10_DIRECT[(ri, p0)]]
-
-    # Fallback: use D9 formula as approximation
-    part_1 = p0 + 1
-    return RASHIS[(ri * 10 + part_1) % 12]
+    """D10 Dashamsha — odd signs start from same sign, even signs from the 9th."""
+    ri, p0 = get_part_0(longitude, 10)
+    start = ri if ri % 2 == 0 else (ri + 8) % 12
+    return RASHIS[(start + p0) % 12]
 
 
 def d12_dwadasamsa(longitude: float) -> str:
-    """D12 Dwadasamsa — Parents. Formula: (sign + part) % 12."""
-    return calc_varga_sign(longitude, 12, lambda ri, p: ri + p)
+    """D12 Dwadasamsa — starts from the natal sign itself."""
+    ri, p0 = get_part_0(longitude, 12)
+    return RASHIS[(ri + p0) % 12]
 
 
 def d16_shodasamsa(longitude: float) -> str:
     """D16 Shodasamsa — Vehicles. Formula: (sign + part) % 12 (simplified)."""
-    return calc_varga_sign(longitude, 16, lambda ri, p: ri + p)
+    ri, p0 = get_part_0(longitude, 16)
+    return RASHIS[(ri + p0) % 12]
 
 
 def d20_vimsamsa(longitude: float) -> str:
     """D20 Vimsamsa — Spiritual. Formula: (sign + part) % 12 (simplified)."""
-    return calc_varga_sign(longitude, 20, lambda ri, p: ri + p)
+    ri, p0 = get_part_0(longitude, 20)
+    return RASHIS[(ri + p0) % 12]
 
 
 def d24_chaturvimsamsa(longitude: float) -> str:
     """D24 Chaturvimsamsa — Education. Formula: (sign + part) % 12 (simplified)."""
-    return calc_varga_sign(longitude, 24, lambda ri, p: ri + p)
+    ri, p0 = get_part_0(longitude, 24)
+    return RASHIS[(ri + p0) % 12]
 
 
 def d27_bhamsa(longitude: float) -> str:
     """D27 Bhamsa — Strength. Formula: (sign + part) % 12 (simplified)."""
-    return calc_varga_sign(longitude, 27, lambda ri, p: ri + p)
+    ri, p0 = get_part_0(longitude, 27)
+    return RASHIS[(ri + p0) % 12]
 
 
 def d30_trimsamsa(longitude: float) -> str:
     """D30 Trimsamsa — Misfortune. Non-uniform divisions (simplified)."""
-    return calc_varga_sign(longitude, 30, lambda ri, p: ri + p)
+    ri, p0 = get_part_0(longitude, 30)
+    return RASHIS[(ri + p0) % 12]
 
 
 def d40_khavedamsa(longitude: float) -> str:
     """D40 Khavedamsa — Maternal lineage. Formula: (sign + part) % 12 (simplified)."""
-    return calc_varga_sign(longitude, 40, lambda ri, p: ri + p)
+    ri, p0 = get_part_0(longitude, 40)
+    return RASHIS[(ri + p0) % 12]
 
 
 def d45_akshavedamsa(longitude: float) -> str:
     """D45 Akshavedamsa — Paternal lineage. Formula: (sign + part) % 12 (simplified)."""
-    return calc_varga_sign(longitude, 45, lambda ri, p: ri + p)
+    ri, p0 = get_part_0(longitude, 45)
+    return RASHIS[(ri + p0) % 12]
 
 
 def d60_shashtiamsa(longitude: float) -> str:
     """D60 Shashtiamsa — Past life karma. Formula: (sign + part) % 12 (simplified)."""
-    return calc_varga_sign(longitude, 60, lambda ri, p: ri + p)
+    ri, p0 = get_part_0(longitude, 60)
+    return RASHIS[(ri + p0) % 12]
 
 
 # ===== VARGA TABLE =====
