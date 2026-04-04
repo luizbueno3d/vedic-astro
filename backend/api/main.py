@@ -2,6 +2,8 @@
 
 import os
 import sys
+import hmac
+import hashlib
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -49,6 +51,7 @@ app = FastAPI(title="Vedic Astro", version="1.0.0")
 
 APP_PASSWORD = os.getenv("APP_PASSWORD", "Luiz1234!")
 APP_SESSION_SECRET = os.getenv("APP_SESSION_SECRET", "vedic-astro-session-secret-change-me")
+AUTH_COOKIE_NAME = "vedic_astro_auth"
 PUBLIC_PATHS = {
     "/login",
     "/api",
@@ -73,16 +76,25 @@ _os.makedirs(templates_dir, exist_ok=True)
 templates = Jinja2Templates(directory=templates_dir)
 
 
+def _auth_cookie_value() -> str:
+    return hmac.new(
+        APP_SESSION_SECRET.encode("utf-8"),
+        b"vedic-astro-authenticated",
+        hashlib.sha256,
+    ).hexdigest()
+
+
 def _is_authenticated(request: Request) -> bool:
-    try:
-        return request.session.get("authenticated") is True
-    except Exception:
+    cookie = request.cookies.get(AUTH_COOKIE_NAME)
+    if not cookie:
         return False
+    return hmac.compare_digest(cookie, _auth_cookie_value())
 
 
 def _login_redirect() -> RedirectResponse:
     response = RedirectResponse(url="/login", status_code=303)
-    response.delete_cookie("vedic_astro_session")
+    response.delete_cookie(AUTH_COOKIE_NAME, path="/")
+    response.delete_cookie("vedic_astro_session", path="/")
     return response
 
 
@@ -180,16 +192,32 @@ async def api_login(request: Request, password_form: str = Form(None)):
             return RedirectResponse(url="/login?error=Invalid%20password", status_code=303)
         return JSONResponse({"error": "Invalid password"}, status_code=401)
 
-    request.session["authenticated"] = True
+    if "authenticated" in request.session:
+        request.session.pop("authenticated", None)
     if _is_html_request(request):
-        return RedirectResponse(url="/dashboard", status_code=303)
-    return {"success": True}
+        response = RedirectResponse(url="/dashboard", status_code=303)
+    else:
+        response = JSONResponse({"success": True})
+
+    response.set_cookie(
+        AUTH_COOKIE_NAME,
+        _auth_cookie_value(),
+        httponly=True,
+        secure=True,
+        samesite="lax",
+        path="/",
+        max_age=60 * 60 * 24 * 14,
+    )
+    return response
 
 
 @app.post("/logout")
 async def api_logout(request: Request):
     request.session.clear()
-    return {"success": True}
+    response = JSONResponse({"success": True})
+    response.delete_cookie(AUTH_COOKIE_NAME, path="/")
+    response.delete_cookie("vedic_astro_session", path="/")
+    return response
 
 
 # --- Profiles ---
