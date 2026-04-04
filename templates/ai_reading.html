@@ -133,7 +133,9 @@
         <tr><td>Yogas</td><td>Raja, Dhana, Viparita, Gaja Kesari, Budhaditya, etc.</td></tr>
         <tr><td>Doshas</td><td>Mangal, Kaal Sarpa, Sade Sati</td></tr>
         <tr><td>Strength</td><td>Shadbala ranking, Ashtakavarga scores</td></tr>
-        <tr><td>Divisionals</td><td>D9 (marriage), D10 (career)</td></tr>
+        <tr><td>Divisionals</td><td>D9, D10, plus topic-specific D7 and D12 summaries</td></tr>
+        <tr><td>Jaimini</td><td>Chara karakas, Atmakaraka/Darakaraka interpretation, Jaimini Raja Yoga</td></tr>
+        <tr><td>Bhavat Bhavam</td><td>Derivative-house logic by planet, showing secondary manifestation fields</td></tr>
         <tr><td>Aspects</td><td>Conjunctions, Vedic Drishti</td></tr>
         <tr><td>Timing</td><td>Current MD/AD/PD, with BCC house activation for dasha lords, plus Saturn/Jupiter transits</td></tr>
     </table>
@@ -225,7 +227,16 @@ async function generateReading() {
 
     try {
         const resp = await fetch('/llm-reading/' + profileId);
-        const data = await resp.json();
+        const raw = await resp.text();
+        let data;
+        try {
+            data = JSON.parse(raw);
+        } catch {
+            throw new Error(raw || ('HTTP ' + resp.status));
+        }
+        if (!resp.ok) {
+            throw new Error(data.detail || data.error || ('HTTP ' + resp.status));
+        }
 
         if (data.reading) {
             result.textContent = data.reading;

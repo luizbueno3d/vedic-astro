@@ -424,7 +424,7 @@ async def api_llm_reading(profile_id: int):
     llm_text = generate_llm_reading(
         chart, rulerships, yogas, doshas, sb, sav,
         dasha_data, transits_data, vargas,
-        [conjunction_to_dict(c) for c in conjs], asps,
+        [conjunction_to_dict(c) for c in conjs], [aspect_to_dict(a) for a in asps],
     )
 
     return {'reading': llm_text, 'provider': provider_name}

@@ -90,7 +90,16 @@ async function generateLLMReading() {
 
     try {
         const resp = await fetch('/llm-reading/{{ profile_id }}');
-        const data = await resp.json();
+        const raw = await resp.text();
+        let data;
+        try {
+            data = JSON.parse(raw);
+        } catch {
+            throw new Error(raw || ('HTTP ' + resp.status));
+        }
+        if (!resp.ok) {
+            throw new Error(data.detail || data.error || ('HTTP ' + resp.status));
+        }
         
         if (data.reading) {
             result.textContent = data.reading;
