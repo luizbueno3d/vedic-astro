@@ -47,6 +47,64 @@ def _planet_line(planet: str, sign: str, house: int) -> str:
     return f'{planet} in {sign} in H{house} points to {PLANET_KEYWORDS.get(planet, planet.lower())} working through {HOUSE_TOPICS[house]}.'
 
 
+def _varga_intro(varga_id: str, asc_sign: str) -> str:
+    intros = {
+        'D9': f'This Navamsha rises in {asc_sign}. In plain English, relationships, maturity, and deeper dharma are filtered through {asc_sign} qualities.',
+        'D10': f'This Dashamsha rises in {asc_sign}. In plain English, career and public role move through {asc_sign} qualities.',
+        'D7': f'This Saptamsha rises in {asc_sign}. In plain English, children, fertility, and creative lineage are approached through {asc_sign} qualities.',
+        'D12': f'This Dwadasamsa rises in {asc_sign}. In plain English, parents and inherited family patterns are approached through {asc_sign} qualities.',
+        'D4': f'This Chaturthamsa rises in {asc_sign}. In plain English, home, roots, and property matters move through {asc_sign} qualities.',
+        'D3': f'This Drekkana rises in {asc_sign}. In plain English, courage, initiative, and sibling dynamics move through {asc_sign} qualities.',
+        'D2': f'This Hora rises in {asc_sign}. In plain English, money habits and resource management move through {asc_sign} qualities.',
+    }
+    return intros.get(varga_id, f'This chart rises in {asc_sign}, so it approaches this topic through {HOUSE_TOPICS[1]}.')
+
+
+def _varga_focus_lines(varga_id: str, varga_signs: dict[str, str], planet_houses: dict[str, int]) -> list[str]:
+    focus_map = {
+        'D9': [
+            ('Venus', 'love, attraction, and marriage style'),
+            ('Jupiter', 'wisdom, values, and the higher meaning of partnership'),
+            ('Moon', 'emotional tone inside commitment'),
+        ],
+        'D10': [
+            ('Sun', 'purpose, visibility, and authority in work'),
+            ('Saturn', 'career pressure, responsibility, and staying power'),
+            ('Mercury', 'communication, trade, and practical skill in profession'),
+        ],
+        'D7': [
+            ('Jupiter', 'children, blessing, and guidance'),
+            ('Venus', 'fertility, affection, and creative sweetness'),
+            ('Moon', 'emotional bond with children and nurturing style'),
+        ],
+        'D12': [
+            ('Sun', 'father line, authority, and legacy'),
+            ('Moon', 'mother line, care, and emotional inheritance'),
+            ('Saturn', 'ancestral burdens, duty, and generational weight'),
+        ],
+        'D4': [
+            ('Moon', 'inner home and emotional settlement'),
+            ('Mars', 'property action, land, and effort'),
+            ('Venus', 'comfort, sweetness, and quality of domestic life'),
+        ],
+        'D3': [
+            ('Mars', 'boldness, initiative, and competitive drive'),
+            ('Mercury', 'hands-on skill and communication'),
+            ('Saturn', 'endurance and disciplined effort'),
+        ],
+        'D2': [
+            ('Jupiter', 'growth, generosity, and wealth wisdom'),
+            ('Venus', 'comfort, value, and enjoyment of resources'),
+            ('Mercury', 'calculation, trade, and money decisions'),
+        ],
+    }
+    lines = []
+    for planet, topic in focus_map.get(varga_id, []):
+        if planet in varga_signs:
+            lines.append(f'{planet} in {varga_signs[planet]} in H{planet_houses[planet]} shows {topic} working through {HOUSE_TOPICS[planet_houses[planet]]}.')
+    return lines
+
+
 def build_varga_summary(varga_id: str, varga_signs: dict[str, str]) -> dict:
     """Build a beginner-friendly varga summary using sign + whole-sign houses."""
     asc_sign = varga_signs.get('Asc')
@@ -58,21 +116,8 @@ def build_varga_summary(varga_id: str, varga_signs: dict[str, str]) -> dict:
         for planet, sign in varga_signs.items()
     }
 
-    focus_map = {
-        'D9': ['Venus', 'Jupiter', 'Moon', 'Sun'],
-        'D10': ['Sun', 'Saturn', 'Mercury', 'Jupiter'],
-        'D7': ['Jupiter', 'Venus', 'Moon'],
-        'D12': ['Sun', 'Moon', 'Saturn'],
-        'D4': ['Moon', 'Mars', 'Venus'],
-        'D3': ['Mars', 'Mercury', 'Saturn'],
-        'D2': ['Jupiter', 'Venus', 'Mercury'],
-    }
-    key_planets = [planet for planet in focus_map.get(varga_id, ['Sun', 'Moon', 'Jupiter']) if planet in varga_signs]
-    lines = [
-        f'This chart rises in {asc_sign}, so it approaches this topic through {HOUSE_TOPICS[1]}.',
-    ]
-    for planet in key_planets[:3]:
-        lines.append(_planet_line(planet, varga_signs[planet], planet_houses[planet]))
+    lines = [_varga_intro(varga_id, asc_sign)]
+    lines.extend(_varga_focus_lines(varga_id, varga_signs, planet_houses)[:3])
 
     summary = ' '.join(lines)
     return {'asc_sign': asc_sign, 'planet_houses': planet_houses, 'summary': summary}

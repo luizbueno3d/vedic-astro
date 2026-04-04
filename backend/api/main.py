@@ -777,6 +777,9 @@ async def page_analysis(request: Request, profile_id: int = Query(None)):
     sav = calculate_sarva_ashtakavarga(chart.planets, chart.ascendant.rashi_index)
     shadbala = calculate_shadbala(chart.planets)
     doshas = detect_all_doshas(chart.planets)
+    jaimini_karakas = calculate_chara_karakas(chart.planets)
+    jaimini_interpretation = get_jaimini_interpretation(jaimini_karakas)
+    jaimini_raja_yogas = calculate_jaimini_raja_yoga(jaimini_karakas)
 
     return templates.TemplateResponse("analysis.html", {
         "request": request,
@@ -792,6 +795,9 @@ async def page_analysis(request: Request, profile_id: int = Query(None)):
         "ashtakavarga": sav,
         "shadbala": shadbala,
         "doshas": [dosha_to_dict(d) for d in doshas],
+        "jaimini_karakas": jaimini_karakas,
+        "jaimini_interpretation": jaimini_interpretation,
+        "jaimini_raja_yogas": jaimini_raja_yogas,
     })
 
 

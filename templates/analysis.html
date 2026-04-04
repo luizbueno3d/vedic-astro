@@ -5,6 +5,48 @@
 <h2>Deep Analysis — {{ chart.name }}</h2>
 <p class="subtitle">Yogas, Conjunctions, Aspects, Bhavat Bhavam, House Rulerships</p>
 
+<div class="card" style="margin-bottom:20px; border-color:var(--blue)">
+    <h3>Jaimini Astrology</h3>
+    <p style="margin:0 0 12px; line-height:1.7">
+        Yes, Jaimini astrology is present in the app now, but only partially.
+        What you see here is the <strong>Chara Karaka</strong> layer: planets ranked by degree inside their signs.
+        For beginners: <strong>Atmakaraka</strong> is the soul significator, <strong>Amatyakaraka</strong> is the action/career significator,
+        and <strong>Darakaraka</strong> is the partner significator.
+    </p>
+    <table>
+        <tr><th>Role</th><th>Planet</th><th>Placement</th><th>Meaning</th></tr>
+        {% for role, data in jaimini_karakas.items() %}
+        <tr>
+            <td><strong>{{ role }}</strong></td>
+            <td>{{ data.planet }}</td>
+            <td>{{ data.sign }} · H{{ data.house }} · {{ "%.2f"|format(data.degree) }}°</td>
+            <td>
+                {% if role == 'Atmakaraka' %}Main soul lesson and deepest pressure
+                {% elif role == 'Amatyakaraka' %}How purpose becomes action, work, and implementation
+                {% elif role == 'Darakaraka' %}Partnership pattern and what is sought in relationship
+                {% elif role == 'Putrakaraka' %}Creativity, children, and generative expression
+                {% elif role == 'Matrukaraka' %}Mother, care, emotional comfort
+                {% elif role == 'Bhratrukaraka' %}Siblings, courage, effort
+                {% elif role == 'Gnatikaraka' %}Conflicts, friction, relatives, karmic pressure
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% if jaimini_raja_yogas %}
+    <div style="margin-top:12px; color:var(--muted); line-height:1.7">
+        <strong>Jaimini Raja Yoga:</strong>
+        {% for jy in jaimini_raja_yogas %}
+            {{ jy.description }}
+        {% endfor %}
+    </div>
+    {% endif %}
+    <div style="margin-top:12px; color:var(--muted); font-size:0.9em; line-height:1.7">
+        Not present yet in the UI: Karakamsa chart, Swamsa chart, and Chara Dasha timelines.
+        So Jaimini support exists, but it is not complete yet.
+    </div>
+</div>
+
 <!-- House Rulerships -->
 <div class="card" style="margin-bottom:20px">
     <h3>House Rulerships</h3>
