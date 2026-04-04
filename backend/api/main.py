@@ -74,7 +74,10 @@ templates = Jinja2Templates(directory=templates_dir)
 
 
 def _is_authenticated(request: Request) -> bool:
-    return request.session.get("authenticated") is True
+    try:
+        return request.session.get("authenticated") is True
+    except Exception:
+        return False
 
 
 def _is_html_request(request: Request) -> bool:
@@ -152,6 +155,7 @@ async def page_login(request: Request):
         "page": "login",
         "profiles": [],
         "profile_id": None,
+        "is_authenticated": False,
     })
 
 
@@ -519,6 +523,7 @@ async def page_ai_settings(request: Request):
     return templates.TemplateResponse("ai_reading.html", {
         "request": request, "page": "ai_reading", "profiles": profiles,
         "profile_id": _get_default_profile_id(),
+        "is_authenticated": _is_authenticated(request),
         "providers": config,
         "providers_json": json.dumps(providers_dict),
         "provider_models_json": json.dumps(PROVIDER_MODELS),
@@ -566,6 +571,7 @@ async def page_basics(request: Request, profile_id: int = Query(None)):
         "page": "basics",
         "profiles": profiles,
         "profile_id": pid,
+        "is_authenticated": _is_authenticated(request),
     })
 
 
@@ -599,7 +605,7 @@ def _get_default_profile_id() -> int:
 async def page_new_profile(request: Request):
     profiles = list_profiles()
     return templates.TemplateResponse("new_profile.html", {
-        "request": request, "page": "new_profile", "profiles": profiles, "profile_id": None,
+        "request": request, "page": "new_profile", "profiles": profiles, "profile_id": None, "is_authenticated": _is_authenticated(request),
     })
 
 
@@ -611,7 +617,7 @@ async def page_edit_profile(request: Request, profile_id: int):
         raise HTTPException(404, "Profile not found")
     return templates.TemplateResponse("edit_profile.html", {
         "request": request, "page": "edit_profile", "profiles": profiles,
-        "profile_id": profile_id, "profile": profile,
+        "profile_id": profile_id, "profile": profile, "is_authenticated": _is_authenticated(request),
     })
 
 
@@ -689,6 +695,7 @@ async def page_dashboard(request: Request, profile_id: int = Query(None)):
         return templates.TemplateResponse("dashboard.html", {
             "request": request,
             "page": "dashboard",
+            "is_authenticated": _is_authenticated(request),
             "profiles": profiles,
             "profile_id": pid,
             "chart": serial,
@@ -737,6 +744,7 @@ async def page_vargas(request: Request, profile_id: int = Query(None)):
     return templates.TemplateResponse("vargas.html", {
         "request": request,
         "page": "vargas",
+        "is_authenticated": _is_authenticated(request),
         "profiles": profiles,
         "profile_id": pid,
         "chart": serial,
@@ -783,6 +791,7 @@ async def page_dasha(request: Request, profile_id: int = Query(None),
     return templates.TemplateResponse("dasha.html", {
         "request": request,
         "page": "dasha",
+        "is_authenticated": _is_authenticated(request),
         "profiles": profiles,
         "profile_id": pid,
         "chart": serial,
@@ -826,6 +835,7 @@ async def page_compatibility(request: Request, p1: int = Query(None), p2: int = 
     return templates.TemplateResponse("compatibility.html", {
         "request": request,
         "page": "compatibility",
+        "is_authenticated": _is_authenticated(request),
         "profiles": profiles,
         "profile_id": pid1,
         "p1": pid1,
@@ -859,6 +869,7 @@ async def page_analysis(request: Request, profile_id: int = Query(None)):
     return templates.TemplateResponse("analysis.html", {
         "request": request,
         "page": "analysis",
+        "is_authenticated": _is_authenticated(request),
         "profiles": profiles,
         "profile_id": pid,
         "chart": serial,
@@ -915,7 +926,7 @@ async def page_reading(request: Request, profile_id: int = Query(None)):
     )
 
     return templates.TemplateResponse("reading.html", {
-        "request": request, "page": "reading", "profiles": profiles,
+        "request": request, "page": "reading", "profiles": profiles, "is_authenticated": _is_authenticated(request),
         "profile_id": pid, "chart": serial,
         "synthesis": synthesis,
     })

@@ -161,7 +161,7 @@
             {% endfor %}
         </select>
         <a href="/new-profile" style="background:var(--accent); color:#111; padding:4px 10px; border-radius:4px; font-size:0.85em; font-weight:600; text-decoration:none">+ Add Person</a>
-        {% if request.session.get('authenticated') %}
+        {% if is_authenticated %}
         <button onclick="logoutApp()" style="background:transparent; color:var(--muted); border:1px solid var(--border); padding:4px 10px; border-radius:4px; cursor:pointer">Logout</button>
         {% endif %}
     </nav>
