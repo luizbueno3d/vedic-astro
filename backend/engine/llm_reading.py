@@ -30,6 +30,7 @@ HOUSE_TOPICS = {
 READING_PRIORITIES = """READING PRIORITY HIERARCHY
 
 1. Start with D1 baseline: lagna, lagna lord, Moon, Sun, house lords, dignity, conjunctions, aspects.
+1b. Before concluding on a planet, check if it is in a friend sign, enemy sign, or combust by the Sun.
 2. Judge houses through their lords before jumping to yogas.
 3. Use strength as a filter, not as the main story.
 4. Use nakshatra and pada to refine expression after sign-house-lordship is understood.
@@ -131,6 +132,7 @@ FACT_GUARDRAILS = """FACT GUARDRAILS
 - Rahu and Ketu never become Atmakaraka, Amatyakaraka, Darakaraka, or any other chara karaka here.
 - D1 = natal architecture.
 - Moon is the secondary lived lens after lagna, especially for mental and emotional experience.
+- Planet condition must include dignity, relationship to sign lord (friend/enemy/neutral), and combustion when available.
 - BCC = operative manifestation field, especially important for dasha results.
 - BCC is not D7.
 - Do not override the supplied chart facts with your own remembered astrology rules.
@@ -208,7 +210,7 @@ def build_chart_context(chart, rulerships, yogas, doshas, shadbala,
                         ashtakavarga, dasha_data, transits, vargas,
                         conjunctions, aspects, kp_data=None) -> str:
     """Build a rich reading context with D1 + BCC/KP layers."""
-    from .shadbala import _get_dignity
+    from .shadbala import _get_dignity, get_combustion_status, get_sign_relationship
 
     if kp_data is None:
         kp_data = calculate_kp_bhava_chalit(chart)
@@ -239,11 +241,14 @@ def build_chart_context(chart, rulerships, yogas, doshas, shadbala,
     lines.append('')
 
     lines.append('=== PLANETARY POSITIONS (D1 + BCC) ===')
+    sun_longitude = planets['Sun'].longitude
     for name in ['Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn', 'Rahu', 'Ketu']:
         planet = planets[name]
         bcc_house = _get_bcc_house(kp_data, name, planet.house)
         houses_ruled = rulerships.get(name, [])
         dignity = _get_dignity(name, planet.rashi_index)
+        relationship = get_sign_relationship(name, planet.rashi_index)
+        combustion = get_combustion_status(name, planet.longitude, sun_longitude, planet.retrograde)
         d9_sign = vargas['D9']['signs'].get(name, '') if vargas else ''
         d10_sign = vargas['D10']['signs'].get(name, '') if vargas else ''
         interp = interpret_full(
@@ -254,7 +259,8 @@ def build_chart_context(chart, rulerships, yogas, doshas, shadbala,
         lines.append(
             f'{name}: {planet.rashi} {planet.degree_in_sign:.1f} deg | '
             f'D1 H{planet.house} | BCC H{bcc_house} | '
-            f'Nakshatra {planet.nakshatra} Pada {planet.pada} | Rules {_format_house_list(houses_ruled)}'
+            f'Nakshatra {planet.nakshatra} Pada {planet.pada} | Rules {_format_house_list(houses_ruled)} | '
+            f'Sign status {dignity} | Relationship to sign lord {relationship} | {combustion}'
         )
         lines.append(f'  {_build_bcc_shift_note(planet.house, bcc_house)}')
         lines.append(f'  {interp}')
@@ -377,6 +383,7 @@ Focus on:
 
 Rules:
 - foundation first: lagna, lagna lord, Moon, Sun, house lords, conjunctions, aspects before yogas
+- do not ignore friend sign, enemy sign, or combustion status when judging a planet
 - be concrete and chart-specific
 - mention exact signs, nakshatras, houses when relevant
 - write 5-8 dense bullet points
@@ -419,6 +426,7 @@ Focus on:
 Rules:
 - dasha first, transit second
 - prioritize what is active now over abstract potential
+- if a dasha lord is combust or placed in an enemy sign, factor that into the tone of results
 - use D9 and D10 where helpful
 - include tensions, not just strengths
 - write 6-10 bullet points

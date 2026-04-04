@@ -11,7 +11,7 @@ Simplified version based on:
 All values in Rupas (1 Rupa = 1 unit of strength).
 """
 
-from .ephemeris import PlanetPosition
+from .ephemeris import PlanetPosition, RASHI_LORDS
 
 # Exaltation signs (0-indexed)
 EXALTATION = {
@@ -35,6 +35,36 @@ OWN_SIGNS = {
 MOOLATRIKONA = {
     'Sun': [4], 'Moon': [1], 'Mars': [0], 'Mercury': [5],
     'Jupiter': [8], 'Venus': [5], 'Saturn': [10]
+}
+
+# Natural relationships
+PLANET_FRIENDS = {
+    'Sun': {'Moon', 'Mars', 'Jupiter'},
+    'Moon': {'Sun', 'Mercury'},
+    'Mars': {'Sun', 'Moon', 'Jupiter'},
+    'Mercury': {'Sun', 'Venus'},
+    'Jupiter': {'Sun', 'Moon', 'Mars'},
+    'Venus': {'Mercury', 'Saturn'},
+    'Saturn': {'Mercury', 'Venus'},
+}
+
+PLANET_ENEMIES = {
+    'Sun': {'Venus', 'Saturn'},
+    'Moon': set(),
+    'Mars': {'Mercury'},
+    'Mercury': {'Moon'},
+    'Jupiter': {'Mercury', 'Venus'},
+    'Venus': {'Sun', 'Moon'},
+    'Saturn': {'Sun', 'Moon'},
+}
+
+COMBUSTION_LIMITS = {
+    'Moon': 12.0,
+    'Mars': 17.0,
+    'Mercury': 14.0,
+    'Jupiter': 11.0,
+    'Venus': 10.0,
+    'Saturn': 15.0,
 }
 
 # Natural strength (Naisargika Bala in Rupas)
@@ -79,7 +109,12 @@ def calculate_sthana_bala(planet: str, rashi_index: int) -> float:
     elif rashi_index in OWN_SIGNS.get(planet, []):
         return 0.5
     else:
-        return 0.25  # Neutral (simplified)
+        relationship = get_sign_relationship(planet, rashi_index)
+        if relationship == 'friend':
+            return 0.5
+        if relationship == 'enemy':
+            return 0.125
+        return 0.25
 
 
 def calculate_dig_bala(planet: str, house: int) -> float:
@@ -229,7 +264,49 @@ def _get_dignity(planet: str, rashi_index: int) -> str:
     elif rashi_index in OWN_SIGNS.get(planet, []):
         return 'own_sign'
     else:
+        return get_sign_relationship(planet, rashi_index)
+
+
+def get_sign_relationship(planet: str, rashi_index: int) -> str:
+    """Return natural relationship to the sign lord."""
+    if planet not in PLANET_FRIENDS:
         return 'neutral'
+
+    sign_lord = RASHI_LORDS[rashi_index]
+    if sign_lord == planet:
+        return 'own_sign'
+    if sign_lord in PLANET_FRIENDS[planet]:
+        return 'friend'
+    if sign_lord in PLANET_ENEMIES[planet]:
+        return 'enemy'
+    return 'neutral'
+
+
+def is_combust(planet: str, planet_longitude: float, sun_longitude: float,
+               retrograde: bool = False) -> bool:
+    """Return whether a planet is combust by proximity to the Sun."""
+    if planet in ('Sun', 'Rahu', 'Ketu'):
+        return False
+
+    limit = COMBUSTION_LIMITS.get(planet)
+    if limit is None:
+        return False
+
+    if planet == 'Mercury' and retrograde:
+        limit = 12.0
+    elif planet == 'Venus' and retrograde:
+        limit = 8.0
+
+    separation = abs((planet_longitude - sun_longitude) % 360)
+    if separation > 180:
+        separation = 360 - separation
+    return separation <= limit
+
+
+def get_combustion_status(planet: str, planet_longitude: float, sun_longitude: float,
+                          retrograde: bool = False) -> str:
+    """Return human-readable combustion label."""
+    return 'combust' if is_combust(planet, planet_longitude, sun_longitude, retrograde) else 'clear'
 
 
 def shadbala_to_dict(result: dict) -> dict:
