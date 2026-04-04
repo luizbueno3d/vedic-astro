@@ -168,7 +168,7 @@ async def root():
 async def page_login(request: Request, error: str = Query(None)):
     if _is_authenticated(request):
         return RedirectResponse(url="/dashboard", status_code=303)
-    return templates.TemplateResponse("login.html", {
+    response = templates.TemplateResponse("login.html", {
         "request": request,
         "page": "login",
         "profiles": [],
@@ -176,6 +176,9 @@ async def page_login(request: Request, error: str = Query(None)):
         "is_authenticated": False,
         "error": error,
     })
+    response.delete_cookie(AUTH_COOKIE_NAME, path="/")
+    response.delete_cookie("vedic_astro_session", path="/")
+    return response
 
 
 @app.post("/login")
