@@ -8,8 +8,8 @@
 <div class="card" style="margin-bottom:20px; border-color:var(--blue)">
     <h3>Jaimini Astrology</h3>
     <p style="margin:0 0 12px; line-height:1.7">
-        Yes, Jaimini astrology is present in the app now, but only partially.
-        What you see here is the <strong>Chara Karaka</strong> layer: planets ranked by degree inside their signs.
+        Jaimini astrology is now present here in three practical layers: <strong>Chara Karakas</strong>, <strong>Jaimini sign aspects</strong>, and <strong>Karakamsa / Swamsa</strong>.
+        Chara Karakas rank planets by degree inside their signs.
         For beginners: <strong>Atmakaraka</strong> is the soul significator, <strong>Amatyakaraka</strong> is the action/career significator,
         and <strong>Darakaraka</strong> is the partner significator.
     </p>
@@ -42,8 +42,47 @@
     </div>
     {% endif %}
     <div style="margin-top:12px; color:var(--muted); font-size:0.9em; line-height:1.7">
-        Not present yet in the UI: Karakamsa chart, Swamsa chart, and Chara Dasha timelines.
-        So Jaimini support exists, but it is not complete yet.
+        Still missing from the app: Chara Dasha timelines. Karakamsa and Swamsa are now exposed below.
+    </div>
+</div>
+
+<div class="grid grid-2" style="margin-bottom:20px">
+    <div class="card">
+        <h3>Karakamsa / Swamsa</h3>
+        <p style="margin:0 0 12px; line-height:1.7">
+            Swamsa is the Atmakaraka's sign in the Navamsha (D9). Karakamsa uses that same sign as a Jaimini reference lagna in the birth chart.
+            This helps read soul-direction, vocation, and partnership themes through a Jaimini lens.
+        </p>
+        <table>
+            <tr><th>Item</th><th>Value</th></tr>
+            <tr><td>Atmakaraka</td><td>{{ karakamsa.atmakaraka }}</td></tr>
+            <tr><td>Swamsa Sign</td><td>{{ karakamsa.swamsa_sign }}</td></tr>
+            <tr><td>Karakamsa Sign</td><td>{{ karakamsa.karakamsa_sign }}</td></tr>
+            <tr><td>10th from Karakamsa</td><td>{{ karakamsa.tenth_from_karakamsa }}</td></tr>
+            <tr><td>7th from Karakamsa</td><td>{{ karakamsa.seventh_from_karakamsa }}</td></tr>
+            <tr><td>Planets in Karakamsa</td><td>{{ karakamsa.occupants | join(', ') if karakamsa.occupants else '-' }}</td></tr>
+            <tr><td>Aspected by</td><td>{{ karakamsa.aspected_by | join(', ') if karakamsa.aspected_by else '-' }}</td></tr>
+        </table>
+        <div style="margin-top:12px; color:var(--muted); line-height:1.7">{{ karakamsa_text }}</div>
+    </div>
+
+    <div class="card">
+        <h3>Jaimini Sign Aspects</h3>
+        <p style="margin:0 0 12px; line-height:1.7">
+            Unlike standard planetary aspects, Jaimini uses <strong>sign aspects</strong>. Movable signs aspect fixed signs, fixed signs aspect movable signs, and dual signs aspect other dual signs.
+            These are sign-to-sign relationships, not degree-based drishtis.
+        </p>
+        <table>
+            <tr><th>From</th><th>Sign</th><th>To</th><th>Sign</th></tr>
+            {% for a in jaimini_sign_aspects %}
+            <tr>
+                <td>{{ a.from }}</td>
+                <td>{{ a.from_sign }}</td>
+                <td>{{ a.to }}</td>
+                <td>{{ a.to_sign }}</td>
+            </tr>
+            {% endfor %}
+        </table>
     </div>
 </div>
 

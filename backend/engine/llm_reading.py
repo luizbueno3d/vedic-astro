@@ -8,7 +8,7 @@ analysis so the final reading is deeper than a single prompt dump.
 from .ai_provider import generate_reading as ai_generate_reading, get_active_provider
 from .bhavat_bhavam import get_planet_house_from_house_analysis
 from .interpretations import interpret_conjunction, interpret_dasha, interpret_dosha, interpret_full, interpret_yoga
-from .jaimini import calculate_chara_karakas, calculate_jaimini_raja_yoga, get_jaimini_interpretation, get_karakas_priority_notes, get_karakas_summary
+from .jaimini import calculate_chara_karakas, calculate_jaimini_raja_yoga, calculate_karakamsa, get_jaimini_interpretation, get_jaimini_sign_aspects, get_karakas_priority_notes, get_karakas_summary, interpret_karakamsa
 from .kp import calculate_kp_bhava_chalit
 
 
@@ -271,6 +271,8 @@ def build_chart_context(chart, rulerships, yogas, doshas, shadbala,
     karakas = calculate_chara_karakas(planets)
     jaimini_interpretation = get_jaimini_interpretation(karakas)
     jaimini_raja_yogas = calculate_jaimini_raja_yoga(karakas)
+    karakamsa = calculate_karakamsa(karakas, planets)
+    jaimini_sign_aspects = get_jaimini_sign_aspects(planets)
     lines.append('=== JAIMINI CHARA KARAKAS ===')
     lines.append(get_karakas_summary(karakas))
     lines.append(get_karakas_priority_notes(karakas))
@@ -286,6 +288,12 @@ def build_chart_context(chart, rulerships, yogas, doshas, shadbala,
             lines.append(f"Jaimini Raja Yoga: {yoga['description']}")
     else:
         lines.append('No active Jaimini Raja Yoga detected from the current karaka relationships.')
+    if karakamsa:
+        lines.append(f"Karakamsa/Swamsa: {interpret_karakamsa(karakamsa)}")
+    if jaimini_sign_aspects:
+        lines.append('Jaimini sign aspects:')
+        for aspect in jaimini_sign_aspects[:16]:
+            lines.append(f"  {aspect['from']} in {aspect['from_sign']} -> {aspect['to']} in {aspect['to_sign']}")
     lines.append('')
 
     lines.append('=== FOUNDATIONAL READING ORDER ===')

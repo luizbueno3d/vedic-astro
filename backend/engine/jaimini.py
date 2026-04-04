@@ -1,4 +1,4 @@
-"""Jaimini Astrology — Chara Karakas, Chara Dasha, Jaimini Raja Yoga.
+"""Jaimini Astrology — Chara Karakas, sign aspects, Karakamsa, and Raja Yoga.
 
 Jaimini is a different system from Parashari (standard Vedic).
 Key differences:
@@ -8,7 +8,12 @@ Key differences:
 - Chara aspects (sign-based, not planet-based)
 """
 
-from dataclasses import dataclass
+from .charts import d9_navamsha
+from .ephemeris import RASHIS
+
+MOVABLE_SIGNS = {0, 3, 6, 9}
+FIXED_SIGNS = {1, 4, 7, 10}
+DUAL_SIGNS = {2, 5, 8, 11}
 
 
 # Chara Karaka roles
@@ -181,21 +186,7 @@ def calculate_jaimini_raja_yoga(karakas: dict) -> list[dict]:
     ak_sign = ak['sign_index']
     amk_sign = amk['sign_index']
 
-    # Jaimini sign aspects
-    movable = {0, 3, 6, 9}   # Aries, Cancer, Libra, Capricorn
-    fixed = {1, 4, 7, 10}     # Taurus, Leo, Scorpio, Aquarius
-    dual = {2, 5, 8, 11}      # Gemini, Virgo, Sagittarius, Pisces
-
-    aspects_ak = False
-    if amk_sign in movable:
-        # Movable aspects all fixed signs except adjacent
-        aspects_ak = ak_sign in fixed and abs(ak_sign - amk_sign) not in [1, 11]
-    elif amk_sign in fixed:
-        # Fixed aspects all movable signs except adjacent
-        aspects_ak = ak_sign in movable and abs(ak_sign - amk_sign) not in [1, 11]
-    elif amk_sign in dual:
-        # Dual aspects other dual signs
-        aspects_ak = ak_sign in dual and ak_sign != amk_sign
+    aspects_ak = ak_sign in get_jaimini_aspect_signs(amk_sign)
 
     if aspects_ak:
         yogas.append({
@@ -207,6 +198,102 @@ def calculate_jaimini_raja_yoga(karakas: dict) -> list[dict]:
         })
 
     return yogas
+
+
+def get_jaimini_aspect_signs(sign_index: int) -> list[int]:
+    """Return sign indices aspected by a sign via Jaimini rasi drishti."""
+    if sign_index in MOVABLE_SIGNS:
+        return [idx for idx in FIXED_SIGNS if (idx - sign_index) % 12 not in (1, 11)]
+    if sign_index in FIXED_SIGNS:
+        return [idx for idx in MOVABLE_SIGNS if (idx - sign_index) % 12 not in (1, 11)]
+    return [idx for idx in DUAL_SIGNS if idx != sign_index]
+
+
+def get_jaimini_sign_aspects(planets: dict) -> list[dict]:
+    """Return sign-based Jaimini aspects between occupied signs."""
+    results = []
+    seen = set()
+    for from_name, from_planet in planets.items():
+        target_signs = set(get_jaimini_aspect_signs(from_planet.rashi_index))
+        for to_name, to_planet in planets.items():
+            if from_name == to_name:
+                continue
+            if to_planet.rashi_index not in target_signs:
+                continue
+            key = (from_name, to_name)
+            if key in seen:
+                continue
+            seen.add(key)
+            results.append({
+                'from': from_name,
+                'from_sign': from_planet.rashi,
+                'to': to_name,
+                'to_sign': to_planet.rashi,
+                'type': 'Jaimini Rasi Drishti',
+            })
+    return results
+
+
+def calculate_karakamsa(karakas: dict, planets: dict) -> dict:
+    """Calculate Swamsa/Karakamsa from Atmakaraka Navamsha sign.
+
+    Swamsa = AK's sign in D9.
+    Karakamsa = that same sign used as a reference lagna in D1.
+    """
+    ak = karakas.get('Atmakaraka')
+    if not ak:
+        return {}
+
+    ak_planet_name = ak['planet']
+    ak_planet = planets.get(ak_planet_name)
+    if not ak_planet:
+        return {}
+
+    swamsa_sign = d9_navamsha(ak_planet.longitude)
+    swamsa_idx = RASHIS.index(swamsa_sign)
+
+    occupants = []
+    aspected_by = []
+    tenth_from = ((9 + swamsa_idx) % 12) + 1
+    seventh_from = ((6 + swamsa_idx) % 12) + 1
+
+    for name, planet in planets.items():
+        karakamsa_house = ((planet.rashi_index - swamsa_idx) % 12) + 1
+        if karakamsa_house == 1:
+            occupants.append(name)
+        if swamsa_idx in get_jaimini_aspect_signs(planet.rashi_index):
+            aspected_by.append(name)
+
+    return {
+        'atmakaraka': ak_planet_name,
+        'swamsa_sign': swamsa_sign,
+        'karakamsa_sign': swamsa_sign,
+        'karakamsa_sign_index': swamsa_idx,
+        'occupants': occupants,
+        'aspected_by': sorted(set(aspected_by)),
+        'tenth_from_karakamsa': RASHIS[(swamsa_idx + 9) % 12],
+        'seventh_from_karakamsa': RASHIS[(swamsa_idx + 6) % 12],
+        'planet_houses': {
+            name: ((planet.rashi_index - swamsa_idx) % 12) + 1
+            for name, planet in planets.items()
+        },
+    }
+
+
+def interpret_karakamsa(karakamsa: dict) -> str:
+    """Beginner-friendly Karakamsa explanation."""
+    if not karakamsa:
+        return 'Karakamsa could not be calculated.'
+
+    parts = [
+        f"Karakamsa is in {karakamsa['karakamsa_sign']}. This means the Atmakaraka's Navamsha sign is {karakamsa['swamsa_sign']}, and that sign becomes a Jaimini reference lagna for soul direction.",
+    ]
+    if karakamsa['occupants']:
+        parts.append(f"Planets in Karakamsa: {', '.join(karakamsa['occupants'])}. These directly color the soul-path expression.")
+    if karakamsa['aspected_by']:
+        parts.append(f"Jaimini sign aspects to Karakamsa come from: {', '.join(karakamsa['aspected_by'])}. These planets shape how the soul-direction unfolds.")
+    parts.append(f"The 10th from Karakamsa is {karakamsa['tenth_from_karakamsa']}, useful for vocation; the 7th from Karakamsa is {karakamsa['seventh_from_karakamsa']}, useful for partnership themes.")
+    return ' '.join(parts)
 
 
 def get_karakas_summary(karakas: dict) -> str:

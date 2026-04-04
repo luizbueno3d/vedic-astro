@@ -19,7 +19,7 @@ import json
 from engine.ephemeris import calculate_chart, deg_to_dms, get_rashi_lord, RASHIS
 from engine.charts import get_varga_signs, VARGA_FUNCTIONS, VARGA_META
 from engine.kp import calculate_kp_bhava_chalit, kp_to_dict
-from engine.jaimini import calculate_chara_karakas, calculate_jaimini_raja_yoga, get_jaimini_interpretation
+from engine.jaimini import calculate_chara_karakas, calculate_jaimini_raja_yoga, calculate_karakamsa, get_jaimini_interpretation, get_jaimini_sign_aspects, interpret_karakamsa
 from engine.dasha import (
     calculate_mahadasha, calculate_antardasha, calculate_pratyantardasha,
     get_current_dasha_periods, dasha_to_dict, get_starting_dasha
@@ -912,6 +912,8 @@ async def page_analysis(request: Request, profile_id: int = Query(None)):
     jaimini_karakas = calculate_chara_karakas(chart.planets)
     jaimini_interpretation = get_jaimini_interpretation(jaimini_karakas)
     jaimini_raja_yogas = calculate_jaimini_raja_yoga(jaimini_karakas)
+    karakamsa = calculate_karakamsa(jaimini_karakas, chart.planets)
+    jaimini_sign_aspects = get_jaimini_sign_aspects(chart.planets)
 
     return templates.TemplateResponse("analysis.html", {
         "request": request,
@@ -932,6 +934,9 @@ async def page_analysis(request: Request, profile_id: int = Query(None)):
         "jaimini_karakas": jaimini_karakas,
         "jaimini_interpretation": jaimini_interpretation,
         "jaimini_raja_yogas": jaimini_raja_yogas,
+        "karakamsa": karakamsa,
+        "karakamsa_text": interpret_karakamsa(karakamsa),
+        "jaimini_sign_aspects": jaimini_sign_aspects,
     })
 
 
