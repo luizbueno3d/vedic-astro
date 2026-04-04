@@ -8,6 +8,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from fastapi import FastAPI, HTTPException, Request, Query, UploadFile, File
 
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from starlette.middleware.sessions import SessionMiddleware
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from datetime import date
@@ -46,6 +47,21 @@ from data.database import (
 
 app = FastAPI(title="Vedic Astro", version="1.0.0")
 
+APP_PASSWORD = os.getenv("APP_PASSWORD", "Luiz1234!")
+APP_SESSION_SECRET = os.getenv("APP_SESSION_SECRET", "vedic-astro-session-secret-change-me")
+PUBLIC_PATHS = {
+    "/login",
+    "/api",
+}
+
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=APP_SESSION_SECRET,
+    session_cookie="vedic_astro_session",
+    same_site="lax",
+    https_only=False,
+)
+
 # Templates
 import os as _os
 _base_dir = _os.path.dirname(_os.path.dirname(_os.path.dirname(__file__)))
@@ -55,6 +71,34 @@ templates_dir = _os.path.join(_base_dir, 'templates')
 _os.makedirs(templates_dir, exist_ok=True)
 
 templates = Jinja2Templates(directory=templates_dir)
+
+
+def _is_authenticated(request: Request) -> bool:
+    return request.session.get("authenticated") is True
+
+
+def _is_html_request(request: Request) -> bool:
+    accept = request.headers.get("accept", "")
+    return "text/html" in accept
+
+
+@app.middleware("http")
+async def auth_gate(request: Request, call_next):
+    path = request.url.path
+
+    if request.method == "OPTIONS":
+        return await call_next(request)
+
+    if path in PUBLIC_PATHS or path.startswith("/login"):
+        return await call_next(request)
+
+    if _is_authenticated(request):
+        return await call_next(request)
+
+    if _is_html_request(request):
+        return RedirectResponse(url="/login", status_code=303)
+
+    return JSONResponse({"error": "Authentication required"}, status_code=401)
 
 
 # ===== Pydantic Models =====
@@ -97,6 +141,35 @@ async def api_root():
 @app.get("/")
 async def root():
     return RedirectResponse(url="/dashboard")
+
+
+@app.get("/login", response_class=HTMLResponse)
+async def page_login(request: Request):
+    if _is_authenticated(request):
+        return RedirectResponse(url="/dashboard", status_code=303)
+    return templates.TemplateResponse("login.html", {
+        "request": request,
+        "page": "login",
+        "profiles": [],
+        "profile_id": None,
+    })
+
+
+@app.post("/login")
+async def api_login(request: Request):
+    data = await request.json()
+    password = data.get("password", "")
+    if password != APP_PASSWORD:
+        return JSONResponse({"error": "Invalid password"}, status_code=401)
+
+    request.session["authenticated"] = True
+    return {"success": True}
+
+
+@app.post("/logout")
+async def api_logout(request: Request):
+    request.session.clear()
+    return {"success": True}
 
 
 # --- Profiles ---
