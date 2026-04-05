@@ -24,7 +24,7 @@ from engine.dasha import (
     calculate_mahadasha, calculate_antardasha, calculate_pratyantardasha,
     get_current_dasha_periods, dasha_to_dict, get_starting_dasha
 )
-from engine.transits import calculate_transits, find_sign_changes, transit_to_dict
+from engine.transits import build_transit_reading, calculate_transits, find_sign_changes, transit_to_dict
 from engine.aspects import find_conjunctions, find_aspects, conjunction_to_dict, aspect_to_dict
 from engine.yogas import detect_all_yogas, yoga_to_dict, calculate_house_rulerships
 from engine.bhavat_bhavam import get_all_bhavat_bhavam, get_planet_bhavat_bhavam, get_planet_house_from_house_analysis
@@ -730,6 +730,7 @@ async def page_dashboard(request: Request, profile_id: int = Query(None)):
         # Transits
         transits = calculate_transits(chart)
         transits_data = {k: transit_to_dict(v) for k, v in transits.items()}
+        transit_reading = build_transit_reading(chart, transits)
 
         # Vargas
         vargas = get_varga_signs(chart)
@@ -753,6 +754,7 @@ async def page_dashboard(request: Request, profile_id: int = Query(None)):
             "chart": serial,
             "dasha": dasha_data,
             "transits": transits_data,
+            "transit_reading": transit_reading,
             "vargas": vargas,
             "kp": kp_data,
             "conjunctions": [conjunction_to_dict(c) for c in conjs],

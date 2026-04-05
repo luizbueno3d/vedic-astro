@@ -5,6 +5,33 @@ from dataclasses import dataclass
 import swisseph as swe
 from .ephemeris import PLANET_IDS, RASHIS, NAKSHATRAS, NAK_SPAN, deg_to_dms
 
+HOUSE_TOPICS = {
+    1: 'identity, body, and self-direction',
+    2: 'money, speech, and family resources',
+    3: 'skills, courage, writing, and initiative',
+    4: 'home, roots, private life, and emotional security',
+    5: 'creativity, romance, children, and intelligence',
+    6: 'work, service, health, and conflict',
+    7: 'partnerships, clients, and public dealings',
+    8: 'transformation, crisis, secrecy, and depth',
+    9: 'belief, teachers, travel, and higher meaning',
+    10: 'career, reputation, duty, and visibility',
+    11: 'gains, networks, allies, and long-term goals',
+    12: 'retreat, loss, sleep, foreignness, and liberation',
+}
+
+PLANET_TRANSIT_FOCUS = {
+    'Sun': 'purpose, confidence, authority, and visibility',
+    'Moon': 'emotional weather, habits, and daily mood',
+    'Mars': 'drive, stress, courage, and conflict response',
+    'Mercury': 'thinking, conversation, writing, and decisions',
+    'Jupiter': 'growth, faith, opportunity, and guidance',
+    'Venus': 'relationships, pleasure, beauty, and harmony',
+    'Saturn': 'pressure, discipline, duty, and karmic testing',
+    'Rahu': 'desire, amplification, ambition, and restlessness',
+    'Ketu': 'detachment, release, pruning, and inner distance',
+}
+
 
 @dataclass
 class TransitPosition:
@@ -126,3 +153,37 @@ def transit_to_dict(tp: TransitPosition) -> dict:
         'natal_longitude': round(tp.natal_longitude, 4),
         'orb': round(tp.orb, 2),
     }
+
+
+def build_transit_reading(chart_data, transits: dict) -> list[dict]:
+    """Create beginner-friendly transit readings using natal context."""
+    results = []
+    focus_order = ['Saturn', 'Jupiter', 'Rahu', 'Ketu', 'Mars', 'Sun', 'Venus', 'Mercury', 'Moon']
+    for name in focus_order:
+        tp = transits.get(name)
+        natal = chart_data.planets.get(name)
+        if not tp or not natal:
+            continue
+
+        transit_house_topic = HOUSE_TOPICS[tp.house]
+        natal_house_topic = HOUSE_TOPICS[natal.house]
+        summary = (
+            f'Transit {name} is now in {tp.rashi}, moving through H{tp.house} of your chart. '
+            f'Your natal {name} is in {natal.rashi} in H{natal.house}, so this transit activates {PLANET_TRANSIT_FOCUS[name]} '
+            f'by bringing current movement into {transit_house_topic}, while your natal baseline for that planet begins in {natal_house_topic}.'
+        )
+        practical = (
+            f'In plain English: when natal {name} starts from H{natal.house} but transit {name} passes through H{tp.house}, '
+            f'you feel that planet through both layers at once - the birth promise from H{natal.house} and the current trigger through H{tp.house}. '
+            f'That is why {name} transits are read as activation, not replacement.'
+        )
+        results.append({
+            'planet': name,
+            'summary': summary,
+            'practical': practical,
+            'transit_house': tp.house,
+            'natal_house': natal.house,
+            'transit_sign': tp.rashi,
+            'natal_sign': natal.rashi,
+        })
+    return results

@@ -137,6 +137,20 @@
             </tr>
             {% endfor %}
         </table>
+
+        <div style="margin-top:16px">
+            <h4 style="margin-bottom:10px; color:var(--accent)">Transit Reading</h4>
+            <p style="color:var(--muted); font-size:0.9em; margin:0 0 12px; line-height:1.7">
+                Here we combine the transit with your natal chart. In plain language: natal placement shows the built-in promise, and the transit shows where that same planet is stirring things now.
+            </p>
+            {% for item in transit_reading %}
+            <div style="margin-bottom:12px; padding:12px; background:rgba(74,158,255,0.06); border-radius:8px; border-left:3px solid var(--blue)">
+                <div><strong>{{ item.planet }}</strong>: natal {{ item.natal_sign }} H{{ item.natal_house }} -> transit {{ item.transit_sign }} H{{ item.transit_house }}</div>
+                <div style="color:var(--muted); font-size:0.92em; margin-top:6px; line-height:1.6">{{ item.summary }}</div>
+                <div style="font-size:0.9em; margin-top:6px; line-height:1.6">{{ item.practical }}</div>
+            </div>
+            {% endfor %}
+        </div>
     </div>
 </div>
 
