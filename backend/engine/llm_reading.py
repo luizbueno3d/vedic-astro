@@ -78,6 +78,21 @@ If using D9 or D10, say they confirm and specialize rather than replace D1.
 """
 
 
+GUIDED_FLOW = """GUIDED FLOW FOR THE READER
+
+The reading should mirror the app's learning path.
+
+Recommended order for the human reader:
+1. D1 foundation - who the person is and what the chart is built on.
+2. Timing - what is active now through dasha and transit.
+3. Deeper logic - yogas, Jaimini, Bhavat Bhavam, and structural modifiers.
+4. Topic charts - D9, D10, D7, D12 only when the topic specifically calls for them.
+5. Synthesis - practical conclusions and advice.
+
+When useful, say this explicitly in the reading so the reader feels guided rather than flooded.
+"""
+
+
 READING_BLUEPRINT = """FINAL READING BLUEPRINT
 
 Write the reading in this exact order, with explicit section headers.
@@ -85,6 +100,7 @@ Write the reading in this exact order, with explicit section headers.
 1. Cosmic Blueprint
 - 2-4 paragraphs only.
 - Start by telling the reader why this section comes first.
+- Add a brief sentence that this reading will move from foundation, to timing, to deeper modifiers, to topic-specific charts.
 - State the core paradox of the chart.
 - Name the D1 ascendant, Moon, Atmakaraka, and the main BCC shift pattern.
 - Say what kind of human being this chart describes before discussing life areas.
@@ -129,6 +145,7 @@ Write the reading in this exact order, with explicit section headers.
 
 10. Current Dasha and Active Timing
 - This is one of the most important sections.
+- Introduce this section as the second major thing to check after the natal foundation.
 - Briefly explain in plain language that dasha means time period, antardasha means sub-period, and pratyantardasha means the smaller active trigger inside it.
 - For Mahadasha, Antardasha, and Pratyantardasha lords, explain:
   - what the planet means naturally
@@ -154,6 +171,7 @@ EXPLANATION RULES FOR NON-ASTROLOGERS
 STYLE RULES
 - Follow the reading priority hierarchy supplied in the context.
 - Follow the layer usage protocol supplied in the context.
+- Follow the guided flow supplied in the context.
 - No example stories unless directly tied to chart logic.
 - No generic astrology filler.
 - No unsupported claims.
@@ -262,6 +280,7 @@ def build_chart_context(chart, rulerships, yogas, doshas, shadbala,
     lines.append(f'CHART: {chart.name}, born {chart.birth_date} {chart.birth_time} in {chart.birth_place}')
     lines.append(READING_PRIORITIES)
     lines.append(LAYER_USAGE_PROTOCOL)
+    lines.append(GUIDED_FLOW)
     lines.append(f'D1 ASCENDANT: {asc.rashi} {asc.nakshatra} Pada {asc.pada}')
     lines.append(
         f'BCC ASCENDANT: {kp_data.kp_asc_rashi} (KP effective ascendant, idx={kp_data.kp_asc_idx}) | '
@@ -545,12 +564,19 @@ Priority discipline:
 - topic-specific layers should appear only when the life area calls for them
 - if there is tension between layers, explain the hierarchy before explaining the blend
 
+Reader guidance discipline:
+- do not throw the reader into advanced material without orienting them first
+- make the reading feel like a guided walk through the chart
+- briefly tell the reader what comes first, what comes second, and what comes later
+- the final reading should feel aligned with the app flow: foundation -> timing -> deeper logic -> topic-specific charts -> synthesis
+
 {READING_BLUEPRINT}
 
 Writing requirements:
 - 1600 to 2600 words
 - follow the blueprint exactly
 - make the reading pedagogical: explain what the reader should look at first and why
+- in the opening, include a short roadmap sentence that tells the reader the reading will move from foundation, to timing, to deeper modifiers, to topic-specific charts, and finally advice
 - explicitly tell the reader whether a section is foundational, refining, timing-based, or topic-specific
 - explicitly explain important D1 vs BCC house shifts
 - if a dasha lord shifts houses in BCC, name both houses and explain how the result blends
