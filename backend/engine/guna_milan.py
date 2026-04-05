@@ -1,15 +1,15 @@
 """Guna Milan — Ashtakoota compatibility (36-point system)."""
 
 KOOTA_EXPLANATIONS = {
-    'Varna': 'Varna is the ego and spiritual compatibility factor. It shows whether values, refinement, and role expectations sit comfortably together.',
-    'Vashya': 'Vashya shows mutual influence, responsiveness, and how naturally one adapts to the other.',
-    'Tara': 'Tara reflects well-being, support, and whether the connection tends to protect or strain the flow of life.',
-    'Yoni': 'Yoni relates to instinctive chemistry, attraction style, intimacy, and animal-level compatibility.',
-    'Maitri': 'Maitri shows mental friendship and how naturally the two Moon-sign lords cooperate.',
-    'Gana': 'Gana reflects temperament and behavioral style - whether both people approach life with similar emotional nature.',
-    'Bhakoot': 'Bhakoot shows how the Moon signs relate by distance, especially for emotional harmony, prosperity, and domestic flow.',
-    'Nadi': 'Nadi is traditionally linked to health, vitality, and biological compatibility, especially in marriage matching.',
-    'TOTAL': 'The total score is the traditional Moon-based matching result. It is useful as a first filter, but not the final word on compatibility.',
+    'Varna': 'Varna is the spiritual and ego compatibility factor. It asks whether values, refinement, and role expectations sit comfortably together.',
+    'Vashya': 'Vashya shows mutual influence, control, responsiveness, and how easily one adapts to the other.',
+    'Tara': 'Tara reflects well-being, support, and whether the connection tends to protect, nourish, or strain the flow of life.',
+    'Yoni': 'Yoni relates to instinctive chemistry, sexual style, bodily comfort, and animal-level compatibility.',
+    'Maitri': 'Maitri shows mental friendship and whether the two Moon-sign lords naturally cooperate or feel distant.',
+    'Gana': 'Gana reflects temperament and behavioral style - whether both people approach life with similar emotional nature or very different instincts.',
+    'Bhakoot': 'Bhakoot shows how the Moon signs relate by distance, especially for emotional harmony, prosperity, and domestic flow over time.',
+    'Nadi': 'Nadi is traditionally linked to health, vitality, and biological compatibility, especially in marriage matching and family-building concerns.',
+    'TOTAL': 'The total score is the traditional Moon-based matching result. It is a useful first filter for temperament and traditional marriage matching, but it is not the final word on full compatibility.',
 }
 
 # Varna (Ego) — 1 point max
