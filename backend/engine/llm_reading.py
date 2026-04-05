@@ -480,6 +480,9 @@ def generate_llm_reading(chart, rulerships, yogas, doshas, shadbala,
     if provider == 'active' and not active_provider:
         return _fallback_reading(chart, yogas, doshas, dasha_data, kp_data)
 
+    if active_provider and _should_use_single_pass(active_provider):
+        return _generate_single_pass_reading(context)
+
     stage_one = _run_stage(
         """You are a senior Vedic astrologer. Produce analyst notes, not the final reading.
 
@@ -594,8 +597,51 @@ IDENTITY NOTES
 BCC / KP NOTES
 {stage_two}
 
-TIMING NOTES
+        TIMING NOTES
 {stage_three}""",
+    )
+
+
+def _should_use_single_pass(provider) -> bool:
+    if provider.name == 'openrouter' and ':free' in provider.model:
+        return True
+    if provider.name == 'groq':
+        return True
+    return False
+
+
+def _generate_single_pass_reading(context: str) -> str:
+    """Use one call for rate-limited/free providers."""
+    return _run_stage(
+        f"""You are an expert Vedic astrologer writing a long-form premium reading.
+
+Use one single pass only. The provider is likely rate-limited, so you must produce the final answer without relying on intermediate steps.
+
+Core framework:
+- D1 = natal architecture and psychological baseline
+- BCC (Bhava Chalit Chart, KP / Nakshatra Nadi) = operative field where results manifest
+- During dasha interpretation, integrate both, but give BCC special weight for event manifestation
+
+Priority discipline:
+- primary layers outrank secondary layers
+- secondary layers refine but do not replace primary layers
+- topic-specific layers should appear only when the life area calls for them
+
+Reader guidance discipline:
+- make the reading feel like a guided walk through the chart
+- briefly tell the reader what comes first, what comes second, and what comes later
+
+{READING_BLUEPRINT}
+
+Writing requirements:
+- 1600 to 2600 words
+- follow the blueprint exactly
+- include a short roadmap sentence near the beginning
+- explain terms in plain English for non-astrologers
+- be warm, nuanced, specific, and non-generic""",
+        f"""Write the final reading from this chart context.
+
+{context}""",
     )
 
 

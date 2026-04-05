@@ -195,8 +195,38 @@ def generate_reading(system_prompt: str, user_prompt: str) -> str:
             return _call_openai_compatible(provider, system_prompt, user_prompt)
         else:
             return _call_openai_compatible(provider, system_prompt, user_prompt)
+    except requests.HTTPError as e:
+        return _format_http_error(provider, e)
     except Exception as e:
         return f"Error with {provider.label}: {str(e)}\n\nCheck your API key and try again."
+
+
+def _format_http_error(provider: AIProvider, error: requests.HTTPError) -> str:
+    status = error.response.status_code if error.response is not None else None
+    body = ''
+    if error.response is not None:
+        try:
+            body = error.response.text[:500]
+        except Exception:
+            body = ''
+
+    if status == 429:
+        return (
+            f"Error with {provider.label}: Rate limited (429).\n\n"
+            f"This usually means the model or free tier is temporarily overloaded, not that your API key is wrong. "
+            f"Wait a bit and try again, or switch to a non-free / less crowded model."
+        )
+
+    if status == 401:
+        return f"Error with {provider.label}: Authentication failed (401). Check your API key."
+
+    if status == 402:
+        return f"Error with {provider.label}: Payment or quota required (402)."
+
+    if status == 403:
+        return f"Error with {provider.label}: Access forbidden (403). Model access may be restricted for this account."
+
+    return f"Error with {provider.label}: HTTP {status}.\n\n{body or str(error)}"
 
 
 def _call_anthropic(provider: AIProvider, system: str, user: str) -> str:
