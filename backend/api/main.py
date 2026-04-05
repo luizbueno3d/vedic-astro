@@ -32,6 +32,7 @@ from engine.ashtakavarga import calculate_sarva_ashtakavarga, interpret_sav_scor
 from engine.shadbala import calculate_shadbala
 from engine.doshas import detect_all_doshas, dosha_to_dict
 from engine.guna_milan import calculate_guna_milan
+from engine.synastry import calculate_synastry
 from engine.reading import generate_reading
 from engine.synthesis import synthesize
 from engine.llm_reading import generate_llm_reading
@@ -419,6 +420,8 @@ async def api_compatibility(profile_id_1: int, profile_id_2: int):
 
     moon_dist = (moon2.rashi_index - moon1.rashi_index) % 12
 
+    synastry = calculate_synastry(chart1, chart2)
+
     return {
         'person_1': chart1.name,
         'person_2': chart2.name,
@@ -428,6 +431,7 @@ async def api_compatibility(profile_id_1: int, profile_id_2: int):
         'ascendant_1': chart1.ascendant.rashi,
         'ascendant_2': chart2.ascendant.rashi,
         'interpretation': _moon_distance_interpretation(moon_dist),
+        'synastry': synastry,
     }
 
 
@@ -868,6 +872,7 @@ async def page_compatibility(request: Request, p1: int = Query(None), p2: int = 
     pid2 = p2 or (profiles[1]['id'] if len(profiles) > 1 else pid1)
 
     guna_milan = None
+    synastry = None
     person_1 = {}
     person_2 = {}
     if p1 and p2:
@@ -877,6 +882,7 @@ async def page_compatibility(request: Request, p1: int = Query(None), p2: int = 
             chart1.planets['Moon'].rashi_index,
             chart2.planets['Moon'].rashi_index
         )
+        synastry = calculate_synastry(chart1, chart2)
         person_1 = {
             'name': chart1.name,
             'ascendant': chart1.ascendant.rashi,
@@ -901,6 +907,7 @@ async def page_compatibility(request: Request, p1: int = Query(None), p2: int = 
         "p1": pid1,
         "p2": pid2,
         "guna_milan": guna_milan,
+        "synastry": synastry,
         "person_1": person_1,
         "person_2": person_2,
     })
