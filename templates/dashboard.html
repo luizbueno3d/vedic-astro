@@ -12,6 +12,20 @@
     <a href="/basics?profile_id={{ profile_id }}" style="display:inline-block; background:var(--blue); color:white; text-decoration:none; padding:8px 12px; border-radius:6px; font-size:0.9em; font-weight:600">New here? Read Astrology Basics</a>
 </div>
 
+<div class="card" style="margin-bottom:20px; border-color:var(--blue)">
+    <h3>Start Here</h3>
+    <p style="margin:0; line-height:1.7">
+        If you are new, do not try to read everything at once. Follow this order so the chart makes sense layer by layer.
+    </p>
+    <div class="guided-flow">
+        <a class="flow-step" href="/dashboard?profile_id={{ profile_id }}"><strong>1. D1 Foundation</strong><small>Start with the birth chart, Ascendant, Moon, and core planetary positions.</small></a>
+        <a class="flow-step" href="/dasha?profile_id={{ profile_id }}"><strong>2. Timing</strong><small>See what is active now through Vimshottari and Jaimini timing.</small></a>
+        <a class="flow-step" href="/analysis?profile_id={{ profile_id }}"><strong>3. Deeper Logic</strong><small>Read yogas, Jaimini, Bhavat Bhavam, and structural links.</small></a>
+        <a class="flow-step" href="/vargas?profile_id={{ profile_id }}"><strong>4. Topic Charts</strong><small>Use D9, D10, and other vargas only after the main chart is clear.</small></a>
+        <a class="flow-step" href="/reading?profile_id={{ profile_id }}"><strong>5. Synthesis</strong><small>Use the reading and AI interpretation after you understand the foundations.</small></a>
+    </div>
+</div>
+
 <div class="grid grid-2">
     <!-- North Indian Chart -->
     <div class="card">
@@ -29,7 +43,10 @@
         <h3>Planetary Positions</h3>
         <p style="color:var(--muted); font-size:0.9em; margin:-6px 0 12px">
             This table shows where each planet sits in your birth chart. Think of it like this:
-            sign = style, house = life area, nakshatra = deeper motive, pada = fine detail.
+            <span class="help-term" tabindex="0" data-help="A sign shows the style or tone of a planet. It tells you how the planet behaves.">sign<span class="help-dot">i</span></span> = style,
+            <span class="help-term" tabindex="0" data-help="A house is the life area where the planet acts: career, relationships, money, home, and so on.">house<span class="help-dot">i</span></span> = life area,
+            <span class="help-term" tabindex="0" data-help="A nakshatra is a lunar mansion. It adds a deeper motive or psychological script to the planet.">nakshatra<span class="help-dot">i</span></span> = deeper motive,
+            <span class="help-term" tabindex="0" data-help="A pada is one quarter of a nakshatra. It gives a finer detail inside the nakshatra.">pada<span class="help-dot">i</span></span> = fine detail.
             These positions matter before timing, because dashas and transits can only activate what is already promised here.
         </p>
         <table>
@@ -53,8 +70,10 @@
     <div class="card">
         <h3>Current Dasha</h3>
         <p style="color:var(--muted); font-size:0.9em; margin:-6px 0 12px">
-            Dashas are planetary time periods. Mahadasha is the big chapter of life, Antardasha is the sub-chapter,
-            and Pratyantardasha is the smaller trigger inside it. If you want to know what is most active now, this is one of the most important places to look.
+            <span class="help-term" tabindex="0" data-help="Dasha means a planetary time period. It tells you which planet is currently running the main chapter of life.">Dashas<span class="help-dot">i</span></span> are planetary time periods.
+            <span class="help-term" tabindex="0" data-help="Mahadasha is the big chapter of life, usually lasting years.">Mahadasha<span class="help-dot">i</span></span> is the big chapter of life,
+            <span class="help-term" tabindex="0" data-help="Antardasha is the sub-period inside the Mahadasha. It changes the flavor of the main period.">Antardasha<span class="help-dot">i</span></span> is the sub-chapter,
+            and <span class="help-term" tabindex="0" data-help="Pratyantardasha is the smaller trigger inside the sub-period. It helps explain the current immediate wave.">Pratyantardasha<span class="help-dot">i</span></span> is the smaller trigger inside it. If you want to know what is most active now, this is one of the most important places to look.
         </p>
         {% if dasha.current.mahadasha %}
         <table>
@@ -103,7 +122,7 @@
     <div class="card">
         <h3>Current Transits (Gochar)</h3>
         <p style="color:var(--muted); font-size:0.9em; margin:-6px 0 12px">
-            Transits show where planets are moving now. They are important, but they come after the birth chart and the dasha.
+            <span class="help-term" tabindex="0" data-help="Transit, also called Gochar, means where planets are moving in the sky right now.">Transits (Gochar)<span class="help-dot">i</span></span> show where planets are moving now. They are important, but they come after the birth chart and the dasha.
             In simple terms: the natal chart shows the promise, the dasha shows the active period, and transits show what is triggering it now.
         </p>
         <table>
@@ -125,7 +144,7 @@
 <div class="card" style="margin-top:20px">
     <h3>D9 Navamsha (Quick View)</h3>
     <p style="color:var(--muted); font-size:0.9em; margin:-6px 0 12px">
-        D9 is a divisional chart used as a confirmation layer. Many astrologers use it for marriage, inner maturity, and the deeper strength of planets.
+        <span class="help-term" tabindex="0" data-help="D9, also called Navamsha, is the most important divisional chart for relationship maturity, dharma, and deeper planetary support.">D9 Navamsha<span class="help-dot">i</span></span> is a divisional chart used as a confirmation layer. Many astrologers use it for marriage, inner maturity, and the deeper strength of planets.
         It should support the birth chart, not replace it.
     </p>
     <table style="max-width:600px">
@@ -141,7 +160,7 @@
     <h3>KP Bhava Chalit — Nakshatra Nadi System</h3>
     <p style="color:var(--muted); font-size:0.85em; margin:-8px 0 12px">House placement based on sub-lord of nakshatra pada — the system Babajeet uses for real Dasha results.</p>
     <p style="color:var(--muted); font-size:0.9em; margin:-4px 0 12px">
-        Read this after the D1 chart, not before it. The D1 chart shows the natal setup; this BCC/KP layer shows where results tend to land in real life,
+        Read this after the D1 chart, not before it. The D1 chart shows the natal setup; this <span class="help-term" tabindex="0" data-help="BCC means Bhava Chalit Chart. In this app it is the KP/Nakshatra Nadi house-manifestation layer, especially important in dasha results.">BCC / KP layer<span class="help-dot">i</span></span> shows where results tend to land in real life,
         especially during dashas. So a planet keeps its natal nature, but its lived manifestation may shift houses here.
     </p>
     <div id="kp-chart-container" style="text-align:center"></div>
