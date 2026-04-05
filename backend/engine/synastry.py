@@ -29,6 +29,7 @@ BENEFICS = {'Jupiter', 'Venus', 'Moon', 'Mercury'}
 MALEFICS = {'Saturn', 'Mars', 'Rahu', 'Ketu', 'Sun'}
 RELATIONSHIP_FOCUS = ['Moon', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Rahu', 'Ketu', 'Sun']
 MANGLIK_HOUSES = {1, 2, 4, 7, 8, 12}
+KEY_OVERLAY_HOUSES = {1, 4, 5, 7, 8, 12}
 
 
 def _planet_tone(name: str) -> str:
@@ -61,6 +62,8 @@ def _overlay_house(from_sign_index: int, to_sign_index: int) -> int:
 def _overlay_note(planet: str, house: int) -> str:
     if house == 1:
         return f'{planet} lands in the other person\'s 1st house, so it strongly shapes how seen, felt, and personally impacted they feel.'
+    if house == 4:
+        return f'{planet} lands in the 4th house, influencing emotional comfort, home feeling, and inner safety.'
     if house == 5:
         return f'{planet} lands in the 5th house, increasing romance, attraction, joy, and creative connection.'
     if house == 7:
@@ -70,6 +73,24 @@ def _overlay_note(planet: str, house: int) -> str:
     if house == 12:
         return f'{planet} lands in the 12th house, which can create sacrifice, distance, secrecy, spiritual pull, or emotional blur.'
     return f'{planet} lands in H{house}, influencing {HOUSE_TOPICS[house]}.'
+
+
+def _make_signal(key: str, category: str, score: int, title: str, detail: str) -> dict:
+    return {
+        'key': key,
+        'category': category,
+        'score': score,
+        'title': title,
+        'detail': detail,
+    }
+
+
+def _sort_signals(signals: list[dict]) -> list[dict]:
+    return sorted(signals, key=lambda item: (-item['score'], item['title']))
+
+
+def _top_signals(signals: list[dict], category: str, limit: int = 4) -> list[dict]:
+    return _sort_signals([s for s in signals if s['category'] == category])[:limit]
 
 
 def _cross_house_distance(from_sign_index: int, to_sign_index: int) -> int:
@@ -319,17 +340,21 @@ def calculate_natal_relationship_capacity(chart) -> dict:
 
 
 def _overlay_bundle(source_chart, target_chart, source_name: str, target_name: str) -> list[dict]:
+    seventh_house_sign = (target_chart.ascendant.rashi_index + 6) % 12
+    seventh_lord = _seventh_lord_name(target_chart)
     target_refs = {
         'Asc': target_chart.ascendant.rashi_index,
         'Moon': target_chart.planets['Moon'].rashi_index,
-        'Venus': target_chart.planets['Venus'].rashi_index,
+        '7th House': seventh_house_sign,
     }
+    if seventh_lord:
+        target_refs['7th Lord'] = target_chart.planets[seventh_lord].rashi_index
     items = []
     for planet_name in RELATIONSHIP_FOCUS:
         planet = source_chart.planets[planet_name]
         for ref_name, ref_sign in target_refs.items():
             house = _overlay_house(planet.rashi_index, ref_sign)
-            if house not in {1, 5, 7, 8, 12}:
+            if house not in KEY_OVERLAY_HOUSES:
                 continue
             items.append({
                 'source': source_name,
@@ -378,61 +403,208 @@ def _partnership_axis_notes(chart_a, chart_b, name_a: str, name_b: str) -> list[
             'title': f'{name_a} lagna lord to {name_b} lagna lord',
             'detail': f"{lagnesh_a} and {lagnesh_b} show how each person operates in life. Their house distance is {distance}, which helps describe whether identity styles cooperate, complement, or challenge each other.",
         })
-    
-    seventh_house_a = chart_a.ascendant.rashi_index + 6
-    seventh_house_b = chart_b.ascendant.rashi_index + 6
-    for planet_name in ['Moon', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Rahu', 'Ketu']:
-        a_to_b_7th = _overlay_house(chart_a.planets[planet_name].rashi_index, seventh_house_b % 12)
-        if a_to_b_7th in {1, 5, 7, 8, 12}:
-            notes.append({
-                'title': f'{name_a} {planet_name} to {name_b} 7th house',
-                'detail': f"{name_a}'s {planet_name} falls in H{a_to_b_7th} from {name_b}'s 7th house, so {_tone_phrase(planet_name)} directly colors {name_b}'s partnership field.",
-            })
-        b_to_a_7th = _overlay_house(chart_b.planets[planet_name].rashi_index, seventh_house_a % 12)
-        if b_to_a_7th in {1, 5, 7, 8, 12}:
-            notes.append({
-                'title': f'{name_b} {planet_name} to {name_a} 7th house',
-                'detail': f"{name_b}'s {planet_name} falls in H{b_to_a_7th} from {name_a}'s 7th house, so {_tone_phrase(planet_name)} directly colors {name_a}'s partnership field.",
-            })
     return notes
 
 
-def _summary_bucket(overlays: list[dict], aspects: list[dict], conjunctions: list[dict], manglik_a: dict, manglik_b: dict) -> dict:
-    emotional = []
-    chemistry = []
-    stability = []
-    pressure = []
+def _planet_aspects_sign(planet_name: str, from_sign: int, to_sign: int) -> bool:
+    if planet_name in ('Rahu', 'Ketu'):
+        aspect_distances = [3, 7, 10]
+    elif planet_name in SPECIAL_ASPECTS:
+        aspect_distances = list(set(SPECIAL_ASPECTS[planet_name] + [7]))
+    else:
+        aspect_distances = [7]
+    distance = ((to_sign - from_sign) % 12) + 1
+    return distance in aspect_distances
 
-    for item in overlays:
-        text = f"{item['source']} {item['planet']} -> {item['target']} {item['reference']} H{item['house']}: {item['note']}"
-        if item['planet'] == 'Moon' or item['reference'] == 'Moon':
-            emotional.append(text)
-        if item['planet'] in {'Venus', 'Mars', 'Rahu'} or item['house'] in {5, 7, 8}:
-            chemistry.append(text)
-        if item['planet'] in {'Jupiter', 'Saturn'} or item['house'] in {1, 7}:
-            stability.append(text)
-        if item['planet'] in {'Saturn', 'Mars', 'Rahu', 'Ketu'} or item['house'] in {8, 12, 6}:
-            pressure.append(text)
 
-    for item in conjunctions + aspects:
-        text = item['note']
-        if 'Moon' in text:
-            emotional.append(text)
-        if 'Venus' in text or 'Mars' in text or 'Rahu' in text:
-            chemistry.append(text)
-        if 'Jupiter' in text or 'Saturn' in text:
-            stability.append(text)
+def _build_seventh_axis_analysis(chart_a, chart_b, name_a: str, name_b: str) -> list[dict]:
+    signals = []
+    lord_a = _seventh_lord_name(chart_a)
+    lord_b = _seventh_lord_name(chart_b)
+    if not lord_a or not lord_b:
+        return signals
 
-    if manglik_a['severity'] != 'none' or manglik_b['severity'] != 'none':
-        pressure.append(
-            f"Manglik interaction: person A is {manglik_a['severity']} and person B is {manglik_b['severity']}. Similar Mars signatures can normalize heat, while mismatched intensity can create conflict style differences."
-        )
+    p7a = chart_a.planets[lord_a]
+    p7b = chart_b.planets[lord_b]
+    seventh_sign_a = (chart_a.ascendant.rashi_index + 6) % 12
+    seventh_sign_b = (chart_b.ascendant.rashi_index + 6) % 12
+
+    # 7th lord to 7th lord direct link
+    if p7a.rashi_index == p7b.rashi_index:
+        signals.append(_make_signal(
+            '7lord-conjunction', 'long_term', 95,
+            '7th lord to 7th lord conjunction',
+            f"{lord_a} and {lord_b} meet in the same sign, so both charts bring their partnership karma into one field. This is one of the strongest direct marriage-axis links."
+        ))
+    elif _planet_aspects_sign(lord_a, p7a.rashi_index, p7b.rashi_index) or _planet_aspects_sign(lord_b, p7b.rashi_index, p7a.rashi_index):
+        signals.append(_make_signal(
+            '7lord-aspect', 'long_term', 84,
+            '7th lord to 7th lord aspect',
+            f"{lord_a} and {lord_b} aspect each other across the charts, directly linking the two partnership systems even without conjunction."
+        ))
+
+    # Planet occupancy / activation of partner's 7th sign
+    for src_chart, src_name, target_sign, target_lord, target_name in [
+        (chart_a, name_a, seventh_sign_b, lord_b, name_b),
+        (chart_b, name_b, seventh_sign_a, lord_a, name_a),
+    ]:
+        for planet_name in ['Moon', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Rahu', 'Ketu']:
+            p = src_chart.planets[planet_name]
+            distance = _overlay_house(p.rashi_index, target_sign)
+            if distance == 1:
+                category = 'chemistry' if planet_name in {'Venus', 'Mars', 'Rahu'} else 'long_term' if planet_name in {'Jupiter', 'Saturn'} else 'emotional_fit'
+                score = {'Venus': 88, 'Moon': 85, 'Jupiter': 83, 'Mars': 76, 'Saturn': 72, 'Rahu': 74, 'Ketu': 65}.get(planet_name, 70)
+                signals.append(_make_signal(
+                    f'{src_name}-{planet_name}-occupies-{target_name}-7th', category, score,
+                    f"{src_name} {planet_name} occupies {target_name}'s 7th house",
+                    f"{src_name}'s {planet_name} falls directly into {target_name}'s 7th house, so {_tone_phrase(planet_name)} becomes a direct partnership force in the relationship."
+                ))
+            elif distance in {5, 7, 8, 12}:
+                category = 'chemistry' if distance in {5, 8} else 'pressure_points' if distance == 12 or planet_name in {'Saturn', 'Rahu', 'Ketu'} else 'long_term'
+                score = 58 if distance == 12 else 66 if distance == 8 else 62
+                signals.append(_make_signal(
+                    f'{src_name}-{planet_name}-{target_name}-7th-h{distance}', category, score,
+                    f"{src_name} {planet_name} to {target_name}'s 7th axis",
+                    f"{src_name}'s {planet_name} falls {distance} houses from {target_name}'s 7th house, so {_tone_phrase(planet_name)} meaningfully colors the partnership axis rather than touching it weakly."
+                ))
+
+        # direct conjunction/aspect to partner's 7th lord
+        for planet_name in ['Moon', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Rahu', 'Ketu']:
+            p = src_chart.planets[planet_name]
+            if p.rashi_index == chart_b.planets[target_lord].rashi_index if src_name == name_a else p.rashi_index == chart_a.planets[target_lord].rashi_index:
+                signals.append(_make_signal(
+                    f'{src_name}-{planet_name}-conj-{target_name}-7lord',
+                    'chemistry' if planet_name in {'Venus', 'Mars', 'Rahu'} else 'emotional_fit' if planet_name == 'Moon' else 'long_term',
+                    86,
+                    f"{src_name} {planet_name} conjunct {target_name}'s 7th lord",
+                    f"{src_name}'s {planet_name} directly conjoins {target_name}'s 7th lord {target_lord}, which is a much stronger partnership signal than a loose house-distance note."
+                ))
+            target_sign_index = chart_b.planets[target_lord].rashi_index if src_name == name_a else chart_a.planets[target_lord].rashi_index
+            if _planet_aspects_sign(planet_name, p.rashi_index, target_sign_index):
+                signals.append(_make_signal(
+                    f'{src_name}-{planet_name}-aspect-{target_name}-7lord',
+                    'pressure_points' if planet_name in {'Saturn', 'Mars', 'Rahu', 'Ketu'} else 'long_term' if planet_name == 'Jupiter' else 'emotional_fit',
+                    78,
+                    f"{src_name} {planet_name} aspects {target_name}'s 7th lord",
+                    f"{src_name}'s {planet_name} aspects {target_name}'s 7th lord {target_lord}, directly modifying how the other person experiences partnership karma."
+                ))
+
+    # 7th lord condition itself matters
+    for lord, p7, owner_name in [(lord_a, p7a, name_a), (lord_b, p7b, name_b)]:
+        notes = _planet_affliction_notes(chart_a if owner_name == name_a else chart_b, lord)
+        if p7.house in {6, 8, 12}:
+            signals.append(_make_signal(
+                f'{owner_name}-7lord-difficult-house', 'pressure_points', 82,
+                f"{owner_name}'s 7th lord is in a difficult house",
+                f"{owner_name}'s 7th lord {lord} sits in H{p7.house}, so their own partnership system is more effortful before synastry is even considered."
+            ))
+        if any('exalted' in n or 'friend sign' in n for n in notes):
+            signals.append(_make_signal(
+                f'{owner_name}-7lord-strong', 'long_term', 79,
+                f"{owner_name}'s 7th lord is relatively supported",
+                f"{owner_name}'s 7th lord {lord} has supportive condition ({'; '.join(notes)}), which helps the chart sustain partnership better."
+            ))
+        if any('enemy sign' in n or 'combust' in n or 'debilitated' in n for n in notes):
+            signals.append(_make_signal(
+                f'{owner_name}-7lord-afflicted', 'pressure_points', 79,
+                f"{owner_name}'s 7th lord is afflicted",
+                f"{owner_name}'s 7th lord {lord} shows strain ({'; '.join(notes)}), so relationship flow can be pressured from inside the natal chart itself."
+            ))
+
+    return signals
+
+
+def _same_or_trinal(sign_a: str, sign_b: str) -> bool:
+    signs = ['Aries','Taurus','Gemini','Cancer','Leo','Virgo','Libra','Scorpio','Sagittarius','Capricorn','Aquarius','Pisces']
+    ia = signs.index(sign_a)
+    ib = signs.index(sign_b)
+    diff = (ib - ia) % 12
+    return diff in {0, 4, 8}
+
+
+def _build_d9_compatibility(chart_a, chart_b, name_a: str, name_b: str) -> dict:
+    d9a = _d9_support_notes(chart_a)
+    d9b = _d9_support_notes(chart_b)
+    signals = []
+    if _same_or_trinal(d9a['venus_d9'], d9b['venus_d9']):
+        signals.append(_make_signal('d9-venus', 'chemistry', 83, 'D9 Venus harmony', f"D9 Venus placements ({d9a['venus_d9']} and {d9b['venus_d9']}) support a more natural romantic style match."))
+    if _same_or_trinal(d9a['jupiter_d9'], d9b['jupiter_d9']):
+        signals.append(_make_signal('d9-jupiter', 'long_term', 80, 'D9 Jupiter support', f"D9 Jupiter placements ({d9a['jupiter_d9']} and {d9b['jupiter_d9']}) support shared growth, values, and stabilizing grace."))
+    if d9a['seventh_lord_d9'] and d9b['seventh_lord_d9'] and _same_or_trinal(d9a['seventh_lord_d9'], d9b['seventh_lord_d9']):
+        signals.append(_make_signal('d9-7lord', 'long_term', 88, 'D9 7th-lord confirmation', f"The D9 7th-lord placements ({d9a['seventh_lord_d9']} and {d9b['seventh_lord_d9']}) support each other, which is a real Navamsha confirmation for partnership durability."))
+    summary = 'D9 acts here as confirmation, not replacement. It checks whether the D1 relationship promise is supported at a deeper maturity layer.'
+    return {
+        'person_1': d9a,
+        'person_2': d9b,
+        'signals': signals,
+        'summary': summary,
+    }
+
+
+def _categorize_overlay_signal(item: dict) -> dict:
+    planet = item['planet']
+    ref = item['reference']
+    house = item['house']
+    if planet == 'Moon' and ref == 'Moon':
+        category, score = 'emotional_fit', 86 if house in {1, 4, 7} else 74
+    elif planet == 'Venus' and house in {5, 7}:
+        category, score = 'chemistry', 84
+    elif planet == 'Jupiter' and house in {1, 4, 7}:
+        category, score = 'long_term', 80
+    elif planet == 'Saturn' and house in {8, 12}:
+        category, score = 'pressure_points', 80
+    elif planet in {'Mars', 'Rahu'} and house in {7, 8}:
+        category, score = 'chemistry', 77
+    elif house in {8, 12}:
+        category, score = 'pressure_points', 70
+    elif house in {1, 4, 7}:
+        category, score = 'long_term', 68
+    else:
+        category, score = 'chemistry', 64
+    return _make_signal(
+        f"overlay-{item['source']}-{item['planet']}-{item['target']}-{item['reference']}-h{house}",
+        category,
+        score,
+        f"{item['source']} {item['planet']} -> {item['target']} {item['reference']} H{house}",
+        item['note'],
+    )
+
+
+def _dedupe_signals(signals: list[dict]) -> list[dict]:
+    deduped = {}
+    for signal in signals:
+        current = deduped.get(signal['key'])
+        if current is None or signal['score'] > current['score']:
+            deduped[signal['key']] = signal
+    return list(deduped.values())
+
+
+def _build_final_synthesis(signals: list[dict]) -> dict:
+    emotional = _top_signals(signals, 'emotional_fit')
+    chemistry = _top_signals(signals, 'chemistry')
+    long_term = _top_signals(signals, 'long_term')
+    pressure = _top_signals(signals, 'pressure_points')
+
+    def level(items, high=82, mid=70):
+        top = items[0]['score'] if items else 0
+        if top >= high:
+            return 'strong'
+        if top >= mid:
+            return 'moderate'
+        if top > 0:
+            return 'mixed'
+        return 'unclear'
 
     return {
-        'emotional_fit': emotional[:4],
-        'chemistry': chemistry[:4],
-        'long_term': stability[:4],
-        'pressure_points': pressure[:4],
+        'attraction': level(chemistry),
+        'emotional_softness': level(emotional),
+        'long_term_stability': level(long_term),
+        'karmic_pressure': 'high' if (pressure and pressure[0]['score'] >= 80) else 'moderate' if pressure else 'low',
+        'text': (
+            f"Attraction is {level(chemistry)}, emotional softness is {level(emotional)}, "
+            f"long-term stability is {level(long_term)}, and karmic/pressure factors are "
+            f"{'high' if (pressure and pressure[0]['score'] >= 80) else 'moderate' if pressure else 'low'}."
+        )
     }
 
 
@@ -447,7 +619,41 @@ def calculate_synastry(chart_a, chart_b) -> dict:
     natal_a = calculate_natal_relationship_capacity(chart_a)
     natal_b = calculate_natal_relationship_capacity(chart_b)
     partnership_axis = _partnership_axis_notes(chart_a, chart_b, chart_a.name, chart_b.name)
-    summary = _summary_bucket(overlays, aspects, conjunctions, manglik_a, manglik_b)
+    seventh_axis_signals = _build_seventh_axis_analysis(chart_a, chart_b, chart_a.name, chart_b.name)
+    d9_module = _build_d9_compatibility(chart_a, chart_b, chart_a.name, chart_b.name)
+
+    signals = [_categorize_overlay_signal(item) for item in overlays]
+    for item in conjunctions:
+        category = 'chemistry' if any(p in {item['planet_1'], item['planet_2']} for p in ['Venus', 'Mars', 'Rahu']) else 'emotional_fit' if 'Moon' in {item['planet_1'], item['planet_2']} else 'long_term'
+        signals.append(_make_signal(
+            f"conj-{item['planet_1']}-{item['planet_2']}-{item['sign']}", category, 76,
+            f"{item['planet_1']} + {item['planet_2']} conjunction",
+            item['note'],
+        ))
+    for item in aspects:
+        category = 'pressure_points' if item['from'] in {'Saturn', 'Mars', 'Rahu', 'Ketu'} else 'long_term' if item['from'] == 'Jupiter' else 'emotional_fit'
+        signals.append(_make_signal(
+            f"aspect-{item['from']}-{item['to']}-{item['distance']}", category, 68,
+            f"{item['from']} aspects {item['to']}",
+            item['note'],
+        ))
+    signals.extend(seventh_axis_signals)
+    signals.extend(d9_module['signals'])
+    if manglik_a['severity'] != 'none' or manglik_b['severity'] != 'none':
+        signals.append(_make_signal(
+            'manglik-interaction', 'pressure_points', 74,
+            'Manglik interaction',
+            f"Manglik interaction: {chart_a.name} is {manglik_a['severity']} and {chart_b.name} is {manglik_b['severity']}. Similar Mars signatures can normalize heat, while mismatched intensity can create conflict style differences.",
+        ))
+
+    signals = _dedupe_signals(signals)
+    summary = {
+        'emotional_fit': _top_signals(signals, 'emotional_fit'),
+        'chemistry': _top_signals(signals, 'chemistry'),
+        'long_term': _top_signals(signals, 'long_term'),
+        'pressure_points': _top_signals(signals, 'pressure_points'),
+    }
+    final_synthesis = _build_final_synthesis(signals)
 
     return {
         'natal_capacity': {
@@ -463,5 +669,9 @@ def calculate_synastry(chart_a, chart_b) -> dict:
             'compatibility_note': 'Manglik is treated here as heat/intensity style, not as an automatic relationship failure.',
         },
         'partnership_axis': partnership_axis,
+        'seventh_axis': _top_signals(seventh_axis_signals, 'long_term', 3) + _top_signals(seventh_axis_signals, 'pressure_points', 3) + _top_signals(seventh_axis_signals, 'chemistry', 3) + _top_signals(seventh_axis_signals, 'emotional_fit', 3),
+        'd9_module': d9_module,
         'summary': summary,
+        'final_synthesis': final_synthesis,
+        'technical_details': _sort_signals(signals),
     }

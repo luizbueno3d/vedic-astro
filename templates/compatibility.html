@@ -2,7 +2,7 @@
 {% block title %}Compatibility — Vedic Astro{% endblock %}
 
 {% block content %}
-<h2>Compatibility — Guna Milan</h2>
+<h2>Compatibility — Guna Milan + Synastry</h2>
 <p class="subtitle">Traditional Moon matching plus broader Vedic synastry</p>
 
 <form method="get" class="card" style="margin-bottom:20px">
@@ -32,7 +32,7 @@
     <h3>How To Read This</h3>
     <p style="margin:0; line-height:1.7">
         This page now has <strong>two layers</strong>. First comes <strong>Guna Milan</strong>, the traditional Moon-based marriage matching system.
-        After that comes <strong>Synastry</strong>, which compares how each person's planets activate the other's Ascendant, Moon, Venus, and partnership axis.
+        After that comes <strong>Synastry</strong>, which compares how each person's planets activate the other's Ascendant, Moon, 7th house, 7th lord, and deeper relationship structure.
         So think of Guna Milan as the first filter, and Synastry as the real relationship dynamics layer.
     </p>
 </div>
@@ -140,6 +140,18 @@
 
 {% if synastry %}
 <div class="card" style="margin-top:20px; border-color:var(--blue)">
+    <h3>Synastry Snapshot</h3>
+    <p style="margin:0 0 10px; line-height:1.7">This is the distilled relationship picture after deduplicating the strongest signals instead of dumping every hit equally.</p>
+    <div style="line-height:1.8">
+        <div><strong>Attraction:</strong> {{ synastry.final_synthesis.attraction }}</div>
+        <div><strong>Emotional softness:</strong> {{ synastry.final_synthesis.emotional_softness }}</div>
+        <div><strong>Long-term stability:</strong> {{ synastry.final_synthesis.long_term_stability }}</div>
+        <div><strong>Karmic / pressure factors:</strong> {{ synastry.final_synthesis.karmic_pressure }}</div>
+    </div>
+    <div style="margin-top:10px; color:var(--muted); line-height:1.7">{{ synastry.final_synthesis.text }}</div>
+</div>
+
+<div class="card" style="margin-top:20px; border-color:var(--blue)">
     <h3>Synastry Summary</h3>
     <p style="margin:0 0 12px; line-height:1.7">
         Synastry means we place one chart against the other and see how the planets activate each person's emotional life, attraction style, and partnership axis.
@@ -149,25 +161,25 @@
         <div>
             <h4 style="color:var(--accent); margin-bottom:8px">Emotional Fit</h4>
             {% for item in synastry.summary.emotional_fit %}
-            <div style="margin-bottom:8px; line-height:1.6">{{ item }}</div>
+            <div style="margin-bottom:8px; line-height:1.6"><strong>{{ item.title }}</strong><br>{{ item.detail }}</div>
             {% endfor %}
         </div>
         <div>
             <h4 style="color:var(--accent); margin-bottom:8px">Chemistry</h4>
             {% for item in synastry.summary.chemistry %}
-            <div style="margin-bottom:8px; line-height:1.6">{{ item }}</div>
+            <div style="margin-bottom:8px; line-height:1.6"><strong>{{ item.title }}</strong><br>{{ item.detail }}</div>
             {% endfor %}
         </div>
         <div>
             <h4 style="color:var(--accent); margin-bottom:8px">Long-Term Potential</h4>
             {% for item in synastry.summary.long_term %}
-            <div style="margin-bottom:8px; line-height:1.6">{{ item }}</div>
+            <div style="margin-bottom:8px; line-height:1.6"><strong>{{ item.title }}</strong><br>{{ item.detail }}</div>
             {% endfor %}
         </div>
         <div>
             <h4 style="color:var(--accent2); margin-bottom:8px">Pressure Points</h4>
             {% for item in synastry.summary.pressure_points %}
-            <div style="margin-bottom:8px; line-height:1.6">{{ item }}</div>
+            <div style="margin-bottom:8px; line-height:1.6"><strong>{{ item.title }}</strong><br>{{ item.detail }}</div>
             {% endfor %}
         </div>
     </div>
@@ -175,27 +187,43 @@
 
 <div class="grid grid-2" style="margin-top:20px">
     <div class="card">
-        <h3>Planet Overlays</h3>
+        <h3>7th House / 7th Lord Focus</h3>
         <p style="color:var(--muted); margin:0 0 12px; line-height:1.7">
-            These show where one person's planets land in the other person's chart - especially the 1st, 5th, 7th, 8th, and 12th houses.
+            This is the real partnership skeleton: how the two 7th houses and 7th lords are directly activated, contacted, supported, or pressured.
         </p>
-        {% for item in synastry.overlays[:14] %}
-        <div style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid rgba(255,255,255,0.06)">
-            <strong>{{ item.source }} {{ item.planet }}</strong> -> {{ item.target }} {{ item.reference }} H{{ item.house }}
-            <div style="color:var(--muted); line-height:1.6; margin-top:4px">{{ item.note }}</div>
+        {% for item in synastry.seventh_axis[:8] %}
+        <div style="margin-bottom:10px; line-height:1.6">
+            <strong>{{ item.title }}</strong><br>{{ item.detail }}
         </div>
         {% endfor %}
     </div>
 
     <div class="card">
-        <h3>Partnership Axis + Manglik</h3>
+        <h3>D9 Relationship Confirmation</h3>
         <p style="color:var(--muted); margin:0 0 12px; line-height:1.7">
-            Here we check how the 7th house, 7th lord, Moon, Venus, and lagna lords interact, plus how Mars intensity behaves in relationship matching.
+            D9 is not a side note here. It checks whether the D1 relationship promise is supported at the deeper maturity layer of marriage and long-term bonding.
         </p>
-        {% for item in synastry.partnership_axis[:12] %}
-        <div style="margin-bottom:10px; line-height:1.6">
-            <strong>{{ item.title }}</strong><br>{{ item.detail }}
-        </div>
+        <div style="margin-bottom:10px; line-height:1.6">{{ synastry.d9_module.summary }}</div>
+        <div style="margin-bottom:10px; line-height:1.6"><strong>{{ person_1.name }}</strong>: Venus D9 {{ synastry.d9_module.person_1.venus_d9 }}, Jupiter D9 {{ synastry.d9_module.person_1.jupiter_d9 }}, 7th lord D9 {{ synastry.d9_module.person_1.seventh_lord_d9 }}</div>
+        <div style="margin-bottom:10px; line-height:1.6"><strong>{{ person_2.name }}</strong>: Venus D9 {{ synastry.d9_module.person_2.venus_d9 }}, Jupiter D9 {{ synastry.d9_module.person_2.jupiter_d9 }}, 7th lord D9 {{ synastry.d9_module.person_2.seventh_lord_d9 }}</div>
+        {% for item in synastry.d9_module.signals %}
+        <div style="margin-bottom:10px; line-height:1.6"><strong>{{ item.title }}</strong><br>{{ item.detail }}</div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="grid grid-2" style="margin-top:20px">
+    <div class="card">
+        <h3>Main Strengths</h3>
+        {% for item in (synastry.summary.emotional_fit[:2] + synastry.summary.chemistry[:2] + synastry.summary.long_term[:2])[:5] %}
+        <div style="margin-bottom:10px; line-height:1.6"><strong>{{ item.title }}</strong><br>{{ item.detail }}</div>
+        {% endfor %}
+    </div>
+
+    <div class="card">
+        <h3>Main Challenges</h3>
+        {% for item in synastry.summary.pressure_points[:5] %}
+        <div style="margin-bottom:10px; line-height:1.6"><strong>{{ item.title }}</strong><br>{{ item.detail }}</div>
         {% endfor %}
         <div style="margin-top:14px; padding:12px; background:rgba(255,255,255,0.03); border-radius:8px">
             <strong>Manglik Interaction</strong>
@@ -206,31 +234,31 @@
     </div>
 </div>
 
-<div class="grid grid-2" style="margin-top:20px">
-    <div class="card">
-        <h3>Cross Conjunctions</h3>
-        {% if synastry.cross_conjunctions %}
-            {% for item in synastry.cross_conjunctions %}
+<details class="card" style="margin-top:20px">
+    <summary style="cursor:pointer; font-weight:600; color:var(--accent)">Technical Details</summary>
+    <div style="margin-top:14px" class="grid grid-2">
+        <div>
+            <h4 style="margin-bottom:10px; color:var(--accent)">Scored Signals</h4>
+            {% for item in synastry.technical_details[:20] %}
             <div style="margin-bottom:10px; line-height:1.6">
-                <strong>{{ item.planet_1 }} + {{ item.planet_2 }}</strong> in {{ item.sign }} (orb {{ item.orb }}°)<br>
-                <span style="color:var(--muted)">{{ item.note }}</span>
+                <strong>{{ item.title }}</strong> ({{ item.category }}, {{ item.score }})<br>{{ item.detail }}
             </div>
             {% endfor %}
-        {% else %}
-            <div style="color:var(--muted)">No major cross-chart conjunctions found in the key relationship planets.</div>
-        {% endif %}
-    </div>
-
-    <div class="card">
-        <h3>Cross Aspects</h3>
-        {% for item in synastry.cross_aspects[:12] %}
-        <div style="margin-bottom:10px; line-height:1.6">
-            <strong>{{ item.from }}</strong> in {{ item.from_sign }} aspects <strong>{{ item.to }}</strong> in {{ item.to_sign }}<br>
-            <span style="color:var(--muted)">{{ item.note }}</span>
         </div>
-        {% endfor %}
+        <div>
+            <h4 style="margin-bottom:10px; color:var(--accent)">Raw Contacts</h4>
+            {% for item in synastry.cross_conjunctions[:6] %}
+            <div style="margin-bottom:10px; line-height:1.6"><strong>{{ item.planet_1 }} + {{ item.planet_2 }}</strong> in {{ item.sign }} (orb {{ item.orb }}°)<br>{{ item.note }}</div>
+            {% endfor %}
+            {% for item in synastry.cross_aspects[:8] %}
+            <div style="margin-bottom:10px; line-height:1.6"><strong>{{ item.from }}</strong> in {{ item.from_sign }} aspects <strong>{{ item.to }}</strong> in {{ item.to_sign }}<br>{{ item.note }}</div>
+            {% endfor %}
+            {% for item in synastry.overlays[:10] %}
+            <div style="margin-bottom:10px; line-height:1.6"><strong>{{ item.source }} {{ item.planet }}</strong> -> {{ item.target }} {{ item.reference }} H{{ item.house }}<br>{{ item.note }}</div>
+            {% endfor %}
+        </div>
     </div>
-</div>
+</details>
 {% endif %}
 {% endif %}
 {% endblock %}
