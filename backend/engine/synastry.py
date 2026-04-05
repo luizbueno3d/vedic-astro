@@ -5,6 +5,8 @@ how each chart activates the other's ascendant, Moon, Venus, and partnership axi
 """
 
 from .aspects import SPECIAL_ASPECTS
+from .charts import d9_navamsha
+from .shadbala import DEBILITATION, EXALTATION, get_combustion_status, get_sign_relationship
 from .yogas import calculate_house_rulerships
 
 
@@ -162,6 +164,152 @@ def _seventh_lord_name(chart) -> str:
     return ''
 
 
+def _planet_affliction_notes(chart, planet_name: str) -> list[str]:
+    planet = chart.planets[planet_name]
+    notes = []
+    sun_longitude = chart.planets['Sun'].longitude
+    relationship = get_sign_relationship(planet_name, planet.rashi_index)
+    combustion = get_combustion_status(planet_name, planet.longitude, sun_longitude, planet.retrograde)
+
+    if planet_name in DEBILITATION and planet.rashi_index == DEBILITATION[planet_name]:
+        notes.append(f'{planet_name} is debilitated in {planet.rashi}.')
+    elif planet_name in EXALTATION and planet.rashi_index == EXALTATION[planet_name]:
+        notes.append(f'{planet_name} is exalted in {planet.rashi}.')
+    elif relationship == 'enemy':
+        notes.append(f'{planet_name} is in an enemy sign ({planet.rashi}).')
+    elif relationship == 'friend':
+        notes.append(f'{planet_name} is in a friend sign ({planet.rashi}).')
+
+    if combustion == 'combust':
+        notes.append(f'{planet_name} is combust, which can weaken clean expression.')
+
+    if planet.retrograde:
+        notes.append(f'{planet_name} is retrograde, so its relationship themes can work in an internalized or delayed way.')
+
+    return notes
+
+
+def _d9_support_notes(chart) -> dict:
+    venus_d9 = d9_navamsha(chart.planets['Venus'].longitude)
+    jupiter_d9 = d9_navamsha(chart.planets['Jupiter'].longitude)
+    lord_7 = _seventh_lord_name(chart)
+    lord_7_d9 = d9_navamsha(chart.planets[lord_7].longitude) if lord_7 else ''
+
+    notes = []
+    strong_signs = {'Taurus', 'Libra', 'Pisces', 'Sagittarius', 'Cancer'}
+    if venus_d9 in strong_signs:
+        notes.append(f'Venus is in {venus_d9} in D9, giving decent relationship support in the Navamsha.')
+    else:
+        notes.append(f'Venus is in {venus_d9} in D9, so D9 support for relationship sweetness needs more nuance.')
+
+    if jupiter_d9 in strong_signs:
+        notes.append(f'Jupiter is in {jupiter_d9} in D9, helping wisdom and stabilizing grace in partnership matters.')
+    else:
+        notes.append(f'Jupiter is in {jupiter_d9} in D9, so long-term guidance in relationship may need conscious development.')
+
+    if lord_7 and lord_7_d9:
+        notes.append(f'The 7th lord {lord_7} goes to {lord_7_d9} in D9, which is the key Navamsha checkpoint for marriage promise.')
+
+    return {
+        'venus_d9': venus_d9,
+        'jupiter_d9': jupiter_d9,
+        'seventh_lord_d9': lord_7_d9,
+        'notes': notes,
+    }
+
+
+def calculate_natal_relationship_capacity(chart) -> dict:
+    """Judge each chart's own relationship capacity before synastry."""
+    lord_7 = _seventh_lord_name(chart)
+    p7 = chart.planets[lord_7] if lord_7 else None
+    venus = chart.planets['Venus']
+    jupiter = chart.planets['Jupiter']
+    house7_occupants = [name for name, planet in chart.planets.items() if planet.house == 7]
+    d9_support = _d9_support_notes(chart)
+
+    strengths = []
+    cautions = []
+    score = 50
+
+    if p7:
+        strengths.append(f'7th lord is {lord_7} in H{p7.house} ({p7.rashi}).')
+        if p7.house in {1, 4, 5, 7, 9, 10, 11}:
+            score += 10
+            strengths.append(f'{lord_7} sits in a more supportive house for partnership expression.')
+        elif p7.house in {6, 8, 12}:
+            score -= 10
+            cautions.append(f'{lord_7} sits in H{p7.house}, which can complicate partnership flow.')
+        for note in _planet_affliction_notes(chart, lord_7):
+            if 'exalted' in note or 'friend sign' in note:
+                score += 6
+                strengths.append(note)
+            else:
+                score -= 6
+                cautions.append(note)
+
+    strengths.append(f'Venus is in H{venus.house} ({venus.rashi}) and shows how affection and attraction are expressed.')
+    for note in _planet_affliction_notes(chart, 'Venus'):
+        if 'exalted' in note or 'friend sign' in note:
+            score += 5
+            strengths.append(note)
+        else:
+            score -= 5
+            cautions.append(note)
+
+    strengths.append(f'Jupiter is in H{jupiter.house} ({jupiter.rashi}) and shows grace, ethics, and stabilizing capacity in relationship matters.')
+    for note in _planet_affliction_notes(chart, 'Jupiter'):
+        if 'exalted' in note or 'friend sign' in note:
+            score += 4
+            strengths.append(note)
+        else:
+            score -= 4
+            cautions.append(note)
+
+    if house7_occupants:
+        strengths.append(f'Planets in the 7th house: {", ".join(house7_occupants)}.')
+        for occupant in house7_occupants:
+            if occupant in BENEFICS:
+                score += 4
+            elif occupant in {'Saturn', 'Mars', 'Rahu', 'Ketu'}:
+                score -= 4
+                cautions.append(f'{occupant} in the 7th house adds intensity, delay, or karmic pressure to relationship patterns.')
+    else:
+        strengths.append('The 7th house is empty, so partnership depends more strongly on the 7th lord and Venus condition.')
+
+    for note in d9_support['notes']:
+        if 'decent relationship support' in note or 'helping wisdom' in note:
+            score += 5
+            strengths.append(note)
+        else:
+            cautions.append(note)
+
+    score = max(0, min(100, score))
+    if score >= 75:
+        verdict = 'Strong natal relationship capacity'
+    elif score >= 60:
+        verdict = 'Good but mixed natal relationship capacity'
+    elif score >= 45:
+        verdict = 'Moderate natal relationship capacity with clear lessons'
+    else:
+        verdict = 'Relationship capacity needs conscious work and maturity'
+
+    summary = (
+        f"This chart's relationship foundation is judged from the 7th house, the 7th lord {lord_7}, Venus, Jupiter, and D9 support. "
+        f"The current reading sees it as: {verdict.lower()}."
+    )
+
+    return {
+        'score': score,
+        'verdict': verdict,
+        'summary': summary,
+        'seventh_lord': lord_7,
+        'seventh_house_occupants': house7_occupants,
+        'strengths': strengths[:8],
+        'cautions': cautions[:8],
+        'd9_support': d9_support,
+    }
+
+
 def _overlay_bundle(source_chart, target_chart, source_name: str, target_name: str) -> list[dict]:
     target_refs = {
         'Asc': target_chart.ascendant.rashi_index,
@@ -253,10 +401,16 @@ def calculate_synastry(chart_a, chart_b) -> dict:
     conjunctions = _cross_conjunctions(chart_a, chart_b)
     manglik_a = _manglik_report(chart_a)
     manglik_b = _manglik_report(chart_b)
+    natal_a = calculate_natal_relationship_capacity(chart_a)
+    natal_b = calculate_natal_relationship_capacity(chart_b)
     partnership_axis = _partnership_axis_notes(chart_a, chart_b, chart_a.name, chart_b.name)
     summary = _summary_bucket(overlays, aspects, conjunctions, manglik_a, manglik_b)
 
     return {
+        'natal_capacity': {
+            'person_1': natal_a,
+            'person_2': natal_b,
+        },
         'overlays': overlays,
         'cross_aspects': aspects,
         'cross_conjunctions': conjunctions,

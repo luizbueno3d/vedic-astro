@@ -37,6 +37,40 @@
     </p>
 </div>
 
+{% if synastry and synastry.natal_capacity %}
+<div class="grid grid-2" style="margin-top:20px">
+    <div class="card">
+        <h3>{{ person_1.name }} — Natal Relationship Capacity</h3>
+        <div style="font-size:2em; font-weight:bold; color:{% if synastry.natal_capacity.person_1.score >= 75 %}var(--green){% elif synastry.natal_capacity.person_1.score >= 60 %}var(--accent){% else %}var(--accent2){% endif %}">{{ synastry.natal_capacity.person_1.score }}/100</div>
+        <div style="margin:6px 0 10px">{{ synastry.natal_capacity.person_1.verdict }}</div>
+        <div style="color:var(--muted); line-height:1.7; margin-bottom:12px">{{ synastry.natal_capacity.person_1.summary }}</div>
+        <div style="margin-bottom:10px"><strong>Strengths</strong></div>
+        {% for item in synastry.natal_capacity.person_1.strengths %}
+        <div style="margin-bottom:8px; line-height:1.6">{{ item }}</div>
+        {% endfor %}
+        <div style="margin:12px 0 10px"><strong>Cautions</strong></div>
+        {% for item in synastry.natal_capacity.person_1.cautions %}
+        <div style="margin-bottom:8px; line-height:1.6; color:var(--muted)">{{ item }}</div>
+        {% endfor %}
+    </div>
+
+    <div class="card">
+        <h3>{{ person_2.name }} — Natal Relationship Capacity</h3>
+        <div style="font-size:2em; font-weight:bold; color:{% if synastry.natal_capacity.person_2.score >= 75 %}var(--green){% elif synastry.natal_capacity.person_2.score >= 60 %}var(--accent){% else %}var(--accent2){% endif %}">{{ synastry.natal_capacity.person_2.score }}/100</div>
+        <div style="margin:6px 0 10px">{{ synastry.natal_capacity.person_2.verdict }}</div>
+        <div style="color:var(--muted); line-height:1.7; margin-bottom:12px">{{ synastry.natal_capacity.person_2.summary }}</div>
+        <div style="margin-bottom:10px"><strong>Strengths</strong></div>
+        {% for item in synastry.natal_capacity.person_2.strengths %}
+        <div style="margin-bottom:8px; line-height:1.6">{{ item }}</div>
+        {% endfor %}
+        <div style="margin:12px 0 10px"><strong>Cautions</strong></div>
+        {% for item in synastry.natal_capacity.person_2.cautions %}
+        <div style="margin-bottom:8px; line-height:1.6; color:var(--muted)">{{ item }}</div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
 <!-- Profile cards -->
 <div class="grid grid-2">
     <div class="card">
