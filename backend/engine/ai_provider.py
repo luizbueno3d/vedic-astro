@@ -2,6 +2,7 @@
 
 Providers:
 - OpenAI (GPT-4o, GPT-4o-mini, etc.)
+- ChatGPT OAuth Proxy (local community proxy using ChatGPT/Codex auth)
 - Anthropic (Claude Sonnet, Haiku, etc.)
 - MiniMax (M2.7)
 - Groq (Llama 3, Mixtral — free tier)
@@ -39,6 +40,16 @@ DEFAULT_PROVIDERS = {
         api_key='',
         model='gpt-4o-mini',
         base_url='https://api.openai.com/v1',
+        enabled=False,
+        max_tokens=8000,
+        temperature=0.7,
+    ),
+    'openai_oauth': AIProvider(
+        name='openai_oauth',
+        label='ChatGPT OAuth (Local)',
+        api_key='',
+        model='gpt-5.4',
+        base_url='http://127.0.0.1:10531/v1',
         enabled=False,
         max_tokens=8000,
         temperature=0.7,
@@ -98,6 +109,7 @@ DEFAULT_PROVIDERS = {
 # Models available per provider
 PROVIDER_MODELS = {
     'openai': ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo'],
+    'openai_oauth': ['gpt-5.4', 'gpt-5.4-mini', 'gpt-5.3-codex', 'gpt-4o', 'gpt-4o-mini'],
     'anthropic': ['claude-sonnet-4-20250514', 'claude-haiku-3.5-20241022', 'claude-opus-4-20250514'],
     'minimax': ['MiniMax-M2.5', 'MiniMax-M2.7', 'abab6.5s-chat'],
     'groq': ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768', 'gemma2-9b-it'],
@@ -119,7 +131,7 @@ def load_config() -> dict:
         with open(CONFIG_PATH, 'r') as f:
             data = json.load(f)
             # Convert dicts back to AIProvider objects
-            result = {}
+            result = {k: v for k, v in DEFAULT_PROVIDERS.items()}
             for k, v in data.items():
                 if isinstance(v, dict):
                     result[k] = AIProvider(**v)
@@ -191,7 +203,7 @@ def generate_reading(system_prompt: str, user_prompt: str) -> str:
     try:
         if provider.name == 'anthropic':
             return _call_anthropic(provider, system_prompt, user_prompt)
-        elif provider.name in ('openai', 'groq', 'openrouter', 'ollama', 'minimax'):
+        elif provider.name in ('openai', 'openai_oauth', 'groq', 'openrouter', 'ollama', 'minimax'):
             return _call_openai_compatible(provider, system_prompt, user_prompt)
         else:
             return _call_openai_compatible(provider, system_prompt, user_prompt)
@@ -304,7 +316,7 @@ def test_provider(name: str) -> dict:
         return {'success': False, 'message': f'Provider {name} not found'}
 
     provider = config[name]
-    if not provider.api_key and name != 'ollama':
+    if not provider.api_key and name not in ('ollama', 'openai_oauth'):
         return {'success': False, 'message': 'No API key set'}
 
     try:

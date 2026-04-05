@@ -36,6 +36,7 @@
                 {% if provider_id == 'groq' %}Free tier available · Fast inference
                 {% elif provider_id == 'ollama' %}Local · No API key needed
                 {% elif provider_id == 'openrouter' %}100+ models · Pay per use
+                {% elif provider_id == 'openai_oauth' %}Local proxy · Uses ChatGPT/Codex login
                 {% elif provider_id == 'openai' %}GPT-4o, GPT-4o-mini
                 {% elif provider_id == 'anthropic' %}Claude Sonnet, Haiku
                 {% elif provider_id == 'minimax' %}M2.5, M2.7
@@ -76,6 +77,8 @@
         </div>
     </div>
 
+    <div id="providerHint" style="margin-top:12px; color:var(--muted); font-size:0.85em; line-height:1.7"></div>
+
     <div style="margin-top:16px; display:flex; gap:12px">
         <button onclick="saveProvider()" style="background:var(--accent); color:#111; border:none; padding:10px 20px; border-radius:4px; cursor:pointer; font-weight:600">
             Save & Enable
@@ -95,7 +98,16 @@
         <tr><td><strong>Groq</strong></td><td>llama-3.3-70b, llama-3.1-8b, gemma2-9b</td><td>groq.com</td></tr>
         <tr><td><strong>Ollama</strong></td><td>Any local model (llama3.1, mistral, etc.)</td><td>ollama.ai (local install)</td></tr>
         <tr><td><strong>OpenRouter</strong></td><td>Some free models, most very cheap</td><td>openrouter.ai</td></tr>
+        <tr><td><strong>ChatGPT OAuth (Local)</strong></td><td>Uses local proxy and your ChatGPT/Codex login</td><td>Local only</td></tr>
     </table>
+</div>
+
+<div class="card" style="margin-bottom:20px; border-color:var(--blue)">
+    <h3>Local OAuth Proxy</h3>
+    <p style="margin:0; line-height:1.7">
+        <strong>ChatGPT OAuth (Local)</strong> is an experimental local-only option. It works through a community proxy running on your Mac at <code>http://127.0.0.1:10531/v1</code>.
+        It is useful for your local machine, but it will not work on Railway or for other devices unless that same local proxy is running on the same computer as the app.
+    </p>
 </div>
 
 <!-- Generate Reading -->
@@ -159,6 +171,7 @@ function selectProvider(id) {
 function loadProviderSettings(id) {
     const models = PROVIDER_MODELS[id] || [];
     const select = document.getElementById('modelSelect');
+    const hint = document.getElementById('providerHint');
     select.innerHTML = '';
     models.forEach(m => {
         const opt = document.createElement('option');
@@ -174,6 +187,16 @@ function loadProviderSettings(id) {
         if (p.model && models.includes(p.model)) {
             select.value = p.model;
         }
+    }
+
+    if (id === 'openai_oauth') {
+        hint.innerHTML = 'No API key needed when the local OAuth proxy is running. Start it with <code>npx openai-oauth --port 10531</code>. This option is local-only.';
+    } else if (id === 'ollama') {
+        hint.innerHTML = 'No API key needed for local Ollama. Make sure the Ollama server is running on this machine.';
+    } else if (id === 'openrouter') {
+        hint.innerHTML = 'OpenRouter gives access to many models. Free models may be rate-limited for long readings.';
+    } else {
+        hint.textContent = '';
     }
 }
 
