@@ -164,6 +164,14 @@ def _seventh_lord_name(chart) -> str:
     return ''
 
 
+def _lagna_lord_name(chart) -> str:
+    rulerships = calculate_house_rulerships(chart.ascendant.rashi_index)
+    for planet, houses in rulerships.items():
+        if 1 in houses:
+            return planet
+    return ''
+
+
 def _planet_affliction_notes(chart, planet_name: str) -> list[str]:
     planet = chart.planets[planet_name]
     notes = []
@@ -339,18 +347,53 @@ def _partnership_axis_notes(chart_a, chart_b, name_a: str, name_b: str) -> list[
     notes = []
     lord_b = _seventh_lord_name(chart_b)
     lord_a = _seventh_lord_name(chart_a)
+    lagnesh_a = _lagna_lord_name(chart_a)
+    lagnesh_b = _lagna_lord_name(chart_b)
     if lord_b:
         a_venus_to_b_7th_lord = _overlay_house(chart_a.planets['Venus'].rashi_index, chart_b.planets[lord_b].rashi_index)
+        a_moon_to_b_7th_lord = _overlay_house(chart_a.planets['Moon'].rashi_index, chart_b.planets[lord_b].rashi_index)
         notes.append({
             'title': f'{name_a} Venus to {name_b} 7th lord',
             'detail': f"{name_a}'s Venus falls {a_venus_to_b_7th_lord} houses from {name_b}'s 7th lord {lord_b}, linking attraction with partnership expectation.",
         })
+        notes.append({
+            'title': f'{name_a} Moon to {name_b} 7th lord',
+            'detail': f"{name_a}'s Moon falls {a_moon_to_b_7th_lord} houses from {name_b}'s 7th lord {lord_b}, showing how emotional needs directly touch {name_b}'s marriage axis.",
+        })
     if lord_a:
         b_moon_to_a_7th_lord = _overlay_house(chart_b.planets['Moon'].rashi_index, chart_a.planets[lord_a].rashi_index)
+        b_venus_to_a_7th_lord = _overlay_house(chart_b.planets['Venus'].rashi_index, chart_a.planets[lord_a].rashi_index)
         notes.append({
             'title': f'{name_b} Moon to {name_a} 7th lord',
             'detail': f"{name_b}'s Moon falls {b_moon_to_a_7th_lord} houses from {name_a}'s 7th lord {lord_a}, showing how emotional needs touch the partnership axis.",
         })
+        notes.append({
+            'title': f'{name_b} Venus to {name_a} 7th lord',
+            'detail': f"{name_b}'s Venus falls {b_venus_to_a_7th_lord} houses from {name_a}'s 7th lord {lord_a}, showing how attraction and affection interact with {name_a}'s marriage pattern.",
+        })
+
+    if lagnesh_a and lagnesh_b:
+        distance = _overlay_house(chart_a.planets[lagnesh_a].rashi_index, chart_b.planets[lagnesh_b].rashi_index)
+        notes.append({
+            'title': f'{name_a} lagna lord to {name_b} lagna lord',
+            'detail': f"{lagnesh_a} and {lagnesh_b} show how each person operates in life. Their house distance is {distance}, which helps describe whether identity styles cooperate, complement, or challenge each other.",
+        })
+    
+    seventh_house_a = chart_a.ascendant.rashi_index + 6
+    seventh_house_b = chart_b.ascendant.rashi_index + 6
+    for planet_name in ['Moon', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Rahu', 'Ketu']:
+        a_to_b_7th = _overlay_house(chart_a.planets[planet_name].rashi_index, seventh_house_b % 12)
+        if a_to_b_7th in {1, 5, 7, 8, 12}:
+            notes.append({
+                'title': f'{name_a} {planet_name} to {name_b} 7th house',
+                'detail': f"{name_a}'s {planet_name} falls in H{a_to_b_7th} from {name_b}'s 7th house, so {_tone_phrase(planet_name)} directly colors {name_b}'s partnership field.",
+            })
+        b_to_a_7th = _overlay_house(chart_b.planets[planet_name].rashi_index, seventh_house_a % 12)
+        if b_to_a_7th in {1, 5, 7, 8, 12}:
+            notes.append({
+                'title': f'{name_b} {planet_name} to {name_a} 7th house',
+                'detail': f"{name_b}'s {planet_name} falls in H{b_to_a_7th} from {name_a}'s 7th house, so {_tone_phrase(planet_name)} directly colors {name_a}'s partnership field.",
+            })
     return notes
 
 

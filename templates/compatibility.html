@@ -190,9 +190,9 @@
     <div class="card">
         <h3>Partnership Axis + Manglik</h3>
         <p style="color:var(--muted); margin:0 0 12px; line-height:1.7">
-            Here we check how Venus, Moon, and the 7th-house axis interact, plus how Mars intensity behaves in relationship matching.
+            Here we check how the 7th house, 7th lord, Moon, Venus, and lagna lords interact, plus how Mars intensity behaves in relationship matching.
         </p>
-        {% for item in synastry.partnership_axis %}
+        {% for item in synastry.partnership_axis[:12] %}
         <div style="margin-bottom:10px; line-height:1.6">
             <strong>{{ item.title }}</strong><br>{{ item.detail }}
         </div>
