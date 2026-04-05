@@ -118,14 +118,14 @@
                 {{ koota.score }}
             </td>
             <td>/ {{ koota.max }}</td>
-            <td style="color:var(--muted)">{{ koota.detail }}</td>
+            <td style="color:var(--muted)">{{ koota.detail }} - {{ guna_milan.explanations[koota_name] }}</td>
         </tr>
         {% endfor %}
         <tr style="border-top:2px solid var(--accent)">
             <td><strong>TOTAL</strong></td>
             <td style="font-weight:bold; font-size:1.1em">{{ guna_milan.total }}</td>
             <td>/ {{ guna_milan.max }}</td>
-            <td><strong>{{ guna_milan.verdict }}</strong></td>
+            <td><strong>{{ guna_milan.verdict }}</strong> - {{ guna_milan.explanations['TOTAL'] }}</td>
         </tr>
     </table>
 </div>

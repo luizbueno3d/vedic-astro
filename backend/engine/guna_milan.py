@@ -1,5 +1,17 @@
 """Guna Milan — Ashtakoota compatibility (36-point system)."""
 
+KOOTA_EXPLANATIONS = {
+    'Varna': 'Varna is the ego and spiritual compatibility factor. It shows whether values, refinement, and role expectations sit comfortably together.',
+    'Vashya': 'Vashya shows mutual influence, responsiveness, and how naturally one adapts to the other.',
+    'Tara': 'Tara reflects well-being, support, and whether the connection tends to protect or strain the flow of life.',
+    'Yoni': 'Yoni relates to instinctive chemistry, attraction style, intimacy, and animal-level compatibility.',
+    'Maitri': 'Maitri shows mental friendship and how naturally the two Moon-sign lords cooperate.',
+    'Gana': 'Gana reflects temperament and behavioral style - whether both people approach life with similar emotional nature.',
+    'Bhakoot': 'Bhakoot shows how the Moon signs relate by distance, especially for emotional harmony, prosperity, and domestic flow.',
+    'Nadi': 'Nadi is traditionally linked to health, vitality, and biological compatibility, especially in marriage matching.',
+    'TOTAL': 'The total score is the traditional Moon-based matching result. It is useful as a first filter, but not the final word on compatibility.',
+}
+
 # Varna (Ego) — 1 point max
 VARNA = {0: 'Brahmin', 1: 'Kshatriya', 2: 'Vaishya', 3: 'Shudra'}
 VARNA_ORDER = {'Brahmin': 3, 'Kshatriya': 2, 'Vaishya': 1, 'Shudra': 0}
@@ -209,4 +221,5 @@ def calculate_guna_milan(moon_1: int, moon_2: int) -> dict:
         'max': max_total,
         'percentage': round(total / max_total * 100, 1),
         'verdict': verdict,
+        'explanations': KOOTA_EXPLANATIONS,
     }
