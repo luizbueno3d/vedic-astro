@@ -286,7 +286,7 @@ def run_tests():
     female_chart = calculate_chart(1990, 3, 4, 6, 53, 54 + 19/60, 10 + 8/60, tz_offset=1.0)
     male_chart = calculate_chart(1982, 3, 15, 15, 55, -(23 + 32/60), -(46 + 38/60), tz_offset=-3.0)
     guna = calculate_guna_milan(female_chart.planets['Moon'], male_chart.planets['Moon'])
-    qa.check('T8.total', 'Guna Milan target pair total', guna['total'], 28.5)
+    qa.check('T8.total', 'Guna Milan target pair total', guna['total'], 29.5)
 
     qa.print_report()
     return qa.failed == 0

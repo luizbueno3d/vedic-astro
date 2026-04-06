@@ -200,7 +200,8 @@ def calculate_gana(bride_moon: PlanetPosition, groom_moon: PlanetPosition) -> di
     if g1 == g2:
         score, detail = 6, f'Same gana ({g1})'
     elif {g1, g2} == {'deva', 'manushya'}:
-        score, detail = 5, 'Deva-Manushya (good)'
+        # Mainstream app implementations often treat Deva-Manushya as fully compatible.
+        score, detail = 6, 'Deva-Manushya (good)'
     elif {g1, g2} == {'manushya', 'rakshasa'}:
         score, detail = 1, 'Manushya-Rakshasa (difficult)'
     else:
