@@ -12,6 +12,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from engine.ephemeris import calculate_chart, deg_to_dms, get_julian_day
 from engine.charts import d9_navamsha, d7_saptamsha, d10_dashamsha, d3_drekkana, d4_chaturthamsa, d12_dwadasamsa
 from engine.dasha import calculate_mahadasha, get_starting_dasha
+from engine.guna_milan import calculate_guna_milan
 import swisseph as swe
 from datetime import date
 
@@ -280,6 +281,12 @@ def run_tests():
     mds = calculate_mahadasha(date(1982, 3, 15), moon_lon)
     dasha_lords = [md.lord for md in mds]
     qa.check('T6.4.seq', 'Dasha sequence', dasha_lords[:4], ['Saturn', 'Mercury', 'Ketu', 'Venus'])
+
+    print("--- T8: Guna Milan Regression ---")
+    female_chart = calculate_chart(1990, 3, 4, 6, 53, 54 + 19/60, 10 + 8/60, tz_offset=1.0)
+    male_chart = calculate_chart(1982, 3, 15, 15, 55, -(23 + 32/60), -(46 + 38/60), tz_offset=-3.0)
+    guna = calculate_guna_milan(female_chart.planets['Moon'], male_chart.planets['Moon'])
+    qa.check('T8.total', 'Guna Milan target pair total', guna['total'], 28.5)
 
     qa.print_report()
     return qa.failed == 0

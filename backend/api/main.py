@@ -422,6 +422,8 @@ async def api_compatibility(profile_id_1: int, profile_id_2: int):
 
     synastry = calculate_synastry(chart1, chart2)
 
+    guna_milan = calculate_guna_milan(moon1, moon2)
+
     return {
         'person_1': chart1.name,
         'person_2': chart2.name,
@@ -431,6 +433,7 @@ async def api_compatibility(profile_id_1: int, profile_id_2: int):
         'ascendant_1': chart1.ascendant.rashi,
         'ascendant_2': chart2.ascendant.rashi,
         'interpretation': _moon_distance_interpretation(moon_dist),
+        'guna_milan': guna_milan,
         'synastry': synastry,
     }
 
@@ -878,10 +881,7 @@ async def page_compatibility(request: Request, p1: int = Query(None), p2: int = 
     if p1 and p2:
         chart1 = _chart_from_profile(pid1)
         chart2 = _chart_from_profile(pid2)
-        guna_milan = calculate_guna_milan(
-            chart1.planets['Moon'].rashi_index,
-            chart2.planets['Moon'].rashi_index
-        )
+        guna_milan = calculate_guna_milan(chart1.planets['Moon'], chart2.planets['Moon'])
         synastry = calculate_synastry(chart1, chart2)
         person_1 = {
             'name': chart1.name,

@@ -1,4 +1,11 @@
-"""Guna Milan — Ashtakoota compatibility (36-point system)."""
+"""Guna Milan — Ashtakoota compatibility (36-point system).
+
+This implementation uses Moon sign plus Moon nakshatra data, which is the correct
+base for classical Ashtakoota matching. It is still a practical app-oriented
+version, but much closer to traditional matching than the older sign-only logic.
+"""
+
+from .ephemeris import PlanetPosition, RASHI_LORDS
 
 KOOTA_EXPLANATIONS = {
     'Varna': 'Varna is the spiritual and ego compatibility factor. It asks whether values, refinement, and role expectations sit comfortably together.',
@@ -12,198 +19,231 @@ KOOTA_EXPLANATIONS = {
     'TOTAL': 'The total score is the traditional Moon-based matching result. It is a useful first filter for temperament and traditional marriage matching, but it is not the final word on full compatibility.',
 }
 
-# Varna (Ego) — 1 point max
-VARNA = {0: 'Brahmin', 1: 'Kshatriya', 2: 'Vaishya', 3: 'Shudra'}
-VARNA_ORDER = {'Brahmin': 3, 'Kshatriya': 2, 'Vaishya': 1, 'Shudra': 0}
 RASHI_VARNA = {
-    0: 'Kshatriya', 1: 'Vaishya', 2: 'Shudra', 3: 'Brahmin',     # Aries-Cancer
-    4: 'Kshatriya', 5: 'Vaishya', 6: 'Shudra', 7: 'Brahmin',     # Leo-Scorpio
-    8: 'Kshatriya', 9: 'Vaishya', 10: 'Shudra', 11: 'Brahmin',   # Sag-Pisces
+    0: 'Kshatriya', 1: 'Vaishya', 2: 'Shudra', 3: 'Brahmin',
+    4: 'Kshatriya', 5: 'Vaishya', 6: 'Shudra', 7: 'Brahmin',
+    8: 'Kshatriya', 9: 'Vaishya', 10: 'Shudra', 11: 'Brahmin',
+}
+VARNA_ORDER = {'Brahmin': 3, 'Kshatriya': 2, 'Vaishya': 1, 'Shudra': 0}
+
+NAKSHATRA_GANA = {
+    0: 'deva', 1: 'manushya', 2: 'rakshasa', 3: 'manushya', 4: 'deva', 5: 'manushya',
+    6: 'deva', 7: 'deva', 8: 'rakshasa', 9: 'rakshasa', 10: 'manushya', 11: 'manushya',
+    12: 'deva', 13: 'rakshasa', 14: 'deva', 15: 'rakshasa', 16: 'deva', 17: 'rakshasa',
+    18: 'rakshasa', 19: 'manushya', 20: 'manushya', 21: 'deva', 22: 'rakshasa', 23: 'rakshasa',
+    24: 'manushya', 25: 'manushya', 26: 'deva',
 }
 
-# Vashya (Control) — 2 points max
-# Groups: Quadruped, Human, Water, Keeta, Jungle
-VASHYA_GROUPS = {
-    0: 'quadruped', 1: 'quadruped', 5: 'human', 6: 'human',
-    3: 'water', 7: 'water', 11: 'water',
-    8: 'quadruped', 9: 'quadruped',
-    2: 'human', 4: 'jungle', 10: 'jungle',
+NAKSHATRA_NADI = {
+    0: 'adi', 1: 'madhya', 2: 'antya', 3: 'adi', 4: 'madhya', 5: 'antya', 6: 'adi', 7: 'madhya', 8: 'antya',
+    9: 'adi', 10: 'madhya', 11: 'antya', 12: 'adi', 13: 'madhya', 14: 'antya', 15: 'adi', 16: 'madhya', 17: 'antya',
+    18: 'adi', 19: 'madhya', 20: 'antya', 21: 'adi', 22: 'madhya', 23: 'antya', 24: 'adi', 25: 'madhya', 26: 'antya',
 }
 
-# Tara (Fortune) — 3 points max
-# Count from boy's Moon to girl's Moon, then mod 9
-# Same Tara (1,4,7) = 0, Enemy Tara (2,6,8) = 1.5, Friend Tara (3,5,9) = 3
-
-# Yoni (Physical) — 4 points max
-YONI_ANIMALS = {
-    0: 'horse', 1: 'elephant', 2: 'sheep', 3: 'snake',
-    4: 'deer', 5: 'cat', 6: 'goat', 7: 'buffalo',
-    8: 'tiger', 9: 'monkey', 10: 'mongoose', 11: 'dog',
+NAKSHATRA_YONI = {
+    0: 'horse', 1: 'elephant', 2: 'sheep', 3: 'serpent', 4: 'serpent', 5: 'dog', 6: 'cat', 7: 'sheep', 8: 'cat',
+    9: 'rat', 10: 'rat', 11: 'cow', 12: 'buffalo', 13: 'tiger', 14: 'buffalo', 15: 'tiger', 16: 'deer', 17: 'deer',
+    18: 'dog', 19: 'monkey', 20: 'mongoose', 21: 'monkey', 22: 'lion', 23: 'horse', 24: 'lion', 25: 'cow', 26: 'elephant',
 }
+
 YONI_FRIENDLY = {
-    'horse': ['elephant', 'deer'],
-    'elephant': ['horse', 'sheep'],
-    'sheep': ['elephant', 'monkey'],
-    'snake': ['buffalo', 'cat'],
-    'deer': ['horse', 'monkey'],
-    'cat': ['snake', 'goat'],
-    'goat': ['cat', 'buffalo'],
-    'buffalo': ['snake', 'goat'],
-    'tiger': ['dog', 'mongoose'],
-    'monkey': ['sheep', 'deer'],
-    'mongoose': ['tiger', 'dog'],
-    'dog': ['tiger', 'mongoose'],
+    'horse': {'elephant', 'horse'}, 'elephant': {'horse', 'elephant'},
+    'sheep': {'sheep', 'monkey'}, 'serpent': {'serpent', 'cat'},
+    'dog': {'dog', 'deer'}, 'cat': {'cat', 'serpent'},
+    'rat': {'rat', 'cow'}, 'cow': {'cow', 'buffalo', 'rat'},
+    'buffalo': {'buffalo', 'cow'}, 'tiger': {'tiger', 'lion'},
+    'deer': {'deer', 'dog'}, 'monkey': {'monkey', 'sheep'},
+    'mongoose': {'mongoose', 'lion'}, 'lion': {'lion', 'tiger', 'mongoose'},
+}
+YONI_ENEMIES = {
+    frozenset({'serpent', 'mongoose'}), frozenset({'lion', 'elephant'}), frozenset({'cow', 'tiger'}),
+    frozenset({'horse', 'buffalo'}), frozenset({'dog', 'tiger'}), frozenset({'cat', 'rat'}),
 }
 
-# Maitri (Friendship) — 5 points max
-# Based on planetary friendship between Moon sign lords
-PLANET_FRIENDS = {
-    0: [4, 1],       # Aries (Mars): Sun, Moon
-    1: [3, 5],       # Taurus (Venus): Mercury, Saturn
-    2: [3, 4],       # Gemini (Mercury): Venus, Sun
-    3: [1, 2],       # Cancer (Moon): Mars, Mercury
-    4: [0, 3],       # Leo (Sun): Moon, Mars
-    5: [2, 3],       # Virgo (Mercury): Venus, Saturn
-    6: [2, 5],       # Libra (Venus): Mercury, Saturn
-    7: [0, 4],       # Scorpio (Mars): Sun, Moon
-    8: [4, 1],       # Sag (Jupiter): Sun, Moon
-    9: [5, 2],       # Cap (Saturn): Mercury, Venus
-    10: [5, 3],      # Aqua (Saturn): Mercury, Venus
-    11: [1, 4],      # Pisces (Jupiter): Moon, Sun
+PLANET_REL = {
+    'Sun': {'friends': {'Moon', 'Mars', 'Jupiter'}, 'neutral': {'Mercury'}, 'enemies': {'Venus', 'Saturn'}},
+    'Moon': {'friends': {'Sun', 'Mercury'}, 'neutral': {'Mars', 'Jupiter', 'Venus', 'Saturn'}, 'enemies': set()},
+    'Mars': {'friends': {'Sun', 'Moon', 'Jupiter'}, 'neutral': {'Venus', 'Saturn'}, 'enemies': {'Mercury'}},
+    'Mercury': {'friends': {'Sun', 'Venus'}, 'neutral': {'Mars', 'Jupiter', 'Saturn'}, 'enemies': {'Moon'}},
+    'Jupiter': {'friends': {'Sun', 'Moon', 'Mars'}, 'neutral': {'Saturn'}, 'enemies': {'Mercury', 'Venus'}},
+    'Venus': {'friends': {'Mercury', 'Saturn'}, 'neutral': {'Mars', 'Jupiter'}, 'enemies': {'Sun', 'Moon'}},
+    'Saturn': {'friends': {'Mercury', 'Venus'}, 'neutral': {'Jupiter'}, 'enemies': {'Sun', 'Moon', 'Mars'}},
 }
 
-# Gana (Temperament) — 6 points max
-GANA = {
-    0: 'deva', 1: 'manushya', 2: 'rakshasa', 3: 'deva',
-    4: 'manushya', 5: 'rakshasa', 6: 'deva', 7: 'rakshasa',
-    8: 'manushya', 9: 'rakshasa', 10: 'deva', 11: 'manushya',
+VASHYA_CATEGORY_NAMES = {
+    'quadruped': 'quadruped',
+    'human': 'human',
+    'water': 'water',
+    'wild': 'wild',
+    'insect': 'insect',
 }
 
-# Bhakoot (Love/Wealth) — 7 points max
-# 2/12, 5/9, 6/8 = 0 points (inauspicious)
-# All others = 7 points
-
-# Nadi (Health) — 8 points max
-NADI = {
-    0: 'adi', 1: 'madhya', 2: 'antya', 3: 'adi',
-    4: 'madhya', 5: 'antya', 6: 'adi', 7: 'madhya',
-    8: 'antya', 9: 'adi', 10: 'madhya', 11: 'antya',
+VASHYA_MATRIX = {
+    ('quadruped', 'quadruped'): 2,
+    ('human', 'human'): 2,
+    ('water', 'water'): 2,
+    ('wild', 'wild'): 2,
+    ('insect', 'insect'): 2,
+    ('quadruped', 'human'): 1,
+    ('quadruped', 'water'): 1,
+    ('quadruped', 'insect'): 1,
+    ('human', 'water'): 1,
+    ('human', 'wild'): 1,
+    ('water', 'insect'): 1,
+    ('human', 'insect'): 1,
 }
 
 
-def calculate_varna(moon_1: int, moon_2: int) -> dict:
-    """Varna: 1 point if boy's varna >= girl's varna."""
-    varna_1 = RASHI_VARNA[moon_1]
-    varna_2 = RASHI_VARNA[moon_2]
-    score = 1 if VARNA_ORDER[varna_1] >= VARNA_ORDER[varna_2] else 0
-    return {'score': score, 'max': 1, 'detail': f'{varna_1} vs {varna_2}'}
+def _vashya_category(moon: PlanetPosition) -> str:
+    sign = moon.rashi_index
+    deg = moon.degree_in_sign
+    if sign == 4:
+        return 'wild'
+    if sign == 7:
+        return 'insect'
+    if sign in {0, 1}:
+        return 'quadruped'
+    if sign in {2, 5, 6, 10}:
+        return 'human'
+    if sign in {3, 11}:
+        return 'water'
+    if sign == 8:
+        return 'human' if deg < 15 else 'quadruped'
+    if sign == 9:
+        return 'quadruped' if deg < 15 else 'water'
+    return 'human'
 
 
-def calculate_vashya(moon_1: int, moon_2: int) -> dict:
-    """Vashya: 2 points if same group, 1 if semi-compatible."""
-    g1 = VASHYA_GROUPS[moon_1]
-    g2 = VASHYA_GROUPS[moon_2]
-    if g1 == g2:
-        return {'score': 2, 'max': 2, 'detail': f'Same group ({g1})'}
-    elif {g1, g2} in [{'quadruped', 'jungle'}, {'human', 'water'}]:
-        return {'score': 1, 'max': 2, 'detail': f'Semi-compatible ({g1} vs {g2})'}
-    return {'score': 0, 'max': 2, 'detail': f'Incompatible ({g1} vs {g2})'}
+def _planet_relation_score(lord_1: str, lord_2: str) -> float:
+    if lord_1 == lord_2:
+        return 5
+    rel1 = PLANET_REL[lord_1]
+    rel2 = PLANET_REL[lord_2]
+    if lord_2 in rel1['friends'] and lord_1 in rel2['friends']:
+        return 5
+    if (lord_2 in rel1['friends'] and lord_1 in rel2['neutral']) or (lord_1 in rel2['friends'] and lord_2 in rel1['neutral']):
+        return 4
+    if lord_2 in rel1['neutral'] and lord_1 in rel2['neutral']:
+        return 3
+    if (lord_2 in rel1['friends'] and lord_1 in rel2['enemies']) or (lord_1 in rel2['friends'] and lord_2 in rel1['enemies']):
+        return 1
+    if lord_2 in rel1['enemies'] and lord_1 in rel2['enemies']:
+        return 0
+    return 3
 
 
-def calculate_tara(moon_1: int, moon_2: int) -> dict:
-    """Tara: Count from boy Moon to girl Moon, mod 9."""
-    tara = ((moon_2 - moon_1) % 12 % 9) + 1
-    if tara in (1, 4, 7):
-        return {'score': 0, 'max': 3, 'detail': f'Tara {tara} (enemy)'}
-    elif tara in (2, 6, 8):
-        return {'score': 1.5, 'max': 3, 'detail': f'Tara {tara} (neutral)'}
-    else:
-        return {'score': 3, 'max': 3, 'detail': f'Tara {tara} (friendly)'}
+def calculate_varna(bride_moon: PlanetPosition, groom_moon: PlanetPosition) -> dict:
+    bride_varna = RASHI_VARNA[bride_moon.rashi_index]
+    groom_varna = RASHI_VARNA[groom_moon.rashi_index]
+    score = 1 if VARNA_ORDER[groom_varna] >= VARNA_ORDER[bride_varna] else 0
+    return {'score': score, 'max': 1, 'detail': f'{bride_varna} vs {groom_varna}'}
 
 
-def calculate_yoni(moon_1: int, moon_2: int) -> dict:
-    """Yoni: Based on animal compatibility."""
-    a1 = YONI_ANIMALS[moon_1]
-    a2 = YONI_ANIMALS[moon_2]
+def calculate_vashya(bride_moon: PlanetPosition, groom_moon: PlanetPosition) -> dict:
+    g1 = _vashya_category(bride_moon)
+    g2 = _vashya_category(groom_moon)
+    score = VASHYA_MATRIX.get((g1, g2), VASHYA_MATRIX.get((g2, g1), 0))
+    detail_map = {2: 'Same or strongly compatible', 1: 'Semi-compatible', 0: 'Incompatible'}
+    return {'score': score, 'max': 2, 'detail': f"{detail_map[score]} ({VASHYA_CATEGORY_NAMES[g1]} vs {VASHYA_CATEGORY_NAMES[g2]})"}
+
+
+def calculate_tara(bride_moon: PlanetPosition, groom_moon: PlanetPosition) -> dict:
+    count_bg = (groom_moon.nakshatra_index - bride_moon.nakshatra_index) % 27 + 1
+    count_gb = (bride_moon.nakshatra_index - groom_moon.nakshatra_index) % 27 + 1
+    rem_bg = count_bg % 9 or 9
+    rem_gb = count_gb % 9 or 9
+    good = {2, 4, 6, 8, 9}
+    good_count = int(rem_bg in good) + int(rem_gb in good)
+    score = 3 if good_count == 2 else 1.5 if good_count == 1 else 0
+    quality = 'friendly' if score == 3 else 'neutral' if score == 1.5 else 'enemy'
+    return {'score': score, 'max': 3, 'detail': f'Tara {rem_bg}/{rem_gb} ({quality})'}
+
+
+def calculate_yoni(bride_moon: PlanetPosition, groom_moon: PlanetPosition) -> dict:
+    a1 = NAKSHATRA_YONI[bride_moon.nakshatra_index]
+    a2 = NAKSHATRA_YONI[groom_moon.nakshatra_index]
     if a1 == a2:
-        return {'score': 4, 'max': 4, 'detail': f'Same animal ({a1})'}
-    elif a2 in YONI_FRIENDLY.get(a1, []):
-        return {'score': 3, 'max': 4, 'detail': f'Friendly ({a1} - {a2})'}
-    elif {a1, a2} in [{'tiger', 'buffalo'}, {'dog', 'deer'}, {'cat', 'rat'}]:
-        return {'score': 0, 'max': 4, 'detail': f'Enemy ({a1} - {a2})'}
-    return {'score': 2, 'max': 4, 'detail': f'Neutral ({a1} - {a2})'}
+        score = 4
+        label = 'Same animal'
+    elif a2 in YONI_FRIENDLY.get(a1, set()) or a1 in YONI_FRIENDLY.get(a2, set()):
+        score = 3
+        label = 'Friendly'
+    elif frozenset({a1, a2}) in YONI_ENEMIES:
+        score = 0
+        label = 'Enemy'
+    else:
+        score = 2
+        label = 'Neutral'
+    return {'score': score, 'max': 4, 'detail': f'{label} ({a1} - {a2})'}
 
 
-def calculate_maitri(moon_1: int, moon_2: int) -> dict:
-    """Maitri: Planetary friendship between Moon sign lords."""
-    friends_1 = PLANET_FRIENDS.get(moon_1, [])
-    if moon_2 in friends_1:
-        return {'score': 5, 'max': 5, 'detail': 'Great friends'}
-    elif moon_2 == moon_1:
-        return {'score': 5, 'max': 5, 'detail': 'Same lord'}
-    return {'score': 0, 'max': 5, 'detail': 'Not friends'}
+def calculate_maitri(bride_moon: PlanetPosition, groom_moon: PlanetPosition) -> dict:
+    lord_1 = RASHI_LORDS[bride_moon.rashi_index]
+    lord_2 = RASHI_LORDS[groom_moon.rashi_index]
+    score = _planet_relation_score(lord_1, lord_2)
+    if score == 5:
+        detail = 'Great friends'
+    elif score == 4:
+        detail = 'Friendly / supportive'
+    elif score == 3:
+        detail = 'Neutral'
+    elif score == 1:
+        detail = 'Mixed friendship'
+    else:
+        detail = 'Not friends'
+    return {'score': score, 'max': 5, 'detail': detail}
 
 
-def calculate_gana(moon_1: int, moon_2: int) -> dict:
-    """Gana: Temperament compatibility."""
-    g1 = GANA[moon_1]
-    g2 = GANA[moon_2]
+def calculate_gana(bride_moon: PlanetPosition, groom_moon: PlanetPosition) -> dict:
+    g1 = NAKSHATRA_GANA[bride_moon.nakshatra_index]
+    g2 = NAKSHATRA_GANA[groom_moon.nakshatra_index]
     if g1 == g2:
-        return {'score': 6, 'max': 6, 'detail': f'Same gana ({g1})'}
+        score, detail = 6, f'Same gana ({g1})'
     elif {g1, g2} == {'deva', 'manushya'}:
-        return {'score': 5, 'max': 6, 'detail': 'Deva-Manushya (good)'}
-    elif {g1, g2} == {'deva', 'rakshasa'}:
-        return {'score': 0, 'max': 6, 'detail': 'Deva-Rakshasa (difficult)'}
+        score, detail = 5, 'Deva-Manushya (good)'
     elif {g1, g2} == {'manushya', 'rakshasa'}:
-        return {'score': 0, 'max': 6, 'detail': 'Manushya-Rakshasa (difficult)'}
-    return {'score': 3, 'max': 6, 'detail': f'{g1} vs {g2}'}
+        score, detail = 1, 'Manushya-Rakshasa (difficult)'
+    else:
+        score, detail = 0, 'Deva-Rakshasa (difficult)'
+    return {'score': score, 'max': 6, 'detail': detail}
 
 
-def calculate_bhakoot(moon_1: int, moon_2: int) -> dict:
-    """Bhakoot: Check for inauspicious house distances."""
-    dist = (moon_2 - moon_1) % 12
-    inauspicious = {(2-1)%12, (5-1)%12, (6-1)%12, (11)%12, (8-1)%12, (7-1)%12}
-    # 2/12 = dist 1 or 11, 5/9 = dist 4 or 8, 6/8 = dist 5 or 7
+def calculate_bhakoot(bride_moon: PlanetPosition, groom_moon: PlanetPosition) -> dict:
+    dist = (groom_moon.rashi_index - bride_moon.rashi_index) % 12
     bad = {1, 4, 5, 7, 8, 11}
     if dist in bad:
         return {'score': 0, 'max': 7, 'detail': f'Inauspicious distance ({dist+1}/12)'}
-    return {'score': 7, 'max': 7, 'detail': f'Auspicious distance'}
+    return {'score': 7, 'max': 7, 'detail': 'Auspicious distance'}
 
 
-def calculate_nadi(moon_1: int, moon_2: int) -> dict:
-    """Nadi: Health/genetic compatibility."""
-    n1 = NADI[moon_1]
-    n2 = NADI[moon_2]
+def calculate_nadi(bride_moon: PlanetPosition, groom_moon: PlanetPosition) -> dict:
+    n1 = NAKSHATRA_NADI[bride_moon.nakshatra_index]
+    n2 = NAKSHATRA_NADI[groom_moon.nakshatra_index]
     if n1 == n2:
         return {'score': 0, 'max': 8, 'detail': f'Same nadi ({n1}) — health concern'}
     return {'score': 8, 'max': 8, 'detail': f'Different nadi ({n1} vs {n2})'}
 
 
-def calculate_guna_milan(moon_1: int, moon_2: int) -> dict:
-    """Calculate full Ashtakoota Guna Milan.
+def calculate_guna_milan(bride_moon: PlanetPosition, groom_moon: PlanetPosition) -> dict:
+    """Calculate full Ashtakoota using Moon sign + nakshatra data.
 
-    Args:
-        moon_1: rashi index (0-11) of person 1's Moon
-        moon_2: rashi index (0-11) of person 2's Moon
-
-    Returns:
-        dict with all 8 koota scores and total
+    Note: this function expects bride/girl as first argument and groom/boy as second,
+    following the traditional direction of Guna Milan.
     """
     kootas = {
-        'Varna': calculate_varna(moon_1, moon_2),
-        'Vashya': calculate_vashya(moon_1, moon_2),
-        'Tara': calculate_tara(moon_1, moon_2),
-        'Yoni': calculate_yoni(moon_1, moon_2),
-        'Maitri': calculate_maitri(moon_1, moon_2),
-        'Gana': calculate_gana(moon_1, moon_2),
-        'Bhakoot': calculate_bhakoot(moon_1, moon_2),
-        'Nadi': calculate_nadi(moon_1, moon_2),
+        'Varna': calculate_varna(bride_moon, groom_moon),
+        'Vashya': calculate_vashya(bride_moon, groom_moon),
+        'Tara': calculate_tara(bride_moon, groom_moon),
+        'Yoni': calculate_yoni(bride_moon, groom_moon),
+        'Maitri': calculate_maitri(bride_moon, groom_moon),
+        'Gana': calculate_gana(bride_moon, groom_moon),
+        'Bhakoot': calculate_bhakoot(bride_moon, groom_moon),
+        'Nadi': calculate_nadi(bride_moon, groom_moon),
     }
 
     total = sum(k['score'] for k in kootas.values())
     max_total = sum(k['max'] for k in kootas.values())
 
-    # Interpretation
     if total >= 28:
         verdict = 'Excellent match — highly compatible'
     elif total >= 24:
