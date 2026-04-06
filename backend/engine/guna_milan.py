@@ -35,9 +35,33 @@ NAKSHATRA_GANA = {
 }
 
 NAKSHATRA_NADI = {
-    0: 'adi', 1: 'madhya', 2: 'antya', 3: 'adi', 4: 'madhya', 5: 'antya', 6: 'adi', 7: 'madhya', 8: 'antya',
-    9: 'adi', 10: 'madhya', 11: 'antya', 12: 'adi', 13: 'madhya', 14: 'antya', 15: 'adi', 16: 'madhya', 17: 'antya',
-    18: 'adi', 19: 'madhya', 20: 'antya', 21: 'adi', 22: 'madhya', 23: 'antya', 24: 'adi', 25: 'madhya', 26: 'antya',
+    0: 'adi',      # Ashwini
+    1: 'madhya',   # Bharani
+    2: 'antya',    # Krittika
+    3: 'antya',    # Rohini
+    4: 'madhya',   # Mrigashira
+    5: 'adi',      # Ardra
+    6: 'adi',      # Punarvasu
+    7: 'madhya',   # Pushya
+    8: 'antya',    # Ashlesha
+    9: 'antya',    # Magha
+    10: 'madhya',  # Purva Phalguni
+    11: 'adi',     # Uttara Phalguni
+    12: 'adi',     # Hasta
+    13: 'madhya',  # Chitra
+    14: 'antya',   # Swati
+    15: 'antya',   # Vishakha
+    16: 'madhya',  # Anuradha
+    17: 'adi',     # Jyeshtha
+    18: 'adi',     # Mula
+    19: 'madhya',  # Purva Ashadha
+    20: 'antya',   # Uttara Ashadha
+    21: 'antya',   # Shravana
+    22: 'madhya',  # Dhanishta
+    23: 'adi',     # Shatabhisha
+    24: 'adi',     # Purva Bhadrapada
+    25: 'madhya',  # Uttara Bhadrapada
+    26: 'antya',   # Revati
 }
 
 NAKSHATRA_YONI = {
