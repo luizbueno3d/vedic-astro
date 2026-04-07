@@ -42,6 +42,7 @@ from engine.ai_provider import (
     DEFAULT_PROVIDERS, AIProvider
 )
 from engine.geocoding import geocode, search_places
+from engine.timezone_utils import get_tz_offset_for_date
 from engine.transcription import transcribe_audio
 from data.database import (
     list_profiles, get_profile, add_profile, update_profile,
@@ -639,6 +640,13 @@ async def api_geocode(q: str = Query(...)):
     """Look up coordinates for a place name."""
     results = search_places(q, limit=5)
     return {'results': results}
+
+
+@app.get("/timezone")
+async def api_timezone(lat: float = Query(...), lon: float = Query(...), birth_date: str = Query(None)):
+    """Resolve timezone offset for coordinates and optional birth date."""
+    target_date = date.fromisoformat(birth_date) if birth_date else None
+    return get_tz_offset_for_date(lat, lon, target_date)
 
 
 @app.post("/transcribe")

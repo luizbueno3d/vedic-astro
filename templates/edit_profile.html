@@ -107,7 +107,7 @@ async function searchLocation() {
                     document.getElementById('latitude').value = r.lat;
                     document.getElementById('longitude').value = r.lon;
                     results.style.display = 'none';
-                    document.getElementById('searchStatus').innerHTML = `<span style="color:var(--green)">Found: ${r.lat}, ${r.lon}</span>`;
+                    updateTimezone(r.lat, r.lon);
                 };
                 results.appendChild(div);
             });
@@ -116,6 +116,44 @@ async function searchLocation() {
     } catch(e) {}
 }
 document.getElementById('birth_place').addEventListener('keydown', (e) => { if(e.key==='Enter'){e.preventDefault();searchLocation();} });
+
+async function updateTimezone(lat, lon) {
+    const birthDate = document.getElementById('birth_date').value;
+    const status = document.getElementById('searchStatus');
+    try {
+        const resp = await fetch(`/timezone?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&birth_date=${encodeURIComponent(birthDate)}`);
+        const data = await resp.json();
+        const tzSelect = document.getElementById('tz_offset');
+        if (data.tz_offset !== null && data.tz_offset !== undefined) {
+            let matched = false;
+            for (let opt of tzSelect.options) {
+                if (Math.abs(parseFloat(opt.value) - data.tz_offset) < 0.01) {
+                    opt.selected = true;
+                    matched = true;
+                    break;
+                }
+            }
+            if (!matched) {
+                const value = String(data.tz_offset);
+                const label = `UTC${data.tz_offset >= 0 ? '+' : ''}${data.tz_offset}`;
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = label;
+                option.selected = true;
+                tzSelect.appendChild(option);
+            }
+            status.innerHTML = `<span style="color:var(--green)">Found: ${lat}, ${lon} (${data.timezone || 'timezone found'} · UTC${data.tz_offset >= 0 ? '+' : ''}${data.tz_offset})</span>`;
+        }
+    } catch (err) {
+        status.innerHTML = `<span style="color:var(--accent2)">Timezone lookup failed. Please confirm UTC offset manually.</span>`;
+    }
+}
+
+document.getElementById('birth_date').addEventListener('change', () => {
+    const lat = document.getElementById('latitude').value;
+    const lon = document.getElementById('longitude').value;
+    if (lat && lon) updateTimezone(lat, lon);
+});
 
 // Save changes
 document.getElementById('editForm').addEventListener('submit', async (e) => {

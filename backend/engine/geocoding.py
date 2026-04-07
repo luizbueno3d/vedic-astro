@@ -6,6 +6,8 @@ Falls back to direct HTTP if geopy SSL fails.
 
 import requests
 
+from .timezone_utils import get_tz_offset_for_date
+
 NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
 
 
@@ -22,7 +24,7 @@ def search_places(query: str, limit: int = 5) -> list[dict]:
             'display_name': r.get('display_name', ''),
             'lat': round(float(r['lat']), 4),
             'lon': round(float(r['lon']), 4),
-            'tz_offset': _estimate_tz(float(r['lon']), float(r['lat'])),
+            'tz_offset': get_tz_offset_for_date(float(r['lat']), float(r['lon']))['tz_offset'] or _estimate_tz(float(r['lon']), float(r['lat'])),
         } for r in results]
     except Exception:
         # Fallback: try without SSL verification
@@ -36,7 +38,7 @@ def search_places(query: str, limit: int = 5) -> list[dict]:
                 'display_name': r.get('display_name', ''),
                 'lat': round(float(r['lat']), 4),
                 'lon': round(float(r['lon']), 4),
-                'tz_offset': _estimate_tz(float(r['lon']), float(r['lat'])),
+                'tz_offset': get_tz_offset_for_date(float(r['lat']), float(r['lon']))['tz_offset'] or _estimate_tz(float(r['lon']), float(r['lat'])),
             } for r in results]
         except Exception:
             return []
