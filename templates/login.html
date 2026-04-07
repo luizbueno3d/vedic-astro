@@ -13,18 +13,94 @@
         button { margin-top:14px; width:100%; padding:12px 14px; border:none; border-radius:8px; background:#f0a500; color:#111; font-weight:700; cursor:pointer; font-size:1rem; }
         #status { margin-top:12px; font-size:.92rem; color:#ff8b8b; min-height:20px; }
         .hint { margin-top:16px; font-size:.88rem; color:#8f96ad; }
+        .muted { color:#8f96ad; font-size:.9rem; line-height:1.6; }
+        .secondary { background:#2563eb; color:white; }
+        .section { margin-top:18px; padding-top:18px; border-top:1px solid #34385c; }
     </style>
 </head>
 <body>
     <div class="card">
         <h1>Protected Access</h1>
-        <p>This app contains private stored charts and readings. Enter the shared password to continue.</p>
+        <p>This app contains private stored charts and readings. For now you can use the shared password. Firebase Google and email/password auth is also prepared and can be enabled once the Firebase project credentials are configured.</p>
         <form method="post" action="/login">
             <input id="password" name="password_form" type="password" placeholder="Password" autofocus>
             <button type="submit">Enter App</button>
         </form>
         <div id="status">{% if error %}{{ error }}{% endif %}</div>
         <div class="hint">Session stays active in this browser until you log out.</div>
+
+        {% if firebase_enabled %}
+        <div class="section">
+            <div class="muted" style="margin-bottom:10px">Firebase auth is enabled for this deployment.</div>
+            <button type="button" class="secondary" onclick="signInWithGoogle()">Continue with Google</button>
+            <div class="section" style="margin-top:14px; padding-top:14px">
+                <div class="muted" style="margin-bottom:10px">Or sign in with email and password</div>
+                <input id="firebaseEmail" type="email" placeholder="Email">
+                <input id="firebasePassword" type="password" placeholder="Password">
+                <button type="button" class="secondary" onclick="firebaseEmailSignIn()">Sign in with Firebase</button>
+                <button type="button" style="background:#374151; color:white" onclick="firebaseEmailSignUp()">Create account</button>
+            </div>
+        </div>
+        {% else %}
+        <div class="section muted">
+            Firebase auth is prepared in the app, but this deployment still needs Firebase project credentials before Google and email/password sign-in can be enabled.
+        </div>
+        {% endif %}
     </div>
+
+    {% if firebase_enabled %}
+    <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js';
+    import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js';
+
+    const firebaseConfig = {{ firebase_config | safe }};
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    async function finishLogin(user) {
+        const idToken = await user.getIdToken();
+        const resp = await fetch('/auth/firebase-login', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({idToken})
+        });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.error || 'Firebase login failed');
+        window.location.href = '/dashboard';
+    }
+
+    window.signInWithGoogle = async function () {
+        try {
+            const provider = new GoogleAuthProvider();
+            const result = await signInWithPopup(auth, provider);
+            await finishLogin(result.user);
+        } catch (err) {
+            document.getElementById('status').textContent = err.message;
+        }
+    }
+
+    window.firebaseEmailSignIn = async function () {
+        try {
+            const email = document.getElementById('firebaseEmail').value;
+            const password = document.getElementById('firebasePassword').value;
+            const cred = await signInWithEmailAndPassword(auth, email, password);
+            await finishLogin(cred.user);
+        } catch (err) {
+            document.getElementById('status').textContent = err.message;
+        }
+    }
+
+    window.firebaseEmailSignUp = async function () {
+        try {
+            const email = document.getElementById('firebaseEmail').value;
+            const password = document.getElementById('firebasePassword').value;
+            const cred = await createUserWithEmailAndPassword(auth, email, password);
+            await finishLogin(cred.user);
+        } catch (err) {
+            document.getElementById('status').textContent = err.message;
+        }
+    }
+    </script>
+    {% endif %}
 </body>
 </html>

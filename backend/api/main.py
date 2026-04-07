@@ -42,17 +42,19 @@ from engine.ai_provider import (
     DEFAULT_PROVIDERS, AIProvider
 )
 from engine.geocoding import geocode, search_places
+from engine.firebase_auth import get_firebase_web_config, firebase_client_enabled, verify_firebase_id_token
 from engine.timezone_utils import get_tz_offset_for_date
 from engine.transcription import transcribe_audio
 from data.database import (
     list_profiles, get_profile, add_profile, update_profile,
-    delete_profile, seed_default_profiles
+    delete_profile, seed_default_profiles, assign_owner_uid
 )
 
 app = FastAPI(title="Vedic Astro", version="1.0.0")
 
 APP_PASSWORD = os.getenv("APP_PASSWORD", "Luiz1234!")
 APP_SESSION_SECRET = os.getenv("APP_SESSION_SECRET", "vedic-astro-session-secret-change-me")
+DEFAULT_OWNER_EMAIL = os.getenv("DEFAULT_OWNER_EMAIL", "luizbueno3d@gmail.com")
 AUTH_COOKIE_NAME = "vedic_astro_auth"
 PUBLIC_PATHS = {
     "/login",
@@ -91,6 +93,14 @@ def _is_authenticated(request: Request) -> bool:
     if not cookie:
         return False
     return hmac.compare_digest(cookie, _auth_cookie_value())
+
+
+def _current_owner_email(request: Request) -> str:
+    return request.session.get("user_email") or DEFAULT_OWNER_EMAIL
+
+
+def _current_owner_uid(request: Request) -> str | None:
+    return request.session.get("user_uid")
 
 
 def _login_redirect() -> RedirectResponse:
@@ -177,6 +187,8 @@ async def page_login(request: Request, error: str = Query(None)):
         "profile_id": None,
         "is_authenticated": False,
         "error": error,
+        "firebase_enabled": firebase_client_enabled(),
+        "firebase_config": json.dumps(get_firebase_web_config()),
     })
     response.delete_cookie(AUTH_COOKIE_NAME, path="/")
     response.delete_cookie("vedic_astro_session", path="/")
@@ -197,8 +209,8 @@ async def api_login(request: Request, password_form: str = Form(None)):
             return RedirectResponse(url="/login?error=Invalid%20password", status_code=303)
         return JSONResponse({"error": "Invalid password"}, status_code=401)
 
-    if "authenticated" in request.session:
-        request.session.pop("authenticated", None)
+    request.session["user_email"] = DEFAULT_OWNER_EMAIL
+    request.session["user_uid"] = None
     if _is_html_request(request):
         response = RedirectResponse(url="/dashboard", status_code=303)
     else:
@@ -225,26 +237,58 @@ async def api_logout(request: Request):
     return response
 
 
+@app.post("/auth/firebase-login")
+async def api_firebase_login(request: Request):
+    data = await request.json()
+    token = data.get('idToken', '')
+    claims = verify_firebase_id_token(token)
+    if not claims:
+        return JSONResponse({'error': 'Firebase token verification failed'}, status_code=401)
+
+    email = claims.get('email')
+    uid = claims.get('uid')
+    if not email:
+        return JSONResponse({'error': 'Firebase account has no email'}, status_code=400)
+
+    request.session['user_email'] = email
+    request.session['user_uid'] = uid
+    if uid:
+        assign_owner_uid(email, uid)
+    response = JSONResponse({'success': True, 'email': email})
+    response.set_cookie(
+        AUTH_COOKIE_NAME,
+        _auth_cookie_value(),
+        httponly=True,
+        secure=True,
+        samesite='lax',
+        path='/',
+        max_age=60 * 60 * 24 * 14,
+    )
+    return response
+
+
 # --- Profiles ---
 
 @app.get("/profiles")
-async def api_list_profiles():
-    return list_profiles()
+async def api_list_profiles(request: Request):
+    return list_profiles(_current_owner_email(request))
 
 
 @app.post("/profiles")
-async def api_create_profile(data: ProfileCreate):
+async def api_create_profile(request: Request, data: ProfileCreate):
     pid = add_profile(
         data.name, data.birth_date, data.birth_time,
         data.birth_place, data.latitude, data.longitude,
-        data.tz_offset, data.notes
+        data.tz_offset, data.notes,
+        owner_email=_current_owner_email(request),
+        owner_uid=_current_owner_uid(request),
     )
     return {"id": pid, "message": f"Profile '{data.name}' created"}
 
 
 @app.get("/profiles/{profile_id}")
-async def api_get_profile(profile_id: int):
-    p = get_profile(profile_id)
+async def api_get_profile(request: Request, profile_id: int):
+    p = get_profile(profile_id, _current_owner_email(request))
     if not p:
         raise HTTPException(404, "Profile not found")
     return p

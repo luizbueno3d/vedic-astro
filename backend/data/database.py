@@ -1,11 +1,11 @@
 """SQLite database for storing birth profiles."""
 
 import sqlite3
-import json
+import os
 from pathlib import Path
-from dataclasses import asdict
 
 DB_PATH = Path(__file__).parent.parent / 'data' / 'profiles.db'
+DEFAULT_OWNER_EMAIL = os.getenv('DEFAULT_OWNER_EMAIL', 'luizbueno3d@gmail.com')
 
 
 def init_db():
@@ -15,6 +15,8 @@ def init_db():
     conn.execute('''
         CREATE TABLE IF NOT EXISTS profiles (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            owner_email TEXT,
+            owner_uid TEXT,
             name TEXT NOT NULL,
             birth_date TEXT NOT NULL,
             birth_time TEXT NOT NULL,
@@ -27,8 +29,18 @@ def init_db():
             updated_at TEXT DEFAULT (datetime('now'))
         )
     ''')
+    _ensure_profile_ownership_columns(conn)
     conn.commit()
     conn.close()
+
+
+def _ensure_profile_ownership_columns(conn: sqlite3.Connection):
+    columns = {row[1] for row in conn.execute('PRAGMA table_info(profiles)').fetchall()}
+    if 'owner_email' not in columns:
+        conn.execute('ALTER TABLE profiles ADD COLUMN owner_email TEXT')
+    if 'owner_uid' not in columns:
+        conn.execute('ALTER TABLE profiles ADD COLUMN owner_uid TEXT')
+    conn.execute('UPDATE profiles SET owner_email = ? WHERE owner_email IS NULL OR owner_email = ""', (DEFAULT_OWNER_EMAIL,))
 
 
 def get_connection() -> sqlite3.Connection:
@@ -41,7 +53,8 @@ def get_connection() -> sqlite3.Connection:
 
 def add_profile(name: str, birth_date: str, birth_time: str,
                 birth_place: str, latitude: float, longitude: float,
-                tz_offset: float = -3.0, notes: str = '') -> int:
+                tz_offset: float = -3.0, notes: str = '', owner_email: str = DEFAULT_OWNER_EMAIL,
+                owner_uid: str | None = None) -> int:
     """Add a new birth profile.
 
     Returns:
@@ -49,32 +62,32 @@ def add_profile(name: str, birth_date: str, birth_time: str,
     """
     conn = get_connection()
     cursor = conn.execute('''
-        INSERT INTO profiles (name, birth_date, birth_time, birth_place, latitude, longitude, tz_offset, notes)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    ''', (name, birth_date, birth_time, birth_place, latitude, longitude, tz_offset, notes))
+        INSERT INTO profiles (owner_email, owner_uid, name, birth_date, birth_time, birth_place, latitude, longitude, tz_offset, notes)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (owner_email, owner_uid, name, birth_date, birth_time, birth_place, latitude, longitude, tz_offset, notes))
     conn.commit()
-    profile_id = cursor.lastrowid
+    profile_id = int(cursor.lastrowid or 0)
     conn.close()
     return profile_id
 
 
-def get_profile(profile_id: int) -> dict | None:
+def get_profile(profile_id: int, owner_email: str = DEFAULT_OWNER_EMAIL) -> dict | None:
     """Get a profile by ID."""
     conn = get_connection()
-    row = conn.execute('SELECT * FROM profiles WHERE id = ?', (profile_id,)).fetchone()
+    row = conn.execute('SELECT * FROM profiles WHERE id = ? AND owner_email = ?', (profile_id, owner_email)).fetchone()
     conn.close()
     return dict(row) if row else None
 
 
-def list_profiles() -> list[dict]:
+def list_profiles(owner_email: str = DEFAULT_OWNER_EMAIL) -> list[dict]:
     """List all profiles."""
     conn = get_connection()
-    rows = conn.execute('SELECT * FROM profiles ORDER BY name').fetchall()
+    rows = conn.execute('SELECT * FROM profiles WHERE owner_email = ? ORDER BY name', (owner_email,)).fetchall()
     conn.close()
     return [dict(r) for r in rows]
 
 
-def update_profile(profile_id: int, **kwargs) -> bool:
+def update_profile(profile_id: int, owner_email: str = DEFAULT_OWNER_EMAIL, **kwargs) -> bool:
     """Update a profile's fields."""
     allowed = {'name', 'birth_date', 'birth_time', 'birth_place', 'latitude', 'longitude', 'tz_offset', 'notes'}
     fields = {k: v for k, v in kwargs.items() if k in allowed}
@@ -85,25 +98,39 @@ def update_profile(profile_id: int, **kwargs) -> bool:
     values = list(fields.values()) + [profile_id]
 
     conn = get_connection()
-    conn.execute(f'UPDATE profiles SET {set_clause}, updated_at = datetime("now") WHERE id = ?', values)
+    values.append(owner_email)
+    conn.execute(f'UPDATE profiles SET {set_clause}, updated_at = datetime("now") WHERE id = ? AND owner_email = ?', values)
     conn.commit()
     conn.close()
     return True
 
 
-def delete_profile(profile_id: int) -> bool:
+def delete_profile(profile_id: int, owner_email: str = DEFAULT_OWNER_EMAIL) -> bool:
     """Delete a profile."""
     conn = get_connection()
-    cursor = conn.execute('DELETE FROM profiles WHERE id = ?', (profile_id,))
+    cursor = conn.execute('DELETE FROM profiles WHERE id = ? AND owner_email = ?', (profile_id, owner_email))
     conn.commit()
     deleted = cursor.rowcount > 0
     conn.close()
     return deleted
 
 
+def assign_owner_uid(owner_email: str, owner_uid: str) -> int:
+    """Attach a Firebase UID to existing rows for one owner email."""
+    conn = get_connection()
+    cursor = conn.execute(
+        'UPDATE profiles SET owner_uid = ? WHERE owner_email = ? AND (owner_uid IS NULL OR owner_uid = "")',
+        (owner_uid, owner_email),
+    )
+    conn.commit()
+    count = cursor.rowcount
+    conn.close()
+    return count
+
+
 def seed_default_profiles():
     """Seed the database with default profiles if empty."""
-    profiles = list_profiles()
+    profiles = list_profiles(DEFAULT_OWNER_EMAIL)
     if profiles:
         return
 
@@ -155,7 +182,7 @@ def seed_default_profiles():
     ]
 
     for name, bdate, btime, place, lat, lon in defaults:
-        add_profile(name, bdate, btime, place, lat, lon)
+        add_profile(name, bdate, btime, place, lat, lon, owner_email=DEFAULT_OWNER_EMAIL)
 
 
 # Initialize on import
