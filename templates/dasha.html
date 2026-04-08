@@ -62,6 +62,26 @@
 </div>
 {% endif %}
 
+{% if current_dasha_reading %}
+<div class="card" style="margin-bottom:20px; border-color:var(--blue)">
+    <h3>Current Dasha Reading</h3>
+    <p style="color:var(--muted); font-size:0.9em; margin:-6px 0 12px">
+        This reads the active dasha lords through both the natal D1 promise and the BCC / KP manifestation layer,
+        just like the transit reading does for gochar.
+    </p>
+    {% for item in current_dasha_reading %}
+    <div style="margin-bottom:12px; padding:12px; background:rgba(74,158,255,0.06); border-radius:8px; border-left:3px solid var(--blue)">
+        <div><strong>{{ item.level }} - {{ item.lord }}</strong>: natal {{ item.natal_sign }} H{{ item.natal_house }} -> BCC H{{ item.kp_house }}</div>
+        <div style="color:var(--muted); font-size:0.92em; margin-top:6px; line-height:1.6">{{ item.summary }}</div>
+        <div style="font-size:0.9em; margin-top:6px; line-height:1.6">{{ item.practical }}</div>
+        {% if item.houses_ruled %}
+        <div style="margin-top:6px; font-size:0.85em; color:var(--muted)">Rules: H{{ item.houses_ruled | join(', H') }}</div>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
 <!-- Antardashas within current MD -->
 {% if antardashas %}
 <div class="card" style="margin-bottom:20px">
@@ -112,18 +132,37 @@
     <h3>Full Mahadasha Timeline (120 years)</h3>
     <p style="color:var(--muted); font-size:0.9em; margin:-6px 0 12px">
         This is the long-range timeline of the whole Vimshottari cycle. It is useful for context,
-        but for practical reading the current period block above matters more.
+        but for practical reading the current period block above matters more. Click a Mahadasha row to open its Antardashas.
     </p>
     <table>
         <tr><th>#</th><th>Lord</th><th>Start</th><th>End</th><th>Duration</th><th></th></tr>
         {% for md in dasha.mahadashas %}
-        <tr>
+        <tr class="md-row" data-target="md-{{ md.index }}" style="cursor:pointer">
             <td>{{ loop.index }}</td>
             <td><strong>{{ md.lord }}</strong></td>
             <td>{{ md.start }}</td>
             <td>{{ md.end }}</td>
             <td>{{ md.years }}y</td>
-            <td>{% if md.is_current %}<span class="current">◄ NOW</span>{% endif %}</td>
+            <td>{% if md.is_current %}<span class="current">◄ NOW</span>{% endif %} <span style="color:var(--muted)">▾</span></td>
+        </tr>
+        <tr id="md-{{ md.index }}" class="md-detail" {% if not md.is_current %}style="display:none"{% endif %}>
+            <td colspan="6" style="padding:0">
+                <div style="padding:14px 16px; background:rgba(255,255,255,0.02)">
+                    <div style="font-weight:600; margin-bottom:10px">Antardashas within {{ md.lord }} Mahadasha</div>
+                    <table style="margin:0">
+                        <tr><th>Lord</th><th>Start</th><th>End</th><th>Duration</th><th></th></tr>
+                        {% for ad in md.antardashas %}
+                        <tr>
+                            <td>{{ ad.lord }}</td>
+                            <td>{{ ad.start }}</td>
+                            <td>{{ ad.end }}</td>
+                            <td>{{ "%.1f"|format(ad.years) }}y</td>
+                            <td>{% if ad.is_current %}<span class="current">◄ NOW</span>{% endif %}</td>
+                        </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+            </td>
         </tr>
         {% endfor %}
     </table>
@@ -168,4 +207,18 @@
         {% endfor %}
     </table>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('.md-row').forEach((row) => {
+    row.addEventListener('click', () => {
+        const targetId = row.dataset.target;
+        const detail = document.getElementById(targetId);
+        if (!detail) return;
+        const isHidden = detail.style.display === 'none';
+        detail.style.display = isHidden ? 'table-row' : 'none';
+    });
+});
+</script>
 {% endblock %}

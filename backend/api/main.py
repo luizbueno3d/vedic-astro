@@ -359,6 +359,83 @@ def _serialize_chart(chart) -> dict:
     }
 
 
+HOUSE_TOPICS = {
+    1: 'identity, body, and self-direction',
+    2: 'money, speech, and family resources',
+    3: 'skills, courage, writing, and initiative',
+    4: 'home, roots, private life, and emotional security',
+    5: 'creativity, romance, children, and intelligence',
+    6: 'work, service, health, and conflict',
+    7: 'partnerships, clients, and public dealings',
+    8: 'transformation, crisis, secrecy, and depth',
+    9: 'belief, teachers, travel, and higher meaning',
+    10: 'career, reputation, duty, and visibility',
+    11: 'gains, networks, allies, and long-term goals',
+    12: 'retreat, loss, sleep, foreignness, and liberation',
+}
+
+
+def _serialize_mahadasha_timeline(mahadashas: list) -> list[dict]:
+    timeline = []
+    for idx, md in enumerate(mahadashas):
+        md_dict = dasha_to_dict(md)
+        md_dict['index'] = idx
+        md_dict['antardashas'] = [dasha_to_dict(ad) for ad in calculate_antardasha(md)]
+        timeline.append(md_dict)
+    return timeline
+
+
+def _build_current_dasha_reading(chart, current: dict, kp) -> list[dict]:
+    rulerships = calculate_house_rulerships(chart.ascendant.rashi_index)
+    reading = []
+
+    for level in ['mahadasha', 'antardasha', 'pratyantardasha']:
+        period = current.get(level)
+        if not period:
+            continue
+
+        natal = chart.planets.get(period.lord)
+        kp_placement = kp.planets.get(period.lord) if kp else None
+        if not natal:
+            continue
+
+        ruled_houses = rulerships.get(period.lord, [])
+        natal_topic = HOUSE_TOPICS.get(natal.house, 'the life area shown by that house')
+        kp_house = kp_placement.kp_house if kp_placement else natal.house
+        kp_topic = HOUSE_TOPICS.get(kp_house, 'the life area shown by that house')
+        ruled_text = ', '.join(f'H{house}' for house in ruled_houses) if ruled_houses else 'no major houses'
+        label = {
+            'mahadasha': 'Mahadasha',
+            'antardasha': 'Antardasha',
+            'pratyantardasha': 'Pratyantardasha',
+        }[level]
+
+        summary = (
+            f'{label} of {period.lord} activates the natal {period.lord} placed in {natal.rashi} in H{natal.house}. '
+            f'In D1 this planet starts from {natal_topic}, while in BCC/KP its manifestation shifts to H{kp_house}, '
+            f'bringing concrete results into {kp_topic}.'
+        )
+        practical = (
+            f'Read {period.lord} through both layers at once: natal promise from H{natal.house}, lived manifestation from BCC H{kp_house}, '
+            f'and house rulership through {ruled_text}. During this period, topics of {natal_topic} tend to deliver outcomes through {kp_topic}.'
+        )
+
+        reading.append({
+            'level': label,
+            'lord': period.lord,
+            'start': period.start.isoformat(),
+            'end': period.end.isoformat(),
+            'natal_sign': natal.rashi,
+            'natal_house': natal.house,
+            'kp_house': kp_house,
+            'houses_ruled': ruled_houses,
+            'summary': summary,
+            'practical': practical,
+        })
+
+    return reading
+
+
 @app.post("/chart")
 async def api_chart_from_birth(data: BirthData):
     chart = _chart_from_birth(data)
@@ -402,18 +479,19 @@ async def api_dasha(profile_id: int, level: str = 'all'):
     chart = _chart_from_profile(profile_id)
     moon_lon = chart.planets['Moon'].longitude
     birth_date = date.fromisoformat(chart.birth_date)
+    kp = calculate_kp_bhava_chalit(chart)
 
     mahadashas = calculate_mahadasha(birth_date, moon_lon)
 
     if level == 'mahadasha':
-        return {'mahadashas': [dasha_to_dict(md) for md in mahadashas]}
+        return {'mahadashas': _serialize_mahadasha_timeline(mahadashas)}
 
     # Find current MD and get its antardashas
     current = get_current_dasha_periods(mahadashas)
 
     result = {
         'starting_dasha': get_starting_dasha(moon_lon)[0],
-        'mahadashas': [dasha_to_dict(md) for md in mahadashas],
+        'mahadashas': _serialize_mahadasha_timeline(mahadashas),
         'current': {},
     }
 
@@ -431,6 +509,8 @@ async def api_dasha(profile_id: int, level: str = 'all'):
 
             if current['pratyantardasha']:
                 result['current']['pratyantardasha'] = dasha_to_dict(current['pratyantardasha'])
+
+    result['current_reading'] = _build_current_dasha_reading(chart, current, kp)
 
     return result
 
@@ -874,6 +954,7 @@ async def page_dasha(request: Request, profile_id: int = Query(None),
     pid = profile_id or _get_default_profile_id()
     chart = _chart_from_profile(pid)
     serial = _serialize_chart(chart)
+    kp = calculate_kp_bhava_chalit(chart)
 
     moon_lon = chart.planets['Moon'].longitude
     birth_date = date.fromisoformat(chart.birth_date)
@@ -882,7 +963,7 @@ async def page_dasha(request: Request, profile_id: int = Query(None),
 
     dasha_data = {
         'starting_dasha': get_starting_dasha(moon_lon)[0],
-        'mahadashas': [dasha_to_dict(md) for md in mds],
+        'mahadashas': _serialize_mahadasha_timeline(mds),
         'current': {},
     }
     antardashas = None
@@ -890,16 +971,18 @@ async def page_dasha(request: Request, profile_id: int = Query(None),
 
     if current['mahadasha']:
         dasha_data['current']['mahadasha'] = dasha_to_dict(current['mahadasha'])
+        if current['antardasha']:
+            dasha_data['current']['antardasha'] = dasha_to_dict(current['antardasha'])
+        if current['pratyantardasha']:
+            dasha_data['current']['pratyantardasha'] = dasha_to_dict(current['pratyantardasha'])
         if level == 'antardashas' or level == 'pratyantardashas':
             ad_list = calculate_antardasha(current['mahadasha'])
             antardashas = [dasha_to_dict(ad) for ad in ad_list]
-            if current['antardasha']:
-                dasha_data['current']['antardasha'] = dasha_to_dict(current['antardasha'])
             if level == 'pratyantardashas' and current['antardasha']:
                 pd_list = calculate_pratyantardasha(current['antardasha'], current['mahadasha'].years)
                 pratyantardashas = [dasha_to_dict(pd) for pd in pd_list]
-                if current['pratyantardasha']:
-                    dasha_data['current']['pratyantardasha'] = dasha_to_dict(current['pratyantardasha'])
+
+    current_dasha_reading = _build_current_dasha_reading(chart, current, kp)
 
     jaimini_karakas = calculate_chara_karakas(chart.planets)
     karakamsa = calculate_karakamsa(jaimini_karakas, chart.planets)
@@ -915,6 +998,7 @@ async def page_dasha(request: Request, profile_id: int = Query(None),
         "dasha": dasha_data,
         "antardashas": antardashas,
         "pratyantardashas": pratyantardashas,
+        "current_dasha_reading": current_dasha_reading,
         "chara_dasha": chara_dasha,
         "chara_dasha_text": interpret_chara_dasha(chara_dasha, karakamsa),
     })
