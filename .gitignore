@@ -2,8 +2,9 @@ __pycache__/
 *.pyc
 *.pyo
 *.db
-data/profiles.db
-data/ai_config.json
+backend/data/profiles.db
+backend/data/ai_config.json
 .env
+*firebase-adminsdk*.json
 *.egg-info/
 .DS_Store
