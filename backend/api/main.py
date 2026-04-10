@@ -775,7 +775,9 @@ async def api_transcribe(audio: UploadFile = File(...)):
 def _get_default_profile_id(owner_email: str) -> int:
     """Get first profile ID."""
     profiles = list_profiles(owner_email)
-    return profiles[0]['id'] if profiles else 1
+    if not profiles:
+        raise HTTPException(404, "No profiles found for this account")
+    return profiles[0]['id']
 
 
 @app.get("/new-profile", response_class=HTMLResponse)
@@ -833,6 +835,8 @@ async def page_dashboard(request: Request, profile_id: int = Query(None)):
     try:
         owner_email = _current_owner_email(request)
         profiles = list_profiles(owner_email)
+        if not profiles:
+            return RedirectResponse(url="/new-profile", status_code=303)
         pid = profile_id or _get_default_profile_id(owner_email)
         chart = _chart_from_profile(pid, owner_email)
         serial = _serialize_chart(chart)
@@ -905,6 +909,8 @@ async def page_dashboard(request: Request, profile_id: int = Query(None)):
 async def page_vargas(request: Request, profile_id: int = Query(None)):
     owner_email = _current_owner_email(request)
     profiles = list_profiles(owner_email)
+    if not profiles:
+        return RedirectResponse(url="/new-profile", status_code=303)
     pid = profile_id or _get_default_profile_id(owner_email)
     chart = _chart_from_profile(pid, owner_email)
     serial = _serialize_chart(chart)
@@ -942,6 +948,8 @@ async def page_dasha(request: Request, profile_id: int = Query(None),
                      level: str = Query(None)):
     owner_email = _current_owner_email(request)
     profiles = list_profiles(owner_email)
+    if not profiles:
+        return RedirectResponse(url="/new-profile", status_code=303)
     pid = profile_id or _get_default_profile_id(owner_email)
     chart = _chart_from_profile(pid, owner_email)
     serial = _serialize_chart(chart)
@@ -999,6 +1007,8 @@ async def page_dasha(request: Request, profile_id: int = Query(None),
 async def page_compatibility(request: Request, p1: int = Query(None), p2: int = Query(None)):
     owner_email = _current_owner_email(request)
     profiles = list_profiles(owner_email)
+    if not profiles:
+        return RedirectResponse(url="/new-profile", status_code=303)
     pid1 = p1 or (profiles[0]['id'] if profiles else 1)
     pid2 = p2 or (profiles[1]['id'] if len(profiles) > 1 else pid1)
 
@@ -1045,6 +1055,8 @@ async def page_compatibility(request: Request, p1: int = Query(None), p2: int = 
 async def page_analysis(request: Request, profile_id: int = Query(None)):
     owner_email = _current_owner_email(request)
     profiles = list_profiles(owner_email)
+    if not profiles:
+        return RedirectResponse(url="/new-profile", status_code=303)
     pid = profile_id or _get_default_profile_id(owner_email)
     chart = _chart_from_profile(pid, owner_email)
     serial = _serialize_chart(chart)
@@ -1093,6 +1105,8 @@ async def page_analysis(request: Request, profile_id: int = Query(None)):
 async def page_reading(request: Request, profile_id: int = Query(None)):
     owner_email = _current_owner_email(request)
     profiles = list_profiles(owner_email)
+    if not profiles:
+        return RedirectResponse(url="/new-profile", status_code=303)
     pid = profile_id or _get_default_profile_id(owner_email)
     chart = _chart_from_profile(pid, owner_email)
     serial = _serialize_chart(chart)
