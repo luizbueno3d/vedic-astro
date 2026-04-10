@@ -101,8 +101,7 @@ def _auth_cookie_value() -> str:
 
 def _is_authenticated(request: Request) -> bool:
     cookie = request.cookies.get(AUTH_COOKIE_NAME)
-    session = _session_data(request)
-    if not cookie or not session.get("user_email"):
+    if not cookie:
         return False
     return hmac.compare_digest(cookie, _auth_cookie_value())
 
