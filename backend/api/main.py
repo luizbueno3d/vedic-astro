@@ -58,13 +58,13 @@ from data.database import (
 
 app = FastAPI(title="Vedic Astro", version="1.0.0")
 
-APP_PASSWORD = os.getenv("APP_PASSWORD", "Luiz1234!")
 APP_SESSION_SECRET = os.getenv("APP_SESSION_SECRET", "vedic-astro-session-secret-change-me")
 DEFAULT_OWNER_EMAIL = os.getenv("DEFAULT_OWNER_EMAIL", "luizbueno3d@gmail.com")
 AUTH_COOKIE_NAME = "vedic_astro_auth"
 PUBLIC_PATHS = {
     "/login",
     "/api",
+    "/auth/firebase-login",
 }
 
 app.add_middleware(
@@ -96,13 +96,16 @@ def _auth_cookie_value() -> str:
 
 def _is_authenticated(request: Request) -> bool:
     cookie = request.cookies.get(AUTH_COOKIE_NAME)
-    if not cookie:
+    if not cookie or not request.session.get("user_email"):
         return False
     return hmac.compare_digest(cookie, _auth_cookie_value())
 
 
 def _current_owner_email(request: Request) -> str:
-    return request.session.get("user_email") or DEFAULT_OWNER_EMAIL
+    owner_email = request.session.get("user_email")
+    if not owner_email:
+        raise HTTPException(401, "Authentication required")
+    return owner_email
 
 
 def _current_owner_uid(request: Request) -> str | None:
@@ -203,35 +206,9 @@ async def page_login(request: Request, error: str = Query(None)):
 
 @app.post("/login")
 async def api_login(request: Request, password_form: str = Form(None)):
-    password = password_form or ""
-
-    content_type = request.headers.get("content-type", "")
-    if not password and "application/json" in content_type:
-        data = await request.json()
-        password = data.get("password", "")
-
-    if password != APP_PASSWORD:
-        if _is_html_request(request):
-            return RedirectResponse(url="/login?error=Invalid%20password", status_code=303)
-        return JSONResponse({"error": "Invalid password"}, status_code=401)
-
-    request.session["user_email"] = DEFAULT_OWNER_EMAIL
-    request.session["user_uid"] = None
     if _is_html_request(request):
-        response = RedirectResponse(url="/dashboard", status_code=303)
-    else:
-        response = JSONResponse({"success": True})
-
-    response.set_cookie(
-        AUTH_COOKIE_NAME,
-        _auth_cookie_value(),
-        httponly=True,
-        secure=True,
-        samesite="lax",
-        path="/",
-        max_age=60 * 60 * 24 * 14,
-    )
-    return response
+        return RedirectResponse(url="/login?error=Use%20Firebase%20sign-in", status_code=303)
+    return JSONResponse({"error": "Use Firebase sign-in"}, status_code=401)
 
 
 @app.post("/logout")
@@ -301,8 +278,8 @@ async def api_get_profile(request: Request, profile_id: int):
 
 
 @app.delete("/profiles/{profile_id}")
-async def api_delete_profile(profile_id: int):
-    if delete_profile(profile_id):
+async def api_delete_profile(request: Request, profile_id: int):
+    if delete_profile(profile_id, _current_owner_email(request)):
         return {"message": "Deleted"}
     raise HTTPException(404, "Profile not found")
 
@@ -316,8 +293,8 @@ def _chart_from_birth(data: BirthData):
     )
 
 
-def _chart_from_profile(profile_id: int):
-    p = get_profile(profile_id)
+def _chart_from_profile(profile_id: int, owner_email: str):
+    p = get_profile(profile_id, owner_email)
     if not p:
         raise HTTPException(404, "Profile not found")
     bdate = p['birth_date'].split('-')
@@ -449,16 +426,16 @@ async def api_chart_from_birth(data: BirthData):
 
 
 @app.get("/chart/{profile_id}")
-async def api_chart_from_profile(profile_id: int):
-    chart = _chart_from_profile(profile_id)
+async def api_chart_from_profile(request: Request, profile_id: int):
+    chart = _chart_from_profile(profile_id, _current_owner_email(request))
     return _serialize_chart(chart)
 
 
 # --- Divisional Charts ---
 
 @app.get("/vargas/{profile_id}")
-async def api_vargas(profile_id: int, varga: str = None):
-    chart = _chart_from_profile(profile_id)
+async def api_vargas(request: Request, profile_id: int, varga: str = None):
+    chart = _chart_from_profile(profile_id, _current_owner_email(request))
     all_vargas = get_varga_signs(chart)
 
     if varga:
@@ -472,8 +449,8 @@ async def api_vargas(profile_id: int, varga: str = None):
 # --- KP Bhava Chalit ---
 
 @app.get("/kp/{profile_id}")
-async def api_kp(profile_id: int):
-    chart = _chart_from_profile(profile_id)
+async def api_kp(request: Request, profile_id: int):
+    chart = _chart_from_profile(profile_id, _current_owner_email(request))
     kp = calculate_kp_bhava_chalit(chart)
     return kp_to_dict(kp)
 
@@ -481,8 +458,8 @@ async def api_kp(profile_id: int):
 # --- Dasha ---
 
 @app.get("/dasha/{profile_id}")
-async def api_dasha(profile_id: int, level: str = 'all'):
-    chart = _chart_from_profile(profile_id)
+async def api_dasha(request: Request, profile_id: int, level: str = 'all'):
+    chart = _chart_from_profile(profile_id, _current_owner_email(request))
     moon_lon = chart.planets['Moon'].longitude
     birth_date = date.fromisoformat(chart.birth_date)
     kp = calculate_kp_bhava_chalit(chart)
@@ -524,8 +501,8 @@ async def api_dasha(profile_id: int, level: str = 'all'):
 # --- Transits ---
 
 @app.get("/transits/{profile_id}")
-async def api_transits(profile_id: int, date_str: str = None):
-    chart = _chart_from_profile(profile_id)
+async def api_transits(request: Request, profile_id: int, date_str: str = None):
+    chart = _chart_from_profile(profile_id, _current_owner_email(request))
     target = date.fromisoformat(date_str) if date_str else None
     transits = calculate_transits(chart, target)
     return {name: transit_to_dict(tp) for name, tp in transits.items()}
@@ -542,9 +519,10 @@ async def api_sign_changes(planet: str, year: int = None):
 # --- Compatibility ---
 
 @app.get("/compatibility/{profile_id_1}/{profile_id_2}")
-async def api_compatibility(profile_id_1: int, profile_id_2: int):
-    chart1 = _chart_from_profile(profile_id_1)
-    chart2 = _chart_from_profile(profile_id_2)
+async def api_compatibility(request: Request, profile_id_1: int, profile_id_2: int):
+    owner_email = _current_owner_email(request)
+    chart1 = _chart_from_profile(profile_id_1, owner_email)
+    chart2 = _chart_from_profile(profile_id_2, owner_email)
 
     moon1 = chart1.planets['Moon']
     moon2 = chart2.planets['Moon']
@@ -590,8 +568,8 @@ def _moon_distance_interpretation(dist: int) -> str:
 # --- Aspects & Yogas ---
 
 @app.get("/aspects/{profile_id}")
-async def api_aspects(profile_id: int):
-    chart = _chart_from_profile(profile_id)
+async def api_aspects(request: Request, profile_id: int):
+    chart = _chart_from_profile(profile_id, _current_owner_email(request))
     conjs = find_conjunctions(chart.planets)
     asps = find_aspects(chart.planets)
     return {
@@ -601,8 +579,8 @@ async def api_aspects(profile_id: int):
 
 
 @app.get("/yogas/{profile_id}")
-async def api_yogas(profile_id: int):
-    chart = _chart_from_profile(profile_id)
+async def api_yogas(request: Request, profile_id: int):
+    chart = _chart_from_profile(profile_id, _current_owner_email(request))
     rulerships = calculate_house_rulerships(chart.ascendant.rashi_index)
     yogas = detect_all_yogas(chart.planets, rulerships)
     return {
@@ -612,16 +590,16 @@ async def api_yogas(profile_id: int):
 
 
 @app.get("/bhavat-bhavam/{profile_id}")
-async def api_bhavat_bhavam(profile_id: int):
-    chart = _chart_from_profile(profile_id)
+async def api_bhavat_bhavam(request: Request, profile_id: int):
+    chart = _chart_from_profile(profile_id, _current_owner_email(request))
     bb = get_planet_bhavat_bhavam(chart.planets, {})
     planet_bb = get_planet_house_from_house_analysis(chart.planets)
     return {'bhavat_bhavam': bb, 'planet_bhavat_bhavam': planet_bb}
 
 
 @app.get("/jaimini/{profile_id}")
-async def api_jaimini(profile_id: int):
-    chart = _chart_from_profile(profile_id)
+async def api_jaimini(request: Request, profile_id: int):
+    chart = _chart_from_profile(profile_id, _current_owner_email(request))
     karakas = calculate_chara_karakas(chart.planets)
     karakamsa = calculate_karakamsa(karakas, chart.planets)
     chara_dasha = calculate_chara_dasha(chart.planets, chart.ascendant.rashi_index, date.fromisoformat(chart.birth_date))
@@ -636,15 +614,15 @@ async def api_jaimini(profile_id: int):
 
 
 @app.get("/doshas/{profile_id}")
-async def api_doshas(profile_id: int):
-    chart = _chart_from_profile(profile_id)
+async def api_doshas(request: Request, profile_id: int):
+    chart = _chart_from_profile(profile_id, _current_owner_email(request))
     doshas = detect_all_doshas(chart.planets)
     return {'doshas': [dosha_to_dict(d) for d in doshas]}
 
 
 @app.get("/reading/{profile_id}")
-async def api_reading(profile_id: int):
-    chart = _chart_from_profile(profile_id)
+async def api_reading(request: Request, profile_id: int):
+    chart = _chart_from_profile(profile_id, _current_owner_email(request))
     rulerships = calculate_house_rulerships(chart.ascendant.rashi_index)
     moon_lon = chart.planets['Moon'].longitude
     birth_date = date.fromisoformat(chart.birth_date)
@@ -663,9 +641,9 @@ async def api_reading(profile_id: int):
 
 
 @app.get("/llm-reading/{profile_id}")
-async def api_llm_reading(profile_id: int):
+async def api_llm_reading(request: Request, profile_id: int):
     """Generate an AI-powered reading using the configured provider."""
-    chart = _chart_from_profile(profile_id)
+    chart = _chart_from_profile(profile_id, _current_owner_email(request))
     rulerships = calculate_house_rulerships(chart.ascendant.rashi_index)
     moon_lon = chart.planets['Moon'].longitude
     birth_date = date.fromisoformat(chart.birth_date)
@@ -699,7 +677,8 @@ async def api_llm_reading(profile_id: int):
 
 @app.get("/ai-settings", response_class=HTMLResponse)
 async def page_ai_settings(request: Request):
-    profiles = list_profiles()
+    owner_email = _current_owner_email(request)
+    profiles = list_profiles(owner_email)
     config = load_config()
     providers_dict = {}
     for k, v in config.items():
@@ -712,7 +691,7 @@ async def page_ai_settings(request: Request):
 
     return templates.TemplateResponse("ai_reading.html", {
         "request": request, "page": "ai_reading", "profiles": profiles,
-        "profile_id": _get_default_profile_id(),
+        "profile_id": _get_default_profile_id(owner_email),
         "is_authenticated": _is_authenticated(request),
         "providers": config,
         "providers_json": json.dumps(providers_dict),
@@ -754,8 +733,9 @@ async def api_test_provider(provider_name: str):
 
 @app.get("/basics", response_class=HTMLResponse)
 async def page_basics(request: Request, profile_id: int = Query(None)):
-    profiles = list_profiles()
-    pid = profile_id or _get_default_profile_id()
+    owner_email = _current_owner_email(request)
+    profiles = list_profiles(owner_email)
+    pid = profile_id or _get_default_profile_id(owner_email)
     return templates.TemplateResponse("basics.html", {
         "request": request,
         "page": "basics",
@@ -792,15 +772,15 @@ async def api_transcribe(audio: UploadFile = File(...)):
 
 # ===== HTML PAGE ROUTES =====
 
-def _get_default_profile_id() -> int:
+def _get_default_profile_id(owner_email: str) -> int:
     """Get first profile ID."""
-    profiles = list_profiles()
+    profiles = list_profiles(owner_email)
     return profiles[0]['id'] if profiles else 1
 
 
 @app.get("/new-profile", response_class=HTMLResponse)
 async def page_new_profile(request: Request):
-    profiles = list_profiles()
+    profiles = list_profiles(_current_owner_email(request))
     return templates.TemplateResponse("new_profile.html", {
         "request": request, "page": "new_profile", "profiles": profiles, "profile_id": None, "is_authenticated": _is_authenticated(request),
     })
@@ -808,8 +788,9 @@ async def page_new_profile(request: Request):
 
 @app.get("/edit/{profile_id}", response_class=HTMLResponse)
 async def page_edit_profile(request: Request, profile_id: int):
-    profiles = list_profiles()
-    profile = get_profile(profile_id)
+    owner_email = _current_owner_email(request)
+    profiles = list_profiles(owner_email)
+    profile = get_profile(profile_id, owner_email)
     if not profile:
         raise HTTPException(404, "Profile not found")
     return templates.TemplateResponse("edit_profile.html", {
@@ -819,10 +800,11 @@ async def page_edit_profile(request: Request, profile_id: int):
 
 
 @app.put("/profiles/{profile_id}")
-async def api_update_profile(profile_id: int, data: ProfileCreate):
+async def api_update_profile(request: Request, profile_id: int, data: ProfileCreate):
     """Update a profile's birth data."""
     updated = update_profile(
         profile_id,
+        owner_email=_current_owner_email(request),
         name=data.name, birth_date=data.birth_date, birth_time=data.birth_time,
         birth_place=data.birth_place, latitude=data.latitude, longitude=data.longitude,
         tz_offset=data.tz_offset, notes=data.notes,
@@ -849,9 +831,10 @@ def _serialize_chart_for_json(chart) -> dict:
 @app.get("/dashboard", response_class=HTMLResponse)
 async def page_dashboard(request: Request, profile_id: int = Query(None)):
     try:
-        profiles = list_profiles()
-        pid = profile_id or _get_default_profile_id()
-        chart = _chart_from_profile(pid)
+        owner_email = _current_owner_email(request)
+        profiles = list_profiles(owner_email)
+        pid = profile_id or _get_default_profile_id(owner_email)
+        chart = _chart_from_profile(pid, owner_email)
         serial = _serialize_chart(chart)
 
         # Dasha
@@ -920,9 +903,10 @@ async def page_dashboard(request: Request, profile_id: int = Query(None)):
 
 @app.get("/vargas", response_class=HTMLResponse)
 async def page_vargas(request: Request, profile_id: int = Query(None)):
-    profiles = list_profiles()
-    pid = profile_id or _get_default_profile_id()
-    chart = _chart_from_profile(pid)
+    owner_email = _current_owner_email(request)
+    profiles = list_profiles(owner_email)
+    pid = profile_id or _get_default_profile_id(owner_email)
+    chart = _chart_from_profile(pid, owner_email)
     serial = _serialize_chart(chart)
     vargas = get_varga_signs(chart)
 
@@ -956,9 +940,10 @@ async def page_vargas(request: Request, profile_id: int = Query(None)):
 @app.get("/dasha", response_class=HTMLResponse)
 async def page_dasha(request: Request, profile_id: int = Query(None),
                      level: str = Query(None)):
-    profiles = list_profiles()
-    pid = profile_id or _get_default_profile_id()
-    chart = _chart_from_profile(pid)
+    owner_email = _current_owner_email(request)
+    profiles = list_profiles(owner_email)
+    pid = profile_id or _get_default_profile_id(owner_email)
+    chart = _chart_from_profile(pid, owner_email)
     serial = _serialize_chart(chart)
     kp = calculate_kp_bhava_chalit(chart)
 
@@ -1012,7 +997,8 @@ async def page_dasha(request: Request, profile_id: int = Query(None),
 
 @app.get("/compatibility", response_class=HTMLResponse)
 async def page_compatibility(request: Request, p1: int = Query(None), p2: int = Query(None)):
-    profiles = list_profiles()
+    owner_email = _current_owner_email(request)
+    profiles = list_profiles(owner_email)
     pid1 = p1 or (profiles[0]['id'] if profiles else 1)
     pid2 = p2 or (profiles[1]['id'] if len(profiles) > 1 else pid1)
 
@@ -1021,8 +1007,8 @@ async def page_compatibility(request: Request, p1: int = Query(None), p2: int = 
     person_1 = {}
     person_2 = {}
     if p1 and p2:
-        chart1 = _chart_from_profile(pid1)
-        chart2 = _chart_from_profile(pid2)
+        chart1 = _chart_from_profile(pid1, owner_email)
+        chart2 = _chart_from_profile(pid2, owner_email)
         guna_milan = calculate_guna_milan(chart1.planets['Moon'], chart2.planets['Moon'])
         synastry = calculate_synastry(chart1, chart2)
         person_1 = {
@@ -1057,9 +1043,10 @@ async def page_compatibility(request: Request, p1: int = Query(None), p2: int = 
 
 @app.get("/analysis", response_class=HTMLResponse)
 async def page_analysis(request: Request, profile_id: int = Query(None)):
-    profiles = list_profiles()
-    pid = profile_id or _get_default_profile_id()
-    chart = _chart_from_profile(pid)
+    owner_email = _current_owner_email(request)
+    profiles = list_profiles(owner_email)
+    pid = profile_id or _get_default_profile_id(owner_email)
+    chart = _chart_from_profile(pid, owner_email)
     serial = _serialize_chart(chart)
 
     rulerships = calculate_house_rulerships(chart.ascendant.rashi_index)
@@ -1104,9 +1091,10 @@ async def page_analysis(request: Request, profile_id: int = Query(None)):
 
 @app.get("/reading", response_class=HTMLResponse)
 async def page_reading(request: Request, profile_id: int = Query(None)):
-    profiles = list_profiles()
-    pid = profile_id or _get_default_profile_id()
-    chart = _chart_from_profile(pid)
+    owner_email = _current_owner_email(request)
+    profiles = list_profiles(owner_email)
+    pid = profile_id or _get_default_profile_id(owner_email)
+    chart = _chart_from_profile(pid, owner_email)
     serial = _serialize_chart(chart)
     rulerships = calculate_house_rulerships(chart.ascendant.rashi_index)
 
