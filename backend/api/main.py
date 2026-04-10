@@ -86,6 +86,11 @@ _os.makedirs(templates_dir, exist_ok=True)
 templates = Jinja2Templates(directory=templates_dir)
 
 
+def _session_data(request: Request) -> dict:
+    session = request.scope.get("session")
+    return session if isinstance(session, dict) else {}
+
+
 def _auth_cookie_value() -> str:
     return hmac.new(
         APP_SESSION_SECRET.encode("utf-8"),
@@ -96,20 +101,21 @@ def _auth_cookie_value() -> str:
 
 def _is_authenticated(request: Request) -> bool:
     cookie = request.cookies.get(AUTH_COOKIE_NAME)
-    if not cookie or not request.session.get("user_email"):
+    session = _session_data(request)
+    if not cookie or not session.get("user_email"):
         return False
     return hmac.compare_digest(cookie, _auth_cookie_value())
 
 
 def _current_owner_email(request: Request) -> str:
-    owner_email = request.session.get("user_email")
+    owner_email = _session_data(request).get("user_email")
     if not owner_email:
         raise HTTPException(401, "Authentication required")
     return owner_email
 
 
 def _current_owner_uid(request: Request) -> str | None:
-    return request.session.get("user_uid")
+    return _session_data(request).get("user_uid")
 
 
 def _login_redirect() -> RedirectResponse:
@@ -213,7 +219,7 @@ async def api_login(request: Request, password_form: str = Form(None)):
 
 @app.post("/logout")
 async def api_logout(request: Request):
-    request.session.clear()
+    _session_data(request).clear()
     response = JSONResponse({"success": True})
     response.delete_cookie(AUTH_COOKIE_NAME, path="/")
     response.delete_cookie("vedic_astro_session", path="/")
@@ -233,8 +239,9 @@ async def api_firebase_login(request: Request):
     if not email:
         return JSONResponse({'error': 'Firebase account has no email'}, status_code=400)
 
-    request.session['user_email'] = email
-    request.session['user_uid'] = uid
+    session = _session_data(request)
+    session['user_email'] = email
+    session['user_uid'] = uid
     if uid:
         assign_owner_uid(email, uid)
     response = JSONResponse({'success': True, 'email': email})
