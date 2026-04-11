@@ -13,6 +13,8 @@ Providers:
 
 import json
 import os
+import random
+import time
 import requests
 from pathlib import Path
 from dataclasses import dataclass, asdict
@@ -35,6 +37,10 @@ class AIProvider:
     enabled: bool       # Is this provider active?
     max_tokens: int     # Max tokens for response
     temperature: float  # Creativity (0-1)
+
+
+class ProviderMessageError(Exception):
+    """Friendly provider error already formatted for the UI."""
 
 
 # Default provider configs
@@ -129,6 +135,11 @@ PROVIDER_MODELS = {
     ],
     'ollama': ['llama3.1', 'llama3.2', 'mistral', 'qwen2.5', 'phi3', 'gemma2'],
 }
+
+OPENROUTER_FALLBACK_MODELS = [
+    'google/gemma-4-31b-it:free',
+    'qwen/qwen3.6-plus:free',
+]
 
 
 def load_config(owner_email: str | None = None) -> dict:
@@ -232,6 +243,8 @@ def generate_reading(system_prompt: str, user_prompt: str, owner_email: str | No
             return _call_openai_compatible(provider, system_prompt, user_prompt)
         else:
             return _call_openai_compatible(provider, system_prompt, user_prompt)
+    except ProviderMessageError as e:
+        return str(e)
     except requests.HTTPError as e:
         return _format_http_error(provider, e)
     except Exception as e:
@@ -298,30 +311,48 @@ def _call_openai_compatible(provider: AIProvider, system: str, user: str) -> str
         headers['HTTP-Referer'] = 'https://vedic-astro.app'
         headers['X-Title'] = 'Vedic Astro'
 
-    payload = {
-        'model': provider.model,
-        'max_tokens': provider.max_tokens,
-        'temperature': provider.temperature,
-        'messages': [
-            {'role': 'system', 'content': system},
-            {'role': 'user', 'content': user},
-        ],
-    }
-
-    # MiniMax uses slightly different format
     url = f'{provider.base_url}/chat/completions'
 
-    resp = requests.post(url, headers=headers, json=payload, timeout=120)
-    resp.raise_for_status()
-    data = resp.json()
+    models_to_try = [provider.model]
+    if provider.name == 'openrouter' and provider.model.endswith(':free'):
+        models_to_try.extend([m for m in OPENROUTER_FALLBACK_MODELS if m != provider.model])
 
-    result = data['choices'][0]['message']['content']
+    attempts_log = []
+    last_error = None
+    for model_name in models_to_try:
+        payload = {
+            'model': model_name,
+            'max_tokens': provider.max_tokens,
+            'temperature': provider.temperature,
+            'messages': [
+                {'role': 'system', 'content': system},
+                {'role': 'user', 'content': user},
+            ],
+        }
+        for attempt in range(1, 4):
+            resp = requests.post(url, headers=headers, json=payload, timeout=120)
+            if resp.status_code != 429:
+                resp.raise_for_status()
+                data = resp.json()
+                result = data['choices'][0]['message']['content']
+                import re
+                result = re.sub(r'<think>.*?</think>', '', result, flags=re.DOTALL).strip()
+                return result
 
-    # Clean up: remove <think> tags (some models include reasoning)
-    import re
-    result = re.sub(r'<think>.*?</think>', '', result, flags=re.DOTALL).strip()
+            attempts_log.append(f'{model_name} attempt {attempt}')
+            last_error = requests.HTTPError(response=resp)
+            if attempt < 3:
+                time.sleep((1.5 * (2 ** (attempt - 1))) + random.uniform(0.2, 0.9))
 
-    return result
+    if last_error is not None:
+        tried = ', '.join(attempts_log) if attempts_log else provider.model
+        raise ProviderMessageError(
+            f'Error with {provider.label}: Rate limited (429).\n\n'
+            f'Tried {tried}. Free models are likely overloaded right now. '
+            f'Wait a bit and try again, or switch to a less crowded / paid model.'
+        )
+
+    raise ProviderMessageError(f'Error with {provider.label}: No model could be tried.')
 
 
 def _call_minimax(provider: AIProvider, system: str, user: str) -> str:
@@ -339,9 +370,13 @@ def _call_minimax(provider: AIProvider, system: str, user: str) -> str:
                 {'role': 'user', 'name': 'User', 'content': user},
             ],
         }
-        resp = requests.post(f'{provider.base_url}/v1/text/chatcompletion_v2', headers=headers, json=payload, timeout=120)
-        resp.raise_for_status()
-        data = resp.json()
+        data = _post_with_429_retry(
+            f'{provider.base_url}/v1/text/chatcompletion_v2',
+            headers=headers,
+            payload=payload,
+            provider_label=provider.label,
+            model_label=provider.model,
+        )
         return data['choices'][0]['message']['content'].strip()
 
     headers = {
@@ -358,14 +393,38 @@ def _call_minimax(provider: AIProvider, system: str, user: str) -> str:
             {'role': 'user', 'content': user},
         ],
     }
-    resp = requests.post(f'{provider.base_url}/anthropic/v1/messages', headers=headers, json=payload, timeout=120)
-    resp.raise_for_status()
-    data = resp.json()
+    data = _post_with_429_retry(
+        f'{provider.base_url}/anthropic/v1/messages',
+        headers=headers,
+        payload=payload,
+        provider_label=provider.label,
+        model_label=provider.model,
+    )
     parts = []
     for item in data.get('content', []):
         if item.get('type') == 'text':
             parts.append(item.get('text', ''))
     return '\n'.join(part for part in parts if part).strip()
+
+
+def _post_with_429_retry(url: str, headers: dict, payload: dict, provider_label: str, model_label: str) -> dict:
+    last_error = None
+    for attempt in range(1, 4):
+        resp = requests.post(url, headers=headers, json=payload, timeout=120)
+        if resp.status_code != 429:
+            resp.raise_for_status()
+            return resp.json()
+        last_error = requests.HTTPError(response=resp)
+        if attempt < 3:
+            time.sleep((1.5 * (2 ** (attempt - 1))) + random.uniform(0.2, 0.9))
+
+    if last_error is not None:
+        raise ProviderMessageError(
+            f'Error with {provider_label}: Rate limited (429).\n\n'
+            f'Tried {model_label} 3 times with backoff. The provider is likely overloaded right now. '
+            f'Wait a bit and try again.'
+        )
+    raise ProviderMessageError(f'Error with {provider_label}: Request failed before retry handling could complete.')
 
 
 def test_provider(name: str, owner_email: str | None = None) -> dict:
@@ -385,7 +444,8 @@ def test_provider(name: str, owner_email: str | None = None) -> dict:
     try:
         result = generate_reading(
             'You are a helpful assistant. Reply with exactly: "Connection successful!"',
-            'Test connection. Reply with: Connection successful!'
+            'Test connection. Reply with: Connection successful!',
+            owner_email,
         )
         if 'successful' in result.lower() or 'Connection' in result:
             return {'success': True, 'message': f'{provider.label} connected!', 'model': provider.model}
