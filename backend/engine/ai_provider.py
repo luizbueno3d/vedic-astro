@@ -119,6 +119,7 @@ PROVIDER_MODELS = {
     'minimax': ['MiniMax-M2.5', 'MiniMax-M2.5-highspeed', 'MiniMax-M2.7', 'MiniMax-M2.7-highspeed', 'M2-her'],
     'groq': ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768', 'gemma2-9b-it'],
     'openrouter': [
+        'google/gemma-4-31b-it:free',
         'qwen/qwen3.6-plus:free',
         'meta-llama/llama-3.1-70b-instruct',
         'meta-llama/llama-3.1-8b-instruct',
