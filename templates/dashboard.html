@@ -38,10 +38,31 @@
     background: rgba(74, 158, 255, 0.12);
 }
 .dasha-mini-timeline {
+    position: relative;
     display: flex;
     gap: 6px;
     margin: 14px 0 18px;
     flex-wrap: wrap;
+    padding-top: 18px;
+}
+.dasha-now-marker {
+    position: absolute;
+    top: 0;
+    transform: translateX(-50%);
+    font-size: 0.72em;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    pointer-events: none;
+}
+.dasha-now-marker::after {
+    content: '';
+    display: block;
+    width: 2px;
+    height: 14px;
+    margin: 3px auto 0;
+    background: linear-gradient(180deg, var(--accent), rgba(240,165,0,0.1));
 }
 .dasha-mini-segment {
     min-width: 64px;
@@ -70,6 +91,12 @@
 }
 .dasha-mini-segment.is-future {
     background: rgba(255,255,255,0.045);
+}
+.dasha-blurb {
+    margin-top: 8px;
+    color: var(--muted);
+    font-size: 0.88em;
+    line-height: 1.6;
 }
 </style>
 <h2 style="margin-bottom:4px">
@@ -154,6 +181,11 @@
                 <td>{{ dasha.current.mahadasha.start }}</td>
                 <td>{{ dasha.current.mahadasha.end }}</td>
             </tr>
+            {% if dasha.current.mahadasha_blurb %}
+            <tr>
+                <td colspan="4" class="dasha-blurb">{{ dasha.current.mahadasha_blurb }}</td>
+            </tr>
+            {% endif %}
             {% if dasha.current.antardasha %}
             <tr>
                 <td>Antardasha</td>
@@ -161,6 +193,11 @@
                 <td>{{ dasha.current.antardasha.start }}</td>
                 <td>{{ dasha.current.antardasha.end }}</td>
             </tr>
+            {% if dasha.current.antardasha_blurb %}
+            <tr>
+                <td colspan="4" class="dasha-blurb">{{ dasha.current.antardasha_blurb }}</td>
+            </tr>
+            {% endif %}
             {% endif %}
             {% if dasha.current.pratyantardasha %}
             <tr>
@@ -169,6 +206,11 @@
                 <td>{{ dasha.current.pratyantardasha.start }}</td>
                 <td>{{ dasha.current.pratyantardasha.end }}</td>
             </tr>
+            {% if dasha.current.pratyantardasha_blurb %}
+            <tr>
+                <td colspan="4" class="dasha-blurb">{{ dasha.current.pratyantardasha_blurb }}</td>
+            </tr>
+            {% endif %}
             {% endif %}
         </table>
 
@@ -190,7 +232,7 @@
                     <td><strong>{{ ad.lord }}</strong></td>
                     <td>{{ ad.start }}</td>
                     <td>{{ ad.end }}</td>
-                    <td>{{ "%.1f"|format(ad.years) }}</td>
+                    <td>{{ ad.duration_label }} <span style="color:var(--muted)">({{ "%.1f"|format(ad.years) }}y)</span></td>
                     <td>{% if ad.is_current %}<span class="current">◄ NOW</span>{% endif %}</td>
                 </tr>
                 {% endfor %}
@@ -208,7 +250,7 @@
                     <td><strong>{{ pd.lord }}</strong></td>
                     <td>{{ pd.start }}</td>
                     <td>{{ pd.end }}</td>
-                    <td>{{ "%.2f"|format(pd.years) }}</td>
+                    <td>{{ pd.duration_label }} <span style="color:var(--muted)">({{ "%.2f"|format(pd.years) }}y)</span></td>
                     <td>{% if pd.is_current %}<span class="current">◄ NOW</span>{% endif %}</td>
                 </tr>
                 {% endfor %}
@@ -223,6 +265,11 @@
         </p>
         <div class="dasha-mini-timeline">
             {% for md in dasha.mahadashas %}
+            {% if md.is_current %}
+            <div class="dasha-now-marker" style="left: calc(({{ loop.index0 }} + 0.5) * (100% / {{ dasha.mahadashas|length }}));">You are here</div>
+            {% endif %}
+            {% endfor %}
+            {% for md in dasha.mahadashas %}
             <button type="button" class="dasha-mini-segment is-{{ md.state }}" data-jump-target="dashboard-md-{{ md.index }}">
                 <strong>{{ md.lord }}</strong>
                 <small>{{ md.start[:4] }} - {{ md.end[:4] }}</small>
@@ -236,7 +283,7 @@
                 <td><strong>{{ md.lord }}</strong></td>
                 <td>{{ md.start }}</td>
                 <td>{{ md.end }}</td>
-                <td>{{ md.years }}</td>
+                <td>{{ md.duration_label }} <span style="color:var(--muted)">({{ md.years }}y)</span></td>
                 <td>{% if md.is_current %}<span class="current">◄ NOW</span>{% endif %} <span style="color:var(--muted)">▾</span></td>
             </tr>
             <tr id="dashboard-md-{{ md.index }}" class="dashboard-md-detail" {% if not md.is_current %}style="display:none"{% endif %}>
@@ -250,13 +297,14 @@
                                 <td><strong>{{ ad.lord }}</strong></td>
                                 <td>{{ ad.start }}</td>
                                 <td>{{ ad.end }}</td>
-                                <td>{{ "%.1f"|format(ad.years) }}</td>
+                                <td>{{ ad.duration_label }} <span style="color:var(--muted)">({{ "%.1f"|format(ad.years) }}y)</span></td>
                                 <td>{% if ad.is_current %}<span class="current">◄ NOW</span>{% endif %} <span style="color:var(--muted)">▾</span></td>
                             </tr>
                             <tr id="dashboard-ad-{{ md.index }}-{{ ad.index }}" class="dashboard-ad-detail" {% if not ad.is_current %}style="display:none"{% endif %}>
                                 <td colspan="5" style="padding:0">
                                     <div style="padding:12px 16px 16px 28px; background:rgba(255,255,255,0.02); border-left:2px solid rgba(74,158,255,0.25)">
                                         <div class="dasha-panel-title">Pratyantardashas inside {{ ad.lord }} Antardasha</div>
+                                        <div class="dasha-blurb">{{ ad.lord }} narrows the main {{ md.lord }} chapter into a more specific sub-period. Open this layer when you want the shorter-term tone inside that bigger phase.</div>
                                         <table style="margin:0">
                                             <tr><th>Lord</th><th>Start</th><th>End</th><th>Years</th><th></th></tr>
                                             {% for pd in ad.pratyantardashas %}
@@ -264,7 +312,7 @@
                                                 <td><strong>{{ pd.lord }}</strong></td>
                                                 <td>{{ pd.start }}</td>
                                                 <td>{{ pd.end }}</td>
-                                                <td>{{ "%.2f"|format(pd.years) }}</td>
+                                                <td>{{ pd.duration_label }} <span style="color:var(--muted)">({{ "%.2f"|format(pd.years) }}y)</span></td>
                                                 <td>{% if pd.is_current %}<span class="current">◄ NOW</span>{% endif %}</td>
                                             </tr>
                                             {% endfor %}

@@ -364,12 +364,37 @@ HOUSE_TOPICS = {
 }
 
 
+def _format_duration_label(years: float) -> str:
+    total_months = max(1, int(round(years * 12)))
+    year_part, month_part = divmod(total_months, 12)
+    bits = []
+    if year_part:
+        bits.append(f"{year_part}y")
+    if month_part:
+        bits.append(f"{month_part}m")
+    return ' '.join(bits) if bits else '<1m'
+
+
+def _period_blurb(lord: str, chart, kp, rulerships: dict[str, list[int]], level_label: str) -> str:
+    natal = chart.planets.get(lord)
+    if not natal:
+        return f'{level_label} of {lord} is active now.'
+    kp_placement = kp.planets.get(lord) if kp else None
+    kp_house = kp_placement.kp_house if kp_placement else natal.house
+    natal_topic = HOUSE_TOPICS.get(natal.house, 'its natal house topics')
+    kp_topic = HOUSE_TOPICS.get(kp_house, 'the life area where results land')
+    ruled = rulerships.get(lord, [])
+    ruled_text = f" It also rules H{', H'.join(str(h) for h in ruled)}." if ruled else ''
+    return f'{lord} starts from {natal.rashi} H{natal.house} ({natal_topic}) and tends to deliver results through BCC H{kp_house} ({kp_topic}).{ruled_text}'
+
+
 def _serialize_mahadasha_timeline(mahadashas: list) -> list[dict]:
     today_iso = date.today().isoformat()
     timeline = []
     for idx, md in enumerate(mahadashas):
         md_dict = dasha_to_dict(md)
         md_dict['index'] = idx
+        md_dict['duration_label'] = _format_duration_label(md.years)
         md_dict['state'] = 'past' if md_dict['end'] < today_iso else 'future'
         if md_dict['is_current']:
             md_dict['state'] = 'current'
@@ -378,6 +403,7 @@ def _serialize_mahadasha_timeline(mahadashas: list) -> list[dict]:
         for ad_idx, ad in enumerate(calculate_antardasha(md)):
             ad_dict = dasha_to_dict(ad)
             ad_dict['index'] = ad_idx
+            ad_dict['duration_label'] = _format_duration_label(ad.years)
             ad_dict['state'] = 'past' if ad_dict['end'] < today_iso else 'future'
             if ad_dict['is_current']:
                 ad_dict['state'] = 'current'
@@ -386,6 +412,7 @@ def _serialize_mahadasha_timeline(mahadashas: list) -> list[dict]:
             for pd_idx, pd in enumerate(calculate_pratyantardasha(ad, md.years)):
                 pd_dict = dasha_to_dict(pd)
                 pd_dict['index'] = pd_idx
+                pd_dict['duration_label'] = _format_duration_label(pd.years)
                 pd_dict['state'] = 'past' if pd_dict['end'] < today_iso else 'future'
                 if pd_dict['is_current']:
                     pd_dict['state'] = 'current'
@@ -877,6 +904,9 @@ async def page_dashboard(request: Request, profile_id: int = Query(None)):
         birth_date = date.fromisoformat(chart.birth_date)
         mds = calculate_mahadasha(birth_date, moon_lon)
         current = get_current_dasha_periods(mds)
+        kp = calculate_kp_bhava_chalit(chart)
+        kp_data = kp_to_dict(kp)
+        rulerships = calculate_house_rulerships(chart.ascendant.rashi_index)
 
         dasha_data = {
             'starting_dasha': get_starting_dasha(moon_lon)[0],
@@ -885,14 +915,20 @@ async def page_dashboard(request: Request, profile_id: int = Query(None)):
         }
         if current['mahadasha']:
             dasha_data['current']['mahadasha'] = dasha_to_dict(current['mahadasha'])
+            dasha_data['current']['mahadasha']['duration_label'] = _format_duration_label(current['mahadasha'].years)
             current_md = next((md for md in dasha_data['mahadashas'] if md['is_current']), None)
             dasha_data['current']['antardashas'] = current_md['antardashas'] if current_md else []
+            dasha_data['current']['mahadasha_blurb'] = _period_blurb(current['mahadasha'].lord, chart, kp, rulerships, 'Mahadasha')
             if current['antardasha']:
                 dasha_data['current']['antardasha'] = dasha_to_dict(current['antardasha'])
+                dasha_data['current']['antardasha']['duration_label'] = _format_duration_label(current['antardasha'].years)
                 current_ad = next((ad for ad in dasha_data['current']['antardashas'] if ad['is_current']), None)
                 dasha_data['current']['pratyantardashas'] = current_ad['pratyantardashas'] if current_ad else []
+                dasha_data['current']['antardasha_blurb'] = _period_blurb(current['antardasha'].lord, chart, kp, rulerships, 'Antardasha')
             if current['pratyantardasha']:
                 dasha_data['current']['pratyantardasha'] = dasha_to_dict(current['pratyantardasha'])
+                dasha_data['current']['pratyantardasha']['duration_label'] = _format_duration_label(current['pratyantardasha'].years)
+                dasha_data['current']['pratyantardasha_blurb'] = _period_blurb(current['pratyantardasha'].lord, chart, kp, rulerships, 'Pratyantardasha')
 
         # Transits
         transits = calculate_transits(chart)
@@ -902,14 +938,9 @@ async def page_dashboard(request: Request, profile_id: int = Query(None)):
         # Vargas
         vargas = get_varga_signs(chart)
 
-        # KP Bhava Chalit
-        kp = calculate_kp_bhava_chalit(chart)
-        kp_data = kp_to_dict(kp)
-
         # Aspects & Yogas
         conjs = find_conjunctions(chart.planets)
         asps = find_aspects(chart.planets)
-        rulerships = calculate_house_rulerships(chart.ascendant.rashi_index)
         yogas = detect_all_yogas(chart.planets, rulerships)
 
         return templates.TemplateResponse("dashboard.html", {
