@@ -137,10 +137,13 @@ PROVIDER_MODELS = {
     'kilo': [
         'openrouter/free',
         'kilo-auto/free',
+        'minimax/minimax-m2.5',
+        'qwen/qwen3.6-plus',
         'bytedance-seed/dola-seed-2.0-pro:free',
         'x-ai/grok-code-fast-1:optimized:free',
         'nvidia/nemotron-3-super-120b-a12b:free',
         'arcee-ai/trinity-large-thinking:free',
+        'z-ai/glm-5.1',
     ],
     'openrouter': [
         'google/gemma-4-31b-it:free',
