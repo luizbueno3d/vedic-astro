@@ -95,6 +95,16 @@ DEFAULT_PROVIDERS = {
         max_tokens=8000,
         temperature=0.7,
     ),
+    'kilo': AIProvider(
+        name='kilo',
+        label='Kilo Gateway',
+        api_key='',
+        model='openrouter/free',
+        base_url='https://api.kilo.ai/api/gateway',
+        enabled=False,
+        max_tokens=8000,
+        temperature=0.7,
+    ),
     'openrouter': AIProvider(
         name='openrouter',
         label='OpenRouter',
@@ -124,6 +134,14 @@ PROVIDER_MODELS = {
     'anthropic': ['claude-sonnet-4-20250514', 'claude-haiku-3.5-20241022', 'claude-opus-4-20250514'],
     'minimax': ['MiniMax-M2.5', 'MiniMax-M2.5-highspeed', 'MiniMax-M2.7', 'MiniMax-M2.7-highspeed', 'M2-her'],
     'groq': ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768', 'gemma2-9b-it'],
+    'kilo': [
+        'openrouter/free',
+        'kilo-auto/free',
+        'bytedance-seed/dola-seed-2.0-pro:free',
+        'x-ai/grok-code-fast-1:optimized:free',
+        'nvidia/nemotron-3-super-120b-a12b:free',
+        'arcee-ai/trinity-large-thinking:free',
+    ],
     'openrouter': [
         'google/gemma-4-31b-it:free',
         'qwen/qwen3.6-plus:free',
@@ -239,7 +257,7 @@ def generate_reading(system_prompt: str, user_prompt: str, owner_email: str | No
             return _call_anthropic(provider, system_prompt, user_prompt)
         elif provider.name == 'minimax':
             return _call_minimax(provider, system_prompt, user_prompt)
-        elif provider.name in ('openai', 'openai_oauth', 'groq', 'openrouter', 'ollama', 'minimax'):
+        elif provider.name in ('openai', 'openai_oauth', 'groq', 'kilo', 'openrouter', 'ollama', 'minimax'):
             return _call_openai_compatible(provider, system_prompt, user_prompt)
         else:
             return _call_openai_compatible(provider, system_prompt, user_prompt)
@@ -438,7 +456,7 @@ def test_provider(name: str, owner_email: str | None = None) -> dict:
         return {'success': False, 'message': f'Provider {name} not found'}
 
     provider = config[name]
-    if not provider.api_key and name not in ('ollama', 'openai_oauth'):
+    if not provider.api_key and name not in ('ollama', 'openai_oauth', 'kilo'):
         return {'success': False, 'message': 'No API key set'}
 
     try:
