@@ -74,7 +74,7 @@ DEFAULT_PROVIDERS = {
         label='MiniMax',
         api_key='',
         model='MiniMax-M2.5',
-        base_url='https://api.minimax.chat/v1',
+        base_url='https://api.minimax.io',
         enabled=False,
         max_tokens=8000,
         temperature=0.7,
@@ -116,7 +116,7 @@ PROVIDER_MODELS = {
     'openai': ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo'],
     'openai_oauth': ['gpt-5.4', 'gpt-5.4-mini', 'gpt-5.3-codex', 'gpt-4o', 'gpt-4o-mini'],
     'anthropic': ['claude-sonnet-4-20250514', 'claude-haiku-3.5-20241022', 'claude-opus-4-20250514'],
-    'minimax': ['MiniMax-M2.5', 'MiniMax-M2.7', 'abab6.5s-chat'],
+    'minimax': ['MiniMax-M2.5', 'MiniMax-M2.5-highspeed', 'MiniMax-M2.7', 'MiniMax-M2.7-highspeed', 'M2-her'],
     'groq': ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768', 'gemma2-9b-it'],
     'openrouter': [
         'qwen/qwen3.6-plus:free',
@@ -225,6 +225,8 @@ def generate_reading(system_prompt: str, user_prompt: str, owner_email: str | No
     try:
         if provider.name == 'anthropic':
             return _call_anthropic(provider, system_prompt, user_prompt)
+        elif provider.name == 'minimax':
+            return _call_minimax(provider, system_prompt, user_prompt)
         elif provider.name in ('openai', 'openai_oauth', 'groq', 'openrouter', 'ollama', 'minimax'):
             return _call_openai_compatible(provider, system_prompt, user_prompt)
         else:
@@ -287,9 +289,7 @@ def _call_openai_compatible(provider: AIProvider, system: str, user: str) -> str
     }
 
     # Auth header varies by provider
-    if provider.name == 'minimax':
-        headers['Authorization'] = f'Bearer {provider.api_key}'
-    elif provider.api_key:
+    if provider.api_key:
         headers['Authorization'] = f'Bearer {provider.api_key}'
 
     # OpenRouter needs extra headers
@@ -308,11 +308,7 @@ def _call_openai_compatible(provider: AIProvider, system: str, user: str) -> str
     }
 
     # MiniMax uses slightly different format
-    if provider.name == 'minimax':
-        payload['model'] = provider.model
-        url = f'{provider.base_url}/chat/completions'
-    else:
-        url = f'{provider.base_url}/chat/completions'
+    url = f'{provider.base_url}/chat/completions'
 
     resp = requests.post(url, headers=headers, json=payload, timeout=120)
     resp.raise_for_status()
@@ -325,6 +321,50 @@ def _call_openai_compatible(provider: AIProvider, system: str, user: str) -> str
     result = re.sub(r'<think>.*?</think>', '', result, flags=re.DOTALL).strip()
 
     return result
+
+
+def _call_minimax(provider: AIProvider, system: str, user: str) -> str:
+    if provider.model == 'M2-her':
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': f'Bearer {provider.api_key}',
+        }
+        payload = {
+            'model': provider.model,
+            'temperature': provider.temperature,
+            'max_completion_tokens': min(provider.max_tokens, 2048),
+            'messages': [
+                {'role': 'system', 'name': 'Vedic Astro', 'content': system},
+                {'role': 'user', 'name': 'User', 'content': user},
+            ],
+        }
+        resp = requests.post(f'{provider.base_url}/v1/text/chatcompletion_v2', headers=headers, json=payload, timeout=120)
+        resp.raise_for_status()
+        data = resp.json()
+        return data['choices'][0]['message']['content'].strip()
+
+    headers = {
+        'Content-Type': 'application/json',
+        'x-api-key': provider.api_key,
+        'anthropic-version': '2023-06-01',
+    }
+    payload = {
+        'model': provider.model,
+        'max_tokens': min(provider.max_tokens, 4096),
+        'temperature': max(0.01, min(provider.temperature, 1.0)),
+        'system': system,
+        'messages': [
+            {'role': 'user', 'content': user},
+        ],
+    }
+    resp = requests.post(f'{provider.base_url}/anthropic/v1/messages', headers=headers, json=payload, timeout=120)
+    resp.raise_for_status()
+    data = resp.json()
+    parts = []
+    for item in data.get('content', []):
+        if item.get('type') == 'text':
+            parts.append(item.get('text', ''))
+    return '\n'.join(part for part in parts if part).strip()
 
 
 def test_provider(name: str, owner_email: str | None = None) -> dict:
