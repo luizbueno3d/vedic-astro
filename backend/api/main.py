@@ -44,7 +44,7 @@ from engine.synthesis import synthesize
 from engine.llm_reading import generate_llm_reading
 from engine.ai_provider import (
     load_config, save_config, get_active_provider, update_provider,
-    test_provider, PROVIDER_MODELS,
+    test_provider, generate_reading as ai_generate_reply, PROVIDER_MODELS,
     DEFAULT_PROVIDERS, AIProvider
 )
 from engine.geocoding import geocode, search_places
@@ -127,6 +127,33 @@ def _login_redirect() -> RedirectResponse:
 def _is_html_request(request: Request) -> bool:
     accept = request.headers.get("accept", "")
     return "text/html" in accept
+
+
+def _ai_template_state(owner_email: str) -> dict:
+    provider = get_active_provider(owner_email)
+    return {
+        "active_ai_enabled": bool(provider),
+        "active_ai_provider_label": provider.label if provider else "",
+    }
+
+
+def _build_ai_chat_prompt(page: str, chart, question: str, extra: str = "") -> tuple[str, str]:
+    moon = chart.planets['Moon']
+    system = (
+        "You are a concise, insightful Vedic astrology guide inside a private astrology app. "
+        "Answer the user's question using the supplied chart context and the current page context. "
+        "Be specific, practical, and pedagogical. If a page-specific layer is secondary, say so. "
+        "Do not invent facts not present in the supplied data. Keep replies to 2-6 short paragraphs."
+    )
+    user = f"""Page: {page}
+Profile: {chart.name}
+Ascendant: {chart.ascendant.rashi}
+Moon: {moon.rashi} in {moon.nakshatra} pada {moon.pada}
+
+{extra.strip()}
+
+Question: {question}"""
+    return system, user
 
 
 @app.middleware("http")
@@ -701,7 +728,8 @@ async def api_reading(request: Request, profile_id: int):
 @app.get("/llm-reading/{profile_id}")
 async def api_llm_reading(request: Request, profile_id: int):
     """Generate an AI-powered reading using the configured provider."""
-    chart = _chart_from_profile(profile_id, _current_owner_email(request))
+    owner_email = _current_owner_email(request)
+    chart = _chart_from_profile(profile_id, owner_email)
     rulerships = calculate_house_rulerships(chart.ascendant.rashi_index)
     moon_lon = chart.planets['Moon'].longitude
     birth_date = date.fromisoformat(chart.birth_date)
@@ -721,28 +749,86 @@ async def api_llm_reading(request: Request, profile_id: int):
     transits = calculate_transits(chart)
     transits_data = {k: transit_to_dict(v) for k, v in transits.items()}
 
-    provider = get_active_provider()
+    provider = get_active_provider(owner_email)
     provider_name = provider.label if provider else 'none'
 
     llm_text = generate_llm_reading(
         chart, rulerships, yogas, doshas, sb, sav,
         dasha_data, transits_data, vargas,
         [conjunction_to_dict(c) for c in conjs], [aspect_to_dict(a) for a in asps],
+        owner_email=owner_email,
     )
 
     return {'reading': llm_text, 'provider': provider_name}
+
+
+@app.post("/ai-chat")
+async def api_ai_chat(request: Request):
+    owner_email = _current_owner_email(request)
+    payload = await request.json()
+    question = (payload.get('question') or '').strip()
+    page = (payload.get('page') or 'dashboard').strip()
+    profile_id = int(payload.get('profile_id') or payload.get('p1') or 0)
+    p1 = payload.get('p1')
+    p2 = payload.get('p2')
+
+    provider = get_active_provider(owner_email)
+    if not provider:
+        return JSONResponse({
+            'error': 'No AI model selected. Go to AI Interpretations, choose a provider/model, add your API key, and save it first.'
+        }, status_code=400)
+
+    if not question:
+        return JSONResponse({'error': 'Ask a question first.'}, status_code=400)
+
+    if not profile_id:
+        return JSONResponse({'error': 'Choose a profile first.'}, status_code=400)
+
+    chart = _chart_from_profile(profile_id, owner_email)
+    extra = []
+    if page in ('dashboard', 'dasha'):
+        moon_lon = chart.planets['Moon'].longitude
+        birth_date = date.fromisoformat(chart.birth_date)
+        mds = calculate_mahadasha(birth_date, moon_lon)
+        current = get_current_dasha_periods(mds)
+        if current.get('mahadasha'):
+            extra.append(f"Current Mahadasha: {current['mahadasha'].lord} ({current['mahadasha'].start} to {current['mahadasha'].end})")
+        if current.get('antardasha'):
+            extra.append(f"Current Antardasha: {current['antardasha'].lord} ({current['antardasha'].start} to {current['antardasha'].end})")
+        if current.get('pratyantardasha'):
+            extra.append(f"Current Pratyantardasha: {current['pratyantardasha'].lord} ({current['pratyantardasha'].start} to {current['pratyantardasha'].end})")
+    if page in ('dashboard', 'analysis'):
+        rulerships = calculate_house_rulerships(chart.ascendant.rashi_index)
+        yogas = detect_all_yogas(chart.planets, rulerships)
+        doshas = detect_all_doshas(chart.planets)
+        extra.append(f"Yogas found: {', '.join(y.name for y in yogas[:6]) if yogas else 'none major'}")
+        extra.append(f"Doshas found: {', '.join(d.name for d in doshas[:4]) if doshas else 'none major'}")
+    if page == 'vargas':
+        vargas = get_varga_signs(chart)
+        extra.append(f"D9 Asc: {vargas.get('D9', {}).get('signs', {}).get('Asc', '?')}")
+        extra.append(f"D10 Asc: {vargas.get('D10', {}).get('signs', {}).get('Asc', '?')}")
+    if page == 'compatibility' and p1 and p2:
+        chart1 = _chart_from_profile(int(p1), owner_email)
+        chart2 = _chart_from_profile(int(p2), owner_email)
+        guna = calculate_guna_milan(chart1.planets['Moon'], chart2.planets['Moon'])
+        extra.append(f"Compatibility pair: {chart1.name} + {chart2.name}")
+        extra.append(f"Guna Milan total: {guna.get('total_score', 'unknown')}")
+
+    system_prompt, user_prompt = _build_ai_chat_prompt(page, chart, question, '\n'.join(extra))
+    answer = ai_generate_reply(system_prompt, user_prompt, owner_email=owner_email)
+    return {'answer': answer, 'provider': provider.label}
 
 
 @app.get("/ai-settings", response_class=HTMLResponse)
 async def page_ai_settings(request: Request):
     owner_email = _current_owner_email(request)
     profiles = list_profiles(owner_email)
-    config = load_config()
+    config = load_config(owner_email)
     providers_dict = {}
     for k, v in config.items():
         if isinstance(v, AIProvider):
             providers_dict[k] = {
-                'name': v.name, 'label': v.label, 'api_key': v.api_key[:8] + '...' if v.api_key else '',
+                'name': v.name, 'label': v.label, 'api_key': '', 'has_api_key': bool(v.api_key),
                 'model': v.model, 'base_url': v.base_url, 'enabled': v.enabled,
                 'max_tokens': v.max_tokens, 'temperature': v.temperature,
             }
@@ -754,11 +840,13 @@ async def page_ai_settings(request: Request):
         "providers": config,
         "providers_json": json.dumps(providers_dict),
         "provider_models_json": json.dumps(PROVIDER_MODELS),
+        **_ai_template_state(owner_email),
     })
 
 
 @app.post("/ai-settings")
 async def api_update_ai_settings(request: Request):
+    owner_email = _current_owner_email(request)
     data = await request.json()
     provider = data.get('provider')
     model = data.get('model')
@@ -766,7 +854,7 @@ async def api_update_ai_settings(request: Request):
     enabled = data.get('enabled', False)
 
     # Disable all providers first
-    config = load_config()
+    config = load_config(owner_email)
     for k in config:
         if isinstance(config[k], AIProvider):
             config[k].enabled = False
@@ -777,15 +865,15 @@ async def api_update_ai_settings(request: Request):
         if api_key:
             config[provider].api_key = api_key
         config[provider].enabled = enabled
-        save_config(config)
+        save_config(config, owner_email)
         return {'message': f'{config[provider].label} configured and enabled!', 'success': True}
 
     return {'message': 'Provider not found', 'success': False}
 
 
 @app.get("/ai-test/{provider_name}")
-async def api_test_provider(provider_name: str):
-    result = test_provider(provider_name)
+async def api_test_provider(request: Request, provider_name: str):
+    result = test_provider(provider_name, _current_owner_email(request))
     return result
 
 
@@ -800,6 +888,7 @@ async def page_basics(request: Request, profile_id: int = Query(None)):
         "profiles": profiles,
         "profile_id": pid,
         "is_authenticated": _is_authenticated(request),
+        **_ai_template_state(owner_email),
     })
 
 
@@ -840,9 +929,11 @@ def _get_default_profile_id(owner_email: str) -> int:
 
 @app.get("/new-profile", response_class=HTMLResponse)
 async def page_new_profile(request: Request):
-    profiles = list_profiles(_current_owner_email(request))
+    owner_email = _current_owner_email(request)
+    profiles = list_profiles(owner_email)
     return templates.TemplateResponse("new_profile.html", {
         "request": request, "page": "new_profile", "profiles": profiles, "profile_id": None, "is_authenticated": _is_authenticated(request),
+        **_ai_template_state(owner_email),
     })
 
 
@@ -856,6 +947,7 @@ async def page_edit_profile(request: Request, profile_id: int):
     return templates.TemplateResponse("edit_profile.html", {
         "request": request, "page": "edit_profile", "profiles": profiles,
         "profile_id": profile_id, "profile": profile, "is_authenticated": _is_authenticated(request),
+        **_ai_template_state(owner_email),
     })
 
 
@@ -965,6 +1057,7 @@ async def page_dashboard(request: Request, profile_id: int = Query(None)):
                 'rashi_index': chart.ascendant.rashi_index,
             }),
             "planets_json": json.dumps(_serialize_chart_for_json(chart)),
+            **_ai_template_state(owner_email),
         })
     except Exception as e:
         import traceback
@@ -1006,6 +1099,7 @@ async def page_vargas(request: Request, profile_id: int = Query(None)):
         "core_vargas": core_vargas,
         "topic_vargas": topic_vargas,
         "hidden_vargas": hidden_vargas,
+        **_ai_template_state(owner_email),
     })
 
 
@@ -1066,6 +1160,7 @@ async def page_dasha(request: Request, profile_id: int = Query(None),
         "current_dasha_reading": current_dasha_reading,
         "chara_dasha": chara_dasha,
         "chara_dasha_text": interpret_chara_dasha(chara_dasha, karakamsa),
+        **_ai_template_state(owner_email),
     })
 
 
@@ -1114,6 +1209,7 @@ async def page_compatibility(request: Request, p1: int = Query(None), p2: int = 
         "synastry": synastry,
         "person_1": person_1,
         "person_2": person_2,
+        **_ai_template_state(owner_email),
     })
 
 
@@ -1164,6 +1260,7 @@ async def page_analysis(request: Request, profile_id: int = Query(None)):
         "karakamsa": karakamsa,
         "karakamsa_text": interpret_karakamsa(karakamsa),
         "jaimini_sign_aspects": jaimini_sign_aspects,
+        **_ai_template_state(owner_email),
     })
 
 
@@ -1211,6 +1308,7 @@ async def page_reading(request: Request, profile_id: int = Query(None)):
         "request": request, "page": "reading", "profiles": profiles, "is_authenticated": _is_authenticated(request),
         "profile_id": pid, "chart": serial,
         "synthesis": synthesis,
+        **_ai_template_state(owner_email),
     })
 
 

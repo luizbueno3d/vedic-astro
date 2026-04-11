@@ -212,8 +212,79 @@
             line-height: 1.55;
             display: block;
         }
+        .ai-dock {
+            position: fixed;
+            right: 18px;
+            bottom: 18px;
+            width: min(360px, calc(100vw - 24px));
+            z-index: 40;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.35);
+        }
+        .ai-dock h4 {
+            color: var(--accent);
+            font-size: 0.95em;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+        .ai-dock textarea {
+            width: 100%;
+            min-height: 78px;
+            resize: vertical;
+            background: var(--bg);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 12px;
+            font: inherit;
+        }
+        .ai-dock-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+            align-items: center;
+        }
+        .ai-dock button, .ai-dock a {
+            border-radius: 999px;
+            padding: 8px 12px;
+            font-size: 0.84em;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .ai-dock-primary {
+            border: none;
+            background: var(--blue);
+            color: white;
+            font-weight: 600;
+        }
+        .ai-dock-secondary {
+            border: 1px solid var(--border);
+            color: var(--muted);
+            background: transparent;
+        }
+        .ai-dock-status {
+            color: var(--muted);
+            font-size: 0.8em;
+            margin-top: 8px;
+        }
+        .ai-dock-result {
+            margin-top: 10px;
+            max-height: 220px;
+            overflow: auto;
+            white-space: pre-wrap;
+            line-height: 1.65;
+            font-size: 0.9em;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255,255,255,0.06);
+        }
         @media (max-width: 768px) {
             .grid-2, .grid-3 { grid-template-columns: 1fr; }
+            .ai-dock {
+                right: 12px;
+                left: 12px;
+                width: auto;
+                bottom: 12px;
+            }
         }
     </style>
 </head>
@@ -241,6 +312,21 @@
     <div class="container">
         {% block content %}{% endblock %}
     </div>
+    {% if is_authenticated and page in ['dashboard', 'dasha', 'analysis', 'vargas', 'reading', 'compatibility', 'basics'] %}
+    <div class="card ai-dock">
+        <h4>Ask AI{% if active_ai_provider_label | default('') %} - {{ active_ai_provider_label }}{% endif %}</h4>
+        <div class="subtitle" style="margin-bottom:10px">Ask about this page, this chart, or the current timing layer.</div>
+        <textarea id="aiDockQuestion" placeholder="Ask about the current dasha, D1 promise, KP/BCC, transits, divisional charts, compatibility..."></textarea>
+        <div class="ai-dock-actions">
+            <button class="ai-dock-primary" id="aiDockSend" onclick="askPageAI()">Ask</button>
+            <a class="ai-dock-secondary" href="/ai-settings">AI Settings</a>
+        </div>
+        <div class="ai-dock-status" id="aiDockStatus">
+            {% if active_ai_enabled | default(false) %}Ready. Using {{ active_ai_provider_label }}.{% else %}No model selected yet. Open AI Settings and save one.{% endif %}
+        </div>
+        <div class="ai-dock-result" id="aiDockResult" style="display:none"></div>
+    </div>
+    {% endif %}
     <script>
         async function logoutApp() {
             await fetch('/logout', {method: 'POST'});
@@ -250,6 +336,57 @@
         function switchProfile(id) {
             const path = window.location.pathname;
             window.location.href = path + '?profile_id=' + id;
+        }
+
+        async function askPageAI() {
+            const questionEl = document.getElementById('aiDockQuestion');
+            const statusEl = document.getElementById('aiDockStatus');
+            const resultEl = document.getElementById('aiDockResult');
+            const btn = document.getElementById('aiDockSend');
+            if (!questionEl || !statusEl || !resultEl || !btn) return;
+
+            const question = questionEl.value.trim();
+            if (!question) {
+                statusEl.textContent = 'Ask something first.';
+                return;
+            }
+
+            btn.disabled = true;
+            statusEl.textContent = 'Thinking...';
+            resultEl.style.display = 'none';
+
+            const params = new URLSearchParams(window.location.search);
+            const profileSelect = document.getElementById('profileSelect');
+            const profileId = params.get('profile_id') || (profileSelect ? profileSelect.value : '{{ profile_id | default(0) }}');
+
+            try {
+                const resp = await fetch('/ai-chat', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        page: '{{ page | default("dashboard") }}',
+                        profile_id: profileId,
+                        p1: params.get('p1'),
+                        p2: params.get('p2'),
+                        question,
+                    }),
+                });
+                const data = await resp.json();
+                if (!resp.ok) {
+                    statusEl.textContent = data.error || 'Could not get AI response.';
+                    if ((data.error || '').includes('No AI model selected')) {
+                        alert(data.error + ' Go to AI Interpretations to configure it.');
+                    }
+                    return;
+                }
+                resultEl.textContent = data.answer || 'No answer returned.';
+                resultEl.style.display = 'block';
+                statusEl.textContent = 'Answered via ' + (data.provider || 'AI');
+            } catch (err) {
+                statusEl.textContent = 'Error: ' + err.message;
+            } finally {
+                btn.disabled = false;
+            }
         }
     </script>
     {% block scripts %}{% endblock %}

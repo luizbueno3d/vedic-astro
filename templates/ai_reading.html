@@ -20,7 +20,7 @@
 <!-- Provider Selection -->
 <div class="card" style="margin-bottom:20px">
     <h3>AI Provider</h3>
-    <p class="subtitle">Choose one provider to enable. Your API key is stored locally.</p>
+    <p class="subtitle">Choose one provider to enable. Your API key is saved to your account for next time you log in.</p>
 
     <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:12px; margin-top:12px">
         {% for provider_id, provider in providers.items() %}
@@ -73,7 +73,7 @@
         <input type="password" id="apiKey" placeholder="sk-..."
             style="width:100%; background:var(--bg); color:var(--text); border:1px solid var(--border); padding:10px; border-radius:4px; font-size:1em">
         <div style="color:var(--muted); font-size:0.8em; margin-top:4px">
-            Stored locally in <code>data/ai_config.json</code>. Never leaves your machine.
+            Saved for your signed-in account so it comes back next time you log in.
         </div>
     </div>
 
@@ -183,7 +183,8 @@ function loadProviderSettings(id) {
     // Load saved settings
     const p = PROVIDERS[id];
     if (p) {
-        document.getElementById('apiKey').value = p.api_key || '';
+        document.getElementById('apiKey').value = '';
+        document.getElementById('apiKey').placeholder = p.has_api_key ? 'Saved for this account - enter a new key only to replace it' : 'sk-...';
         if (p.model && models.includes(p.model)) {
             select.value = p.model;
         }

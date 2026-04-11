@@ -1,5 +1,6 @@
 """SQLite database for storing birth profiles."""
 
+import json
 import sqlite3
 import os
 from pathlib import Path
@@ -26,6 +27,13 @@ def init_db():
             tz_offset REAL DEFAULT -3.0,
             notes TEXT,
             created_at TEXT DEFAULT (datetime('now')),
+            updated_at TEXT DEFAULT (datetime('now'))
+        )
+    ''')
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS user_ai_settings (
+            owner_email TEXT PRIMARY KEY,
+            config_json TEXT NOT NULL,
             updated_at TEXT DEFAULT (datetime('now'))
         )
     ''')
@@ -126,6 +134,37 @@ def assign_owner_uid(owner_email: str, owner_uid: str) -> int:
     count = cursor.rowcount
     conn.close()
     return count
+
+
+def load_user_ai_settings(owner_email: str) -> dict | None:
+    conn = get_connection()
+    row = conn.execute(
+        'SELECT config_json FROM user_ai_settings WHERE owner_email = ?',
+        (owner_email,),
+    ).fetchone()
+    conn.close()
+    if not row:
+        return None
+    try:
+        return json.loads(row['config_json'])
+    except Exception:
+        return None
+
+
+def save_user_ai_settings(owner_email: str, config: dict):
+    conn = get_connection()
+    conn.execute(
+        '''
+        INSERT INTO user_ai_settings (owner_email, config_json, updated_at)
+        VALUES (?, ?, datetime('now'))
+        ON CONFLICT(owner_email) DO UPDATE SET
+            config_json = excluded.config_json,
+            updated_at = datetime('now')
+        ''',
+        (owner_email, json.dumps(config)),
+    )
+    conn.commit()
+    conn.close()
 
 
 def seed_default_profiles():

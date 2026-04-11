@@ -17,6 +17,11 @@ import requests
 from pathlib import Path
 from dataclasses import dataclass, asdict
 
+try:
+    from data.database import load_user_ai_settings, save_user_ai_settings
+except ImportError:
+    from ..data.database import load_user_ai_settings, save_user_ai_settings
+
 CONFIG_PATH = Path(__file__).parent.parent / 'data' / 'ai_config.json'
 
 
@@ -125,8 +130,20 @@ PROVIDER_MODELS = {
 }
 
 
-def load_config() -> dict:
+def load_config(owner_email: str | None = None) -> dict:
     """Load AI provider configuration."""
+    if owner_email:
+        data = load_user_ai_settings(owner_email)
+        if data:
+            result = {k: v for k, v in DEFAULT_PROVIDERS.items()}
+            for k, v in data.items():
+                if isinstance(v, dict):
+                    result[k] = AIProvider(**v)
+                else:
+                    result[k] = v
+            _upgrade_provider_limits(result)
+            return result
+
     if CONFIG_PATH.exists():
         with open(CONFIG_PATH, 'r') as f:
             data = json.load(f)
@@ -153,39 +170,44 @@ def _upgrade_provider_limits(config: dict):
             provider.max_tokens = 8000
 
 
-def save_config(config: dict):
+def save_config(config: dict, owner_email: str | None = None):
     """Save AI provider configuration."""
-    CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
     data = {}
     for k, v in config.items():
         if isinstance(v, AIProvider):
             data[k] = asdict(v)
         else:
             data[k] = v
+
+    if owner_email:
+        save_user_ai_settings(owner_email, data)
+        return
+
+    CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
     with open(CONFIG_PATH, 'w') as f:
         json.dump(data, f, indent=2)
 
 
-def get_active_provider() -> AIProvider | None:
+def get_active_provider(owner_email: str | None = None) -> AIProvider | None:
     """Get the currently active (enabled) provider."""
-    config = load_config()
+    config = load_config(owner_email)
     for provider in config.values():
         if isinstance(provider, AIProvider) and provider.enabled:
             return provider
     return None
 
 
-def update_provider(name: str, **kwargs):
+def update_provider(name: str, owner_email: str | None = None, **kwargs):
     """Update a provider's settings."""
-    config = load_config()
+    config = load_config(owner_email)
     if name in config and isinstance(config[name], AIProvider):
         for key, value in kwargs.items():
             if hasattr(config[name], key):
                 setattr(config[name], key, value)
-        save_config(config)
+        save_config(config, owner_email)
 
 
-def generate_reading(system_prompt: str, user_prompt: str) -> str:
+def generate_reading(system_prompt: str, user_prompt: str, owner_email: str | None = None) -> str:
     """Generate a reading using the active AI provider.
 
     Args:
@@ -195,7 +217,7 @@ def generate_reading(system_prompt: str, user_prompt: str) -> str:
     Returns:
         Generated reading text
     """
-    provider = get_active_provider()
+    provider = get_active_provider(owner_email)
 
     if not provider:
         return _no_provider_message()
@@ -305,13 +327,13 @@ def _call_openai_compatible(provider: AIProvider, system: str, user: str) -> str
     return result
 
 
-def test_provider(name: str) -> dict:
+def test_provider(name: str, owner_email: str | None = None) -> dict:
     """Test if a provider is working.
 
     Returns:
         dict with 'success', 'message', 'model' keys
     """
-    config = load_config()
+    config = load_config(owner_email)
     if name not in config:
         return {'success': False, 'message': f'Provider {name} not found'}
 

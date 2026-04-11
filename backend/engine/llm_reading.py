@@ -458,16 +458,16 @@ def build_chart_context(chart, rulerships, yogas, doshas, shadbala,
     return '\n'.join(lines)
 
 
-def _run_stage(system_prompt: str, user_prompt: str) -> str:
+def _run_stage(system_prompt: str, user_prompt: str, owner_email: str | None = None) -> str:
     full_system_prompt = f"{FACT_GUARDRAILS}\n\n{system_prompt}"
-    result = ai_generate_reading(full_system_prompt, user_prompt)
+    result = ai_generate_reading(full_system_prompt, user_prompt, owner_email=owner_email)
     return result.strip()
 
 
 def generate_llm_reading(chart, rulerships, yogas, doshas, shadbala,
                          ashtakavarga, dasha_data, transits, vargas,
                          conjunctions, aspects,
-                         provider: str = 'active') -> str:
+                         provider: str = 'active', owner_email: str | None = None) -> str:
     """Generate a staged AI reading with BCC-aware dasha interpretation."""
     kp_data = calculate_kp_bhava_chalit(chart)
     context = build_chart_context(
@@ -476,12 +476,12 @@ def generate_llm_reading(chart, rulerships, yogas, doshas, shadbala,
         conjunctions, aspects, kp_data=kp_data,
     )
 
-    active_provider = get_active_provider()
+    active_provider = get_active_provider(owner_email)
     if provider == 'active' and not active_provider:
         return _fallback_reading(chart, yogas, doshas, dasha_data, kp_data)
 
     if active_provider and _should_use_single_pass(active_provider):
-        return _generate_single_pass_reading(context)
+        return _generate_single_pass_reading(context, owner_email)
 
     stage_one = _run_stage(
         """You are a senior Vedic astrologer. Produce analyst notes, not the final reading.
@@ -503,6 +503,7 @@ Rules:
         f"""Study this chart context and extract the deepest identity-level notes.
 
 {context}""",
+        owner_email,
     )
 
     stage_two = _run_stage(
@@ -526,6 +527,7 @@ Rules:
         f"""Analyze this chart with special emphasis on BCC/KP shifts and dasha activation.
 
 {context}""",
+        owner_email,
     )
 
     stage_three = _run_stage(
@@ -548,6 +550,7 @@ Rules:
         f"""Extract predictive and practical timing notes from this chart context.
 
 {context}""",
+        owner_email,
     )
 
     return _run_stage(
@@ -599,6 +602,7 @@ BCC / KP NOTES
 
         TIMING NOTES
 {stage_three}""",
+        owner_email,
     )
 
 
@@ -610,7 +614,7 @@ def _should_use_single_pass(provider) -> bool:
     return False
 
 
-def _generate_single_pass_reading(context: str) -> str:
+def _generate_single_pass_reading(context: str, owner_email: str | None = None) -> str:
     """Use one call for rate-limited/free providers."""
     return _run_stage(
         f"""You are an expert Vedic astrologer writing a long-form premium reading.
@@ -642,6 +646,7 @@ Writing requirements:
         f"""Write the final reading from this chart context.
 
 {context}""",
+        owner_email,
     )
 
 
