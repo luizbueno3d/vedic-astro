@@ -855,13 +855,17 @@ async def page_dashboard(request: Request, profile_id: int = Query(None)):
 
         dasha_data = {
             'starting_dasha': get_starting_dasha(moon_lon)[0],
-            'mahadashas': [dasha_to_dict(md) for md in mds],
+            'mahadashas': _serialize_mahadasha_timeline(mds),
             'current': {},
         }
         if current['mahadasha']:
             dasha_data['current']['mahadasha'] = dasha_to_dict(current['mahadasha'])
+            current_antardashas = calculate_antardasha(current['mahadasha'])
+            dasha_data['current']['antardashas'] = [dasha_to_dict(ad) for ad in current_antardashas]
             if current['antardasha']:
                 dasha_data['current']['antardasha'] = dasha_to_dict(current['antardasha'])
+                current_pratyantardashas = calculate_pratyantardasha(current['antardasha'], current['mahadasha'].years)
+                dasha_data['current']['pratyantardashas'] = [dasha_to_dict(pd) for pd in current_pratyantardashas]
             if current['pratyantardasha']:
                 dasha_data['current']['pratyantardasha'] = dasha_to_dict(current['pratyantardasha'])
 
