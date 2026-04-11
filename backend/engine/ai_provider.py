@@ -95,6 +95,16 @@ DEFAULT_PROVIDERS = {
         max_tokens=8000,
         temperature=0.7,
     ),
+    'zai': AIProvider(
+        name='zai',
+        label='Z.AI',
+        api_key='',
+        model='glm-5.1',
+        base_url='https://api.z.ai/api/paas/v4',
+        enabled=False,
+        max_tokens=8000,
+        temperature=0.7,
+    ),
     'kilo': AIProvider(
         name='kilo',
         label='Kilo Gateway',
@@ -134,6 +144,7 @@ PROVIDER_MODELS = {
     'anthropic': ['claude-sonnet-4-20250514', 'claude-haiku-3.5-20241022', 'claude-opus-4-20250514'],
     'minimax': ['MiniMax-M2.5', 'MiniMax-M2.5-highspeed', 'MiniMax-M2.7', 'MiniMax-M2.7-highspeed', 'M2-her'],
     'groq': ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768', 'gemma2-9b-it'],
+    'zai': ['glm-5.1', 'glm-5-turbo', 'glm-5', 'glm-4.7', 'glm-4.6', 'glm-4.5', 'glm-4.5-air'],
     'kilo': [
         'openrouter/free',
         'kilo-auto/free',
@@ -260,7 +271,7 @@ def generate_reading(system_prompt: str, user_prompt: str, owner_email: str | No
             return _call_anthropic(provider, system_prompt, user_prompt)
         elif provider.name == 'minimax':
             return _call_minimax(provider, system_prompt, user_prompt)
-        elif provider.name in ('openai', 'openai_oauth', 'groq', 'kilo', 'openrouter', 'ollama', 'minimax'):
+        elif provider.name in ('openai', 'openai_oauth', 'groq', 'zai', 'kilo', 'openrouter', 'ollama', 'minimax'):
             return _call_openai_compatible(provider, system_prompt, user_prompt)
         else:
             return _call_openai_compatible(provider, system_prompt, user_prompt)

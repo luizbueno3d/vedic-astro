@@ -40,6 +40,7 @@
                 {% elif provider_id == 'openai' %}GPT-4o, GPT-4o-mini
                 {% elif provider_id == 'anthropic' %}Claude Sonnet, Haiku
                 {% elif provider_id == 'minimax' %}M2.5, M2.7
+                {% elif provider_id == 'zai' %}GLM-5.1, GLM-5, GLM-4.7
                 {% elif provider_id == 'kilo' %}Gateway free router + free models
                 {% endif %}
             </div>
@@ -199,6 +200,8 @@ function loadProviderSettings(id) {
         hint.innerHTML = 'OpenRouter gives access to many models. Free models may be rate-limited for long readings.';
     } else if (id === 'kilo') {
         hint.innerHTML = 'Kilo Gateway is OpenAI-compatible and exposes several free models. You can use free models without a key, or add a Kilo API key for higher limits.';
+    } else if (id === 'zai') {
+        hint.innerHTML = 'Z.AI is OpenAI-compatible. Use your own Z.AI API key with models like GLM-5.1 directly, without going through Kilo.';
     } else {
         hint.textContent = '';
     }
