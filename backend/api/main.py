@@ -365,11 +365,36 @@ HOUSE_TOPICS = {
 
 
 def _serialize_mahadasha_timeline(mahadashas: list) -> list[dict]:
+    today_iso = date.today().isoformat()
     timeline = []
     for idx, md in enumerate(mahadashas):
         md_dict = dasha_to_dict(md)
         md_dict['index'] = idx
-        md_dict['antardashas'] = [dasha_to_dict(ad) for ad in calculate_antardasha(md)]
+        md_dict['state'] = 'past' if md_dict['end'] < today_iso else 'future'
+        if md_dict['is_current']:
+            md_dict['state'] = 'current'
+
+        antardashas = []
+        for ad_idx, ad in enumerate(calculate_antardasha(md)):
+            ad_dict = dasha_to_dict(ad)
+            ad_dict['index'] = ad_idx
+            ad_dict['state'] = 'past' if ad_dict['end'] < today_iso else 'future'
+            if ad_dict['is_current']:
+                ad_dict['state'] = 'current'
+
+            pratyantardashas = []
+            for pd_idx, pd in enumerate(calculate_pratyantardasha(ad, md.years)):
+                pd_dict = dasha_to_dict(pd)
+                pd_dict['index'] = pd_idx
+                pd_dict['state'] = 'past' if pd_dict['end'] < today_iso else 'future'
+                if pd_dict['is_current']:
+                    pd_dict['state'] = 'current'
+                pratyantardashas.append(pd_dict)
+
+            ad_dict['pratyantardashas'] = pratyantardashas
+            antardashas.append(ad_dict)
+
+        md_dict['antardashas'] = antardashas
         timeline.append(md_dict)
     return timeline
 
@@ -860,12 +885,12 @@ async def page_dashboard(request: Request, profile_id: int = Query(None)):
         }
         if current['mahadasha']:
             dasha_data['current']['mahadasha'] = dasha_to_dict(current['mahadasha'])
-            current_antardashas = calculate_antardasha(current['mahadasha'])
-            dasha_data['current']['antardashas'] = [dasha_to_dict(ad) for ad in current_antardashas]
+            current_md = next((md for md in dasha_data['mahadashas'] if md['is_current']), None)
+            dasha_data['current']['antardashas'] = current_md['antardashas'] if current_md else []
             if current['antardasha']:
                 dasha_data['current']['antardasha'] = dasha_to_dict(current['antardasha'])
-                current_pratyantardashas = calculate_pratyantardasha(current['antardasha'], current['mahadasha'].years)
-                dasha_data['current']['pratyantardashas'] = [dasha_to_dict(pd) for pd in current_pratyantardashas]
+                current_ad = next((ad for ad in dasha_data['current']['antardashas'] if ad['is_current']), None)
+                dasha_data['current']['pratyantardashas'] = current_ad['pratyantardashas'] if current_ad else []
             if current['pratyantardasha']:
                 dasha_data['current']['pratyantardasha'] = dasha_to_dict(current['pratyantardasha'])
 

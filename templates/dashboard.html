@@ -28,6 +28,49 @@
 .dasha-now td {
     background: rgba(74, 158, 255, 0.08);
 }
+.dasha-row-past td {
+    color: color-mix(in srgb, var(--muted) 88%, white 12%);
+}
+.dasha-row-future td {
+    color: color-mix(in srgb, white 92%, var(--blue) 8%);
+}
+.dasha-row-current td {
+    background: rgba(74, 158, 255, 0.12);
+}
+.dasha-mini-timeline {
+    display: flex;
+    gap: 6px;
+    margin: 14px 0 18px;
+    flex-wrap: wrap;
+}
+.dasha-mini-segment {
+    min-width: 64px;
+    flex: 1 1 72px;
+    padding: 9px 10px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.03);
+    cursor: pointer;
+}
+.dasha-mini-segment strong,
+.dasha-mini-segment small {
+    display: block;
+}
+.dasha-mini-segment small {
+    margin-top: 4px;
+    color: var(--muted);
+}
+.dasha-mini-segment.is-past {
+    opacity: 0.55;
+}
+.dasha-mini-segment.is-current {
+    background: linear-gradient(135deg, rgba(74,158,255,0.3), rgba(240,165,0,0.18));
+    border-color: rgba(74,158,255,0.6);
+    box-shadow: 0 0 0 1px rgba(74,158,255,0.15) inset;
+}
+.dasha-mini-segment.is-future {
+    background: rgba(255,255,255,0.045);
+}
 </style>
 <h2 style="margin-bottom:4px">
     {{ chart.name }}
@@ -178,10 +221,18 @@
         <p style="color:var(--muted); font-size:0.9em; margin:-6px 0 12px">
             Click any Mahadasha row to open the Antardashas inside it. This should feel like a timeline you can actually inspect, not a dead list.
         </p>
+        <div class="dasha-mini-timeline">
+            {% for md in dasha.mahadashas %}
+            <button type="button" class="dasha-mini-segment is-{{ md.state }}" data-jump-target="dashboard-md-{{ md.index }}">
+                <strong>{{ md.lord }}</strong>
+                <small>{{ md.start[:4] }} - {{ md.end[:4] }}</small>
+            </button>
+            {% endfor %}
+        </div>
         <table>
             <tr><th>Lord</th><th>Start</th><th>End</th><th>Years</th><th></th></tr>
             {% for md in dasha.mahadashas %}
-            <tr class="dashboard-md-row{% if md.is_current %} dasha-now{% endif %}" data-target="dashboard-md-{{ md.index }}" style="cursor:pointer">
+            <tr class="dashboard-md-row dasha-row-{{ md.state }}{% if md.is_current %} dasha-now{% endif %}" data-target="dashboard-md-{{ md.index }}" style="cursor:pointer">
                 <td><strong>{{ md.lord }}</strong></td>
                 <td>{{ md.start }}</td>
                 <td>{{ md.end }}</td>
@@ -195,12 +246,31 @@
                         <table style="margin:0">
                             <tr><th>Lord</th><th>Start</th><th>End</th><th>Years</th><th></th></tr>
                             {% for ad in md.antardashas %}
-                            <tr class="{% if ad.is_current %}dasha-now{% endif %}">
+                            <tr class="dashboard-ad-row dasha-row-{{ ad.state }}{% if ad.is_current %} dasha-now{% endif %}" data-target="dashboard-ad-{{ md.index }}-{{ ad.index }}" style="cursor:pointer">
                                 <td><strong>{{ ad.lord }}</strong></td>
                                 <td>{{ ad.start }}</td>
                                 <td>{{ ad.end }}</td>
                                 <td>{{ "%.1f"|format(ad.years) }}</td>
-                                <td>{% if ad.is_current %}<span class="current">◄ NOW</span>{% endif %}</td>
+                                <td>{% if ad.is_current %}<span class="current">◄ NOW</span>{% endif %} <span style="color:var(--muted)">▾</span></td>
+                            </tr>
+                            <tr id="dashboard-ad-{{ md.index }}-{{ ad.index }}" class="dashboard-ad-detail" {% if not ad.is_current %}style="display:none"{% endif %}>
+                                <td colspan="5" style="padding:0">
+                                    <div style="padding:12px 16px 16px 28px; background:rgba(255,255,255,0.02); border-left:2px solid rgba(74,158,255,0.25)">
+                                        <div class="dasha-panel-title">Pratyantardashas inside {{ ad.lord }} Antardasha</div>
+                                        <table style="margin:0">
+                                            <tr><th>Lord</th><th>Start</th><th>End</th><th>Years</th><th></th></tr>
+                                            {% for pd in ad.pratyantardashas %}
+                                            <tr class="dasha-row-{{ pd.state }}{% if pd.is_current %} dasha-now{% endif %}">
+                                                <td><strong>{{ pd.lord }}</strong></td>
+                                                <td>{{ pd.start }}</td>
+                                                <td>{{ pd.end }}</td>
+                                                <td>{{ "%.2f"|format(pd.years) }}</td>
+                                                <td>{% if pd.is_current %}<span class="current">◄ NOW</span>{% endif %}</td>
+                                            </tr>
+                                            {% endfor %}
+                                        </table>
+                                    </div>
+                                </td>
                             </tr>
                             {% endfor %}
                         </table>
@@ -386,6 +456,25 @@ document.querySelectorAll('.dashboard-md-row').forEach((row) => {
         if (!detail) return;
         const isHidden = detail.style.display === 'none';
         detail.style.display = isHidden ? 'table-row' : 'none';
+    });
+});
+
+document.querySelectorAll('.dashboard-ad-row').forEach((row) => {
+    row.addEventListener('click', (event) => {
+        event.stopPropagation();
+        const detail = document.getElementById(row.dataset.target);
+        if (!detail) return;
+        const isHidden = detail.style.display === 'none';
+        detail.style.display = isHidden ? 'table-row' : 'none';
+    });
+});
+
+document.querySelectorAll('[data-jump-target]').forEach((button) => {
+    button.addEventListener('click', () => {
+        const target = document.getElementById(button.dataset.jumpTarget);
+        if (!target) return;
+        target.style.display = 'table-row';
+        target.scrollIntoView({behavior: 'smooth', block: 'center'});
     });
 });
 
