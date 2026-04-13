@@ -15,7 +15,7 @@ except ImportError:
 
 from fastapi import FastAPI, HTTPException, Request, Query, UploadFile, File, Form
 
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from starlette.middleware.sessions import SessionMiddleware
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
@@ -980,6 +980,165 @@ def _serialize_chart_for_json(chart) -> dict:
     return planets
 
 
+def _build_dashboard_payload(chart) -> dict:
+    serial = _serialize_chart(chart)
+
+    moon_lon = chart.planets['Moon'].longitude
+    birth_date = date.fromisoformat(chart.birth_date)
+    mds = calculate_mahadasha(birth_date, moon_lon)
+    current = get_current_dasha_periods(mds)
+    kp = calculate_kp_bhava_chalit(chart)
+    kp_data = kp_to_dict(kp)
+    rulerships = calculate_house_rulerships(chart.ascendant.rashi_index)
+
+    dasha_data = {
+        'starting_dasha': get_starting_dasha(moon_lon)[0],
+        'mahadashas': _serialize_mahadasha_timeline(mds),
+        'current': {},
+    }
+    if current['mahadasha']:
+        dasha_data['current']['mahadasha'] = dasha_to_dict(current['mahadasha'])
+        dasha_data['current']['mahadasha']['duration_label'] = _format_duration_label(current['mahadasha'].years)
+        current_md = next((md for md in dasha_data['mahadashas'] if md['is_current']), None)
+        dasha_data['current']['antardashas'] = current_md['antardashas'] if current_md else []
+        dasha_data['current']['mahadasha_blurb'] = _period_blurb(current['mahadasha'].lord, chart, kp, rulerships, 'Mahadasha')
+        if current['antardasha']:
+            dasha_data['current']['antardasha'] = dasha_to_dict(current['antardasha'])
+            dasha_data['current']['antardasha']['duration_label'] = _format_duration_label(current['antardasha'].years)
+            current_ad = next((ad for ad in dasha_data['current']['antardashas'] if ad['is_current']), None)
+            dasha_data['current']['pratyantardashas'] = current_ad['pratyantardashas'] if current_ad else []
+            dasha_data['current']['antardasha_blurb'] = _period_blurb(current['antardasha'].lord, chart, kp, rulerships, 'Antardasha')
+        if current['pratyantardasha']:
+            dasha_data['current']['pratyantardasha'] = dasha_to_dict(current['pratyantardasha'])
+            dasha_data['current']['pratyantardasha']['duration_label'] = _format_duration_label(current['pratyantardasha'].years)
+            dasha_data['current']['pratyantardasha_blurb'] = _period_blurb(current['pratyantardasha'].lord, chart, kp, rulerships, 'Pratyantardasha')
+
+    transits = calculate_transits(chart)
+    transits_data = {k: transit_to_dict(v) for k, v in transits.items()}
+    transit_reading = build_transit_reading(chart, transits)
+    vargas = get_varga_signs(chart)
+    conjunctions = [conjunction_to_dict(c) for c in find_conjunctions(chart.planets)]
+    aspects = [aspect_to_dict(a) for a in find_aspects(chart.planets)]
+    yogas = [yoga_to_dict(y) for y in detect_all_yogas(chart.planets, rulerships)]
+
+    return {
+        'chart': serial,
+        'dasha': dasha_data,
+        'transits': transits_data,
+        'transit_reading': transit_reading,
+        'vargas': vargas,
+        'kp': kp_data,
+        'conjunctions': conjunctions,
+        'aspects': aspects,
+        'yogas': yogas,
+        'house_rulerships': rulerships,
+    }
+
+
+def _dashboard_export_text(data: dict) -> str:
+    chart = data['chart']
+    lines = []
+    lines.append(f"VEDIC ASTRO EXPORT — {chart['name']}")
+    lines.append(f"Birth: {chart['birth_date']} {chart['birth_time']}")
+    lines.append(f"Place: {chart['birth_place']}")
+    lines.append(f"Ayanamsa: {chart['ayanamsa']:.4f}")
+    lines.append("")
+
+    lines.append("D1 FOUNDATION")
+    lines.append(f"Ascendant: {chart['ascendant']['rashi']} {chart['ascendant']['degree_formatted']} | Nakshatra {chart['ascendant']['nakshatra']} {chart['ascendant']['pada']}")
+    for name, p in chart['planets'].items():
+        retro = ' Rx' if p['retrograde'] else ''
+        lines.append(f"- {name}: {p['rashi']} {p['degree_formatted']} | Nakshatra {p['nakshatra']} {p['pada']} | H{p['house']} | Lord {p['rashi_lord']}{retro}")
+    lines.append("")
+
+    lines.append("CURRENT DASHA")
+    current = data['dasha']['current']
+    if current.get('mahadasha'):
+        lines.append(f"Mahadasha: {current['mahadasha']['lord']} | {current['mahadasha']['start']} -> {current['mahadasha']['end']}")
+        if current.get('mahadasha_blurb'):
+            lines.append(f"  {current['mahadasha_blurb']}")
+    if current.get('antardasha'):
+        lines.append(f"Antardasha: {current['antardasha']['lord']} | {current['antardasha']['start']} -> {current['antardasha']['end']}")
+        if current.get('antardasha_blurb'):
+            lines.append(f"  {current['antardasha_blurb']}")
+    if current.get('pratyantardasha'):
+        lines.append(f"Pratyantardasha: {current['pratyantardasha']['lord']} | {current['pratyantardasha']['start']} -> {current['pratyantardasha']['end']}")
+        if current.get('pratyantardasha_blurb'):
+            lines.append(f"  {current['pratyantardasha_blurb']}")
+    lines.append("")
+
+    lines.append("MAHADASHA TIMELINE")
+    for md in data['dasha']['mahadashas']:
+        flag = ' NOW' if md['is_current'] else ''
+        lines.append(f"- {md['lord']}: {md['start']} -> {md['end']} | {md['duration_label']} ({md['years']}y){flag}")
+        for ad in md['antardashas']:
+            ad_flag = ' NOW' if ad['is_current'] else ''
+            lines.append(f"  - {ad['lord']}: {ad['start']} -> {ad['end']} | {ad['duration_label']} ({ad['years']:.1f}y){ad_flag}")
+            for pd in ad['pratyantardashas']:
+                pd_flag = ' NOW' if pd['is_current'] else ''
+                lines.append(f"    - {pd['lord']}: {pd['start']} -> {pd['end']} | {pd['duration_label']} ({pd['years']:.2f}y){pd_flag}")
+    lines.append("")
+
+    lines.append("CURRENT TRANSITS")
+    for name, t in data['transits'].items():
+        lines.append(f"- {name}: {t['rashi']} {t['degree_formatted']} | H{t['house']} | Orb {t['orb']:+.1f}")
+    lines.append("")
+    lines.append("TRANSIT READING")
+    for item in data['transit_reading']:
+        lines.append(f"- {item['planet']}: natal {item['natal_sign']} H{item['natal_house']} -> transit {item['transit_sign']} H{item['transit_house']}")
+        lines.append(f"  Summary: {item['summary']}")
+        lines.append(f"  Practical: {item['practical']}")
+    lines.append("")
+
+    lines.append("D9 NAVAMSHA QUICK VIEW")
+    for planet, sign in data['vargas']['D9']['signs'].items():
+        lines.append(f"- {planet}: {sign}")
+    lines.append("")
+
+    lines.append("KP BHAVA CHALIT")
+    for name, p in data['chart']['planets'].items():
+        kp_p = data['kp']['planets'][name]
+        lines.append(f"- {name}: {p['nakshatra']} {p['pada']} | Sub-lord {kp_p['sub_lord']} | Regular H{p['house']} -> KP H{kp_p['kp_house']}")
+    lines.append("Sub-lord house rulerships:")
+    for lord, houses in data['kp']['house_rulerships'].items():
+        if houses:
+            lines.append(f"- {lord}: H" + ', H'.join(str(h) for h in houses))
+    lines.append("")
+
+    lines.append("HOUSE RULERSHIPS")
+    for planet, houses in data['house_rulerships'].items():
+        lines.append(f"- {planet}: rules H" + ', H'.join(str(h) for h in houses) + f" | placed in H{data['chart']['planets'][planet]['house']}")
+    lines.append("")
+
+    lines.append("YOGAS")
+    if data['yogas']:
+        for y in data['yogas']:
+            lines.append(f"- {y['name']} | Planets: {' + '.join(y['planets'])} | Strength: {y['strength']}")
+            lines.append(f"  {y['description']}")
+    else:
+        lines.append("- No major yogas detected")
+    lines.append("")
+
+    lines.append("CONJUNCTIONS")
+    if data['conjunctions']:
+        for c in data['conjunctions']:
+            tight = ' TIGHT' if c['tight'] else ''
+            lines.append(f"- {c['planets'][0]} + {c['planets'][1]} | H{c['house']} | {c['sign']} | Orb {c['orb']}°{tight}")
+    else:
+        lines.append("- No tight conjunctions found")
+    lines.append("")
+
+    lines.append("ASPECTS")
+    if data['aspects']:
+        for a in data['aspects']:
+            applying = ' applying' if a['applying'] else ''
+            lines.append(f"- {a['from']} H{a['from_house']} -> {a['to']} H{a['to_house']} | {a['type']} | Orb {a['orb']}°{applying}")
+    else:
+        lines.append("- No major aspects found")
+
+    return '\n'.join(lines)
+
+
 @app.get("/dashboard", response_class=HTMLResponse)
 async def page_dashboard(request: Request, profile_id: int = Query(None)):
     try:
@@ -989,51 +1148,7 @@ async def page_dashboard(request: Request, profile_id: int = Query(None)):
             return RedirectResponse(url="/new-profile", status_code=303)
         pid = profile_id or _get_default_profile_id(owner_email)
         chart = _chart_from_profile(pid, owner_email)
-        serial = _serialize_chart(chart)
-
-        # Dasha
-        moon_lon = chart.planets['Moon'].longitude
-        birth_date = date.fromisoformat(chart.birth_date)
-        mds = calculate_mahadasha(birth_date, moon_lon)
-        current = get_current_dasha_periods(mds)
-        kp = calculate_kp_bhava_chalit(chart)
-        kp_data = kp_to_dict(kp)
-        rulerships = calculate_house_rulerships(chart.ascendant.rashi_index)
-
-        dasha_data = {
-            'starting_dasha': get_starting_dasha(moon_lon)[0],
-            'mahadashas': _serialize_mahadasha_timeline(mds),
-            'current': {},
-        }
-        if current['mahadasha']:
-            dasha_data['current']['mahadasha'] = dasha_to_dict(current['mahadasha'])
-            dasha_data['current']['mahadasha']['duration_label'] = _format_duration_label(current['mahadasha'].years)
-            current_md = next((md for md in dasha_data['mahadashas'] if md['is_current']), None)
-            dasha_data['current']['antardashas'] = current_md['antardashas'] if current_md else []
-            dasha_data['current']['mahadasha_blurb'] = _period_blurb(current['mahadasha'].lord, chart, kp, rulerships, 'Mahadasha')
-            if current['antardasha']:
-                dasha_data['current']['antardasha'] = dasha_to_dict(current['antardasha'])
-                dasha_data['current']['antardasha']['duration_label'] = _format_duration_label(current['antardasha'].years)
-                current_ad = next((ad for ad in dasha_data['current']['antardashas'] if ad['is_current']), None)
-                dasha_data['current']['pratyantardashas'] = current_ad['pratyantardashas'] if current_ad else []
-                dasha_data['current']['antardasha_blurb'] = _period_blurb(current['antardasha'].lord, chart, kp, rulerships, 'Antardasha')
-            if current['pratyantardasha']:
-                dasha_data['current']['pratyantardasha'] = dasha_to_dict(current['pratyantardasha'])
-                dasha_data['current']['pratyantardasha']['duration_label'] = _format_duration_label(current['pratyantardasha'].years)
-                dasha_data['current']['pratyantardasha_blurb'] = _period_blurb(current['pratyantardasha'].lord, chart, kp, rulerships, 'Pratyantardasha')
-
-        # Transits
-        transits = calculate_transits(chart)
-        transits_data = {k: transit_to_dict(v) for k, v in transits.items()}
-        transit_reading = build_transit_reading(chart, transits)
-
-        # Vargas
-        vargas = get_varga_signs(chart)
-
-        # Aspects & Yogas
-        conjs = find_conjunctions(chart.planets)
-        asps = find_aspects(chart.planets)
-        yogas = detect_all_yogas(chart.planets, rulerships)
+        payload = _build_dashboard_payload(chart)
 
         return templates.TemplateResponse("dashboard.html", {
             "request": request,
@@ -1041,16 +1156,7 @@ async def page_dashboard(request: Request, profile_id: int = Query(None)):
             "is_authenticated": _is_authenticated(request),
             "profiles": profiles,
             "profile_id": pid,
-            "chart": serial,
-            "dasha": dasha_data,
-            "transits": transits_data,
-            "transit_reading": transit_reading,
-            "vargas": vargas,
-            "kp": kp_data,
-            "conjunctions": [conjunction_to_dict(c) for c in conjs],
-            "aspects": [aspect_to_dict(a) for a in asps],
-            "yogas": [yoga_to_dict(y) for y in yogas],
-            "house_rulerships": rulerships,
+            **payload,
             "houses_json": json.dumps(list(range(1, 13))),
             "asc_json": json.dumps({
                 'rashi': chart.ascendant.rashi,
@@ -1062,6 +1168,24 @@ async def page_dashboard(request: Request, profile_id: int = Query(None)):
     except Exception as e:
         import traceback
         return HTMLResponse(content=f"<pre>Error: {str(e)}\n\n{traceback.format_exc()}</pre>", status_code=500)
+
+
+@app.get("/dashboard/export")
+async def api_dashboard_export(request: Request, profile_id: int = Query(None)):
+    owner_email = _current_owner_email(request)
+    profiles = list_profiles(owner_email)
+    if not profiles:
+        raise HTTPException(404, "No profiles found for this account")
+    pid = profile_id or _get_default_profile_id(owner_email)
+    chart = _chart_from_profile(pid, owner_email)
+    payload = _build_dashboard_payload(chart)
+    filename = f"vedic-astro-{chart.name.lower().replace(' ', '-')}-dashboard-export.txt"
+    content = _dashboard_export_text(payload)
+    return Response(
+        content=content,
+        media_type="text/plain; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @app.get("/vargas", response_class=HTMLResponse)
