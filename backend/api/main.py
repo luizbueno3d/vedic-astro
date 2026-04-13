@@ -1061,23 +1061,16 @@ def _dashboard_export_text(data: dict) -> str:
         lines.append(f"Antardasha: {current['antardasha']['lord']} | {current['antardasha']['start']} -> {current['antardasha']['end']}")
         if current.get('antardasha_blurb'):
             lines.append(f"  {current['antardasha_blurb']}")
-    if current.get('pratyantardasha'):
-        lines.append(f"Pratyantardasha: {current['pratyantardasha']['lord']} | {current['pratyantardasha']['start']} -> {current['pratyantardasha']['end']}")
-        if current.get('pratyantardasha_blurb'):
-            lines.append(f"  {current['pratyantardasha_blurb']}")
     lines.append("")
 
-    lines.append("MAHADASHA TIMELINE")
-    for md in data['dasha']['mahadashas']:
-        flag = ' NOW' if md['is_current'] else ''
-        lines.append(f"- {md['lord']}: {md['start']} -> {md['end']} | {md['duration_label']} ({md['years']}y){flag}")
-        for ad in md['antardashas']:
-            ad_flag = ' NOW' if ad['is_current'] else ''
-            lines.append(f"  - {ad['lord']}: {ad['start']} -> {ad['end']} | {ad['duration_label']} ({ad['years']:.1f}y){ad_flag}")
-            for pd in ad['pratyantardashas']:
-                pd_flag = ' NOW' if pd['is_current'] else ''
-                lines.append(f"    - {pd['lord']}: {pd['start']} -> {pd['end']} | {pd['duration_label']} ({pd['years']:.2f}y){pd_flag}")
-    lines.append("")
+    next_md = next((md for md in data['dasha']['mahadashas'] if md['state'] == 'future'), None)
+    if next_md:
+        lines.append("NEXT UPCOMING DASHA")
+        lines.append(f"Mahadasha: {next_md['lord']} | {next_md['start']} -> {next_md['end']} | {next_md['duration_label']}")
+        next_ad = next_md['antardashas'][0] if next_md.get('antardashas') else None
+        if next_ad:
+            lines.append(f"Antardasha: {next_ad['lord']} | {next_ad['start']} -> {next_ad['end']} | {next_ad['duration_label']}")
+        lines.append("")
 
     lines.append("CURRENT TRANSITS")
     for name, t in data['transits'].items():
@@ -1139,6 +1132,32 @@ def _dashboard_export_text(data: dict) -> str:
     return '\n'.join(lines)
 
 
+def _dasha_export_text(data: dict, chart_name: str) -> str:
+    lines = []
+    lines.append(f"FULL DASHA EXPORT — {chart_name}")
+    lines.append("")
+    current = data['dasha']['current']
+    lines.append("CURRENT PERIODS")
+    if current.get('mahadasha'):
+        lines.append(f"Mahadasha: {current['mahadasha']['lord']} | {current['mahadasha']['start']} -> {current['mahadasha']['end']}")
+    if current.get('antardasha'):
+        lines.append(f"Antardasha: {current['antardasha']['lord']} | {current['antardasha']['start']} -> {current['antardasha']['end']}")
+    if current.get('pratyantardasha'):
+        lines.append(f"Pratyantardasha: {current['pratyantardasha']['lord']} | {current['pratyantardasha']['start']} -> {current['pratyantardasha']['end']}")
+    lines.append("")
+    lines.append("FULL MAHADASHA TIMELINE")
+    for md in data['dasha']['mahadashas']:
+        flag = ' NOW' if md['is_current'] else ''
+        lines.append(f"- {md['lord']}: {md['start']} -> {md['end']} | {md['duration_label']} ({md['years']}y){flag}")
+        for ad in md['antardashas']:
+            ad_flag = ' NOW' if ad['is_current'] else ''
+            lines.append(f"  - {ad['lord']}: {ad['start']} -> {ad['end']} | {ad['duration_label']} ({ad['years']:.1f}y){ad_flag}")
+            for pd in ad['pratyantardashas']:
+                pd_flag = ' NOW' if pd['is_current'] else ''
+                lines.append(f"    - {pd['lord']}: {pd['start']} -> {pd['end']} | {pd['duration_label']} ({pd['years']:.2f}y){pd_flag}")
+    return '\n'.join(lines)
+
+
 @app.get("/dashboard", response_class=HTMLResponse)
 async def page_dashboard(request: Request, profile_id: int = Query(None)):
     try:
@@ -1181,6 +1200,24 @@ async def api_dashboard_export(request: Request, profile_id: int = Query(None)):
     payload = _build_dashboard_payload(chart)
     filename = f"vedic-astro-{chart.name.lower().replace(' ', '-')}-dashboard-export.txt"
     content = _dashboard_export_text(payload)
+    return Response(
+        content=content,
+        media_type="text/plain; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@app.get("/dashboard/export-dasha")
+async def api_dashboard_dasha_export(request: Request, profile_id: int = Query(None)):
+    owner_email = _current_owner_email(request)
+    profiles = list_profiles(owner_email)
+    if not profiles:
+        raise HTTPException(404, "No profiles found for this account")
+    pid = profile_id or _get_default_profile_id(owner_email)
+    chart = _chart_from_profile(pid, owner_email)
+    payload = _build_dashboard_payload(chart)
+    filename = f"vedic-astro-{chart.name.lower().replace(' ', '-')}-full-dasha-export.txt"
+    content = _dasha_export_text(payload, chart.name)
     return Response(
         content=content,
         media_type="text/plain; charset=utf-8",
