@@ -38,23 +38,19 @@
     background: rgba(74, 158, 255, 0.12);
 }
 .dasha-mini-timeline {
-    position: relative;
     display: flex;
     gap: 6px;
     margin: 14px 0 18px;
     flex-wrap: wrap;
-    padding-top: 18px;
 }
 .dasha-now-marker {
-    position: absolute;
-    top: 0;
-    transform: translateX(-50%);
+    display: block;
     font-size: 0.72em;
     font-weight: 700;
     color: var(--accent);
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    pointer-events: none;
+    margin-bottom: 6px;
 }
 .dasha-now-marker::after {
     content: '';
@@ -65,6 +61,7 @@
     background: linear-gradient(180deg, var(--accent), rgba(240,165,0,0.1));
 }
 .dasha-mini-segment {
+    position: relative;
     min-width: 64px;
     flex: 1 1 72px;
     padding: 9px 10px;
@@ -267,12 +264,10 @@
         </p>
         <div class="dasha-mini-timeline">
             {% for md in dasha.mahadashas %}
-            {% if md.is_current %}
-            <div class="dasha-now-marker" style="left: calc(({{ loop.index0 }} + 0.5) * (100% / {{ dasha.mahadashas|length }}));">You are here</div>
-            {% endif %}
-            {% endfor %}
-            {% for md in dasha.mahadashas %}
             <button type="button" class="dasha-mini-segment is-{{ md.state }}" data-jump-target="dashboard-md-{{ md.index }}">
+                {% if md.is_current %}
+                <span class="dasha-now-marker">You are here</span>
+                {% endif %}
                 <strong>{{ md.lord }}</strong>
                 <small>{{ md.start[:4] }} - {{ md.end[:4] }}</small>
             </button>
