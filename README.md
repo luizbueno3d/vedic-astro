@@ -29,6 +29,7 @@ It is a server-rendered FastAPI + Jinja application with an in-house astrology e
 - App entry: `backend/api/main.py`
 - Data layer: `backend/data/database.py`
 - Templates: `templates/`
+- Locales: `locales/`
 - Static assets: `static/`
 - Core engines:
   - `backend/engine/ephemeris.py`
@@ -93,6 +94,7 @@ It is a server-rendered FastAPI + Jinja application with an in-house astrology e
 - Session cookie + session owner identity gate access
 - Profiles are scoped by authenticated owner email
 - AI provider config is also scoped by authenticated owner email
+- Commercial reading records are designed to preserve `owner_email` for ownership checks even as a future `users` table is introduced.
 
 Important invariant:
 
@@ -118,6 +120,67 @@ Behavior notes:
 - MiniMax uses provider-specific integration logic, not naive OpenAI compatibility
 - Z.AI is supported directly through its own API key and OpenAI-compatible base URL
 
+## Commercial Reading Foundation
+
+The commercial product direction is documented in `docs/COMMERCIAL_READING_PLAN.md`.
+
+Current database foundation includes additive SQLite tables for:
+
+- `users` - future Firebase-backed account records
+- `reading_products` - sellable reading definitions
+- `reading_orders` - payment and generation state for purchased readings
+- `generated_readings` - stored reading content and immutable calculation snapshots
+- `reading_exports` - PDF/markdown/text/json export records
+
+The deterministic Life Map snapshot generator lives in `backend/engine/commercial_reading.py`.
+It produces a stored-ready structure with:
+
+- profile snapshot
+- D1 calculation snapshot
+- KP/Bhava Chalit house shifts
+- current dasha snapshot
+- D9/D10 confirmation data
+- Jaimini Atma Karaka and Amatya Karaka indicators
+- localized section JSON and Markdown
+
+Inspection endpoint:
+
+- `/commercial-reading/snapshot/{profile_id}`
+
+This endpoint is authenticated and does not call AI, check payment, store orders, or generate PDF files yet.
+
+Order-gate endpoints:
+
+- `GET /reading-products` - list active products with localized labels
+- `POST /reading-orders` - create a server-priced `pending_payment` order
+- `POST /reading-orders/{order_id}/checkout` - create or reuse a Stripe Checkout Session
+- `GET /reading-orders` - list owner-scoped orders
+- `GET /reading-orders/{order_id}` - show one owner-scoped order and stored reading if present
+- `POST /reading-orders/{order_id}/generate` - generate only when order status is `paid`
+- `POST /stripe/webhook` - public Stripe webhook endpoint with signature verification
+
+The order gate is deliberately conservative. It creates pending orders and blocks generation with `payment_required` until a verified Stripe webhook marks the order as paid.
+
+The first seeded product is:
+
+- Code: `life_map`
+- English: Life Map Reading
+- Portuguese: Mapa de Vida Védico
+- Standard price: `BRL 99.99`
+- Template version: `life_map_v1`
+
+Required payment env vars:
+
+- `STRIPE_SECRET_KEY`
+- `STRIPE_WEBHOOK_SECRET`
+- `APP_BASE_URL` or `PUBLIC_BASE_URL` for production redirect URLs
+
+Paid readings move through:
+
+`pending_payment -> paid -> generating -> complete / failed`
+
+Only confirmed paid orders should be allowed to generate customer readings.
+
 ## Deployment
 
 - Hosted on Railway
@@ -141,12 +204,13 @@ Main regression command:
 python3 backend/tests/test_qa.py
 ```
 
-This currently passes 68/68 checks when the app is healthy.
+This currently passes 101/101 checks when the app is healthy.
 
 ## Current Documentation Set
 
 - This file: project overview
 - `docs/OPERATIONS.md`: auth, deployment, AI, exports, and maintenance notes
+- `docs/COMMERCIAL_READING_PLAN.md`: commercial roadmap for paid readings, i18n, payments, PDF, and admin flow
 
 ## Repo Hygiene
 

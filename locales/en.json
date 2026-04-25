@@ -1,0 +1,55 @@
+{
+  "app": {
+    "name": "Vedic Astro"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "divisionals": "Divisionals",
+    "analysis": "Analysis",
+    "reading": "Reading",
+    "ai_interpretations": "AI Interpretations",
+    "basics": "Basics",
+    "dasha": "Dasha",
+    "compatibility": "Compatibility",
+    "add_person": "+ Add Person",
+    "logout": "Logout",
+    "language": "Language"
+  },
+  "ai_dock": {
+    "title": "Ask AI",
+    "subtitle": "Ask about this page, this chart, or the current timing layer.",
+    "placeholder": "Ask about the current dasha, D1 promise, KP/BCC, transits, divisional charts, compatibility...",
+    "ask": "Ask",
+    "settings": "AI Settings",
+    "ready": "Ready. Using {provider}.",
+    "not_configured": "No model selected yet. Open AI Settings and save one.",
+    "empty_question": "Ask something first.",
+    "thinking": "Thinking...",
+    "response_error": "Could not get AI response.",
+    "settings_alert_suffix": " Go to AI Interpretations to configure it.",
+    "no_answer": "No answer returned.",
+    "answered_via": "Answered via {provider}",
+    "error_prefix": "Error: "
+  },
+  "login": {
+    "title": "Login - Vedic Astro",
+    "heading": "Protected Access",
+    "intro": "This app contains private stored charts and readings. Sign in with your own account to access only your saved birth data and readings.",
+    "session_hint": "Session stays active in this browser until you log out.",
+    "firebase_enabled": "Firebase auth is enabled for this deployment.",
+    "google": "Continue with Google",
+    "email_section": "Or sign in with email and password",
+    "email_placeholder": "Email",
+    "password_placeholder": "Password",
+    "email_sign_in": "Sign in with Firebase",
+    "create_account": "Create account",
+    "firebase_not_configured": "Firebase auth is not configured for this deployment yet.",
+    "firebase_login_failed": "Firebase login failed"
+  },
+  "products": {
+    "life_map": {
+      "title": "Life Map Reading",
+      "description": "A structured Vedic astrology life map combining D1, KP/Bhava Chalit, current dasha, Jaimini indicators, strengths, tensions, and practical guidance."
+    }
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "app": {
+    "name": "Vedic Astro"
+  },
+  "nav": {
+    "dashboard": "Painel",
+    "divisionals": "Divisionais",
+    "analysis": "Análise",
+    "reading": "Leitura",
+    "ai_interpretations": "Interpretações com IA",
+    "basics": "Fundamentos",
+    "dasha": "Dasha",
+    "compatibility": "Compatibilidade",
+    "add_person": "+ Adicionar pessoa",
+    "logout": "Sair",
+    "language": "Idioma"
+  },
+  "ai_dock": {
+    "title": "Perguntar à IA",
+    "subtitle": "Pergunte sobre esta página, este mapa ou o período astrológico atual.",
+    "placeholder": "Pergunte sobre o dasha atual, promessa do D1, KP/BCC, trânsitos, mapas divisionais, compatibilidade...",
+    "ask": "Perguntar",
+    "settings": "Configurar IA",
+    "ready": "Pronto. Usando {provider}.",
+    "not_configured": "Nenhum modelo selecionado. Abra as configurações de IA e salve um modelo.",
+    "empty_question": "Escreva uma pergunta primeiro.",
+    "thinking": "Pensando...",
+    "response_error": "Não foi possível obter resposta da IA.",
+    "settings_alert_suffix": " Abra Interpretações com IA para configurar.",
+    "no_answer": "Nenhuma resposta retornada.",
+    "answered_via": "Respondido via {provider}",
+    "error_prefix": "Erro: "
+  },
+  "login": {
+    "title": "Login - Vedic Astro",
+    "heading": "Acesso Protegido",
+    "intro": "Este app contém mapas e leituras privadas. Entre com sua própria conta para acessar apenas seus dados de nascimento e leituras salvas.",
+    "session_hint": "A sessão permanece ativa neste navegador até você sair.",
+    "firebase_enabled": "A autenticação Firebase está ativa neste ambiente.",
+    "google": "Continuar com Google",
+    "email_section": "Ou entre com email e senha",
+    "email_placeholder": "Email",
+    "password_placeholder": "Senha",
+    "email_sign_in": "Entrar com Firebase",
+    "create_account": "Criar conta",
+    "firebase_not_configured": "A autenticação Firebase ainda não está configurada neste ambiente.",
+    "firebase_login_failed": "Falha no login com Firebase"
+  },
+  "products": {
+    "life_map": {
+      "title": "Mapa de Vida Védico",
+      "description": "Uma leitura védica estruturada que combina D1, KP/Bhava Chalit, dasha atual, indicadores de Jaimini, forças, tensões e orientação prática."
+    }
+  }
+}

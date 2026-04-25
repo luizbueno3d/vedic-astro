@@ -7,12 +7,23 @@ Or: python3 backend/tests/test_qa.py
 
 import sys
 import os
+import tempfile
+import hashlib
+import hmac
+from pathlib import Path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+
+_TEST_DB_DIR = tempfile.TemporaryDirectory()
+os.environ.setdefault('VEDIC_ASTRO_DB_PATH', str(Path(_TEST_DB_DIR.name) / 'profiles.db'))
 
 from engine.ephemeris import calculate_chart, deg_to_dms, get_julian_day
 from engine.charts import d9_navamsha, d7_saptamsha, d10_dashamsha, d3_drekkana, d4_chaturthamsa, d12_dwadasamsa
 from engine.dasha import calculate_mahadasha, get_starting_dasha
 from engine.guna_milan import calculate_guna_milan
+from engine.kp import SUB_LORD_SEQUENCE, calculate_kp_bhava_chalit, kp_to_dict
+from engine.commercial_reading import build_life_map_snapshot
+from data import database
+from payments.stripe_client import verify_webhook_signature
 import swisseph as swe
 from datetime import date
 
@@ -281,6 +292,111 @@ def run_tests():
     mds = calculate_mahadasha(date(1982, 3, 15), moon_lon)
     dasha_lords = [md.lord for md in mds]
     qa.check('T6.4.seq', 'Dasha sequence', dasha_lords[:4], ['Saturn', 'Mercury', 'Ketu', 'Venus'])
+
+    print("--- T6.5: KP Bhava Chalit Verified Mappings ---")
+    kp = calculate_kp_bhava_chalit(chart)
+    kp_dict = kp_to_dict(kp)
+    qa.check('T6.5.sequence', 'KP sub-lord sequence', SUB_LORD_SEQUENCE, ['Ketu', 'Venus', 'Sun', 'Moon', 'Mars', 'Rahu', 'Jupiter', 'Saturn', 'Mercury'])
+    qa.check('T6.5.asc.nak', 'KP serialized ascendant nakshatra', kp_dict['ascendant']['nakshatra'], chart.ascendant.nakshatra)
+
+    verified_kp_houses = {
+        'Jupiter': (4, 3),
+        'Moon': (5, 4),
+        'Mercury': (8, 7),
+        'Mars': (3, 2),
+        'Saturn': (3, 2),
+        'Sun': (9, 8),
+    }
+    for planet, (d1_house, kp_house) in verified_kp_houses.items():
+        qa.check(f'T6.5.{planet}.d1', f'{planet} D1 house', chart.planets[planet].house, d1_house)
+        qa.check(f'T6.5.{planet}.kp', f'{planet} KP house', kp.planets[planet].kp_house, kp_house)
+
+    print("--- T6.6: Commercial Life Map Snapshot ---")
+    profile_snapshot = {
+        'id': 1,
+        'name': 'Ique (Luiz Bueno)',
+        'birth_date': '1982-03-15',
+        'birth_time': '15:55',
+        'birth_place': 'São Paulo, SP, Brazil',
+        'latitude': BIRTH_DATA['lat'],
+        'longitude': BIRTH_DATA['lon'],
+        'tz_offset': BIRTH_DATA['tz'],
+        'notes': '',
+    }
+    snapshot = build_life_map_snapshot(chart, profile=profile_snapshot, locale='en', as_of=date(2026, 4, 25))
+    qa.check('T6.6.product', 'Commercial product code', snapshot['product_code'], 'life_map')
+    qa.check('T6.6.locale', 'Commercial snapshot locale', snapshot['locale'], 'en')
+    qa.check('T6.6.template', 'Commercial template version', snapshot['template_version'], 'life_map_v1')
+    qa.check('T6.6.profile', 'Commercial profile snapshot name', snapshot['profile_snapshot']['name'], 'Ique (Luiz Bueno)')
+    qa.check('T6.6.ak', 'Commercial Atma Karaka', snapshot['jaimini_snapshot']['atma_karaka']['planet'], 'Saturn')
+    qa.check('T6.6.amk', 'Commercial Amatya Karaka', snapshot['jaimini_snapshot']['amatya_karaka']['planet'], 'Mars')
+    qa.check('T6.6.md', 'Commercial current Mahadasha', snapshot['calculation_snapshot']['current_dasha']['mahadasha']['lord'], 'Venus')
+    qa.check('T6.6.ad', 'Commercial current Antardasha', snapshot['calculation_snapshot']['current_dasha']['antardasha']['lord'], 'Jupiter')
+    qa.check('T6.6.markdown', 'Commercial markdown has title', snapshot['content_markdown'].startswith('# Life Map Reading'), True)
+
+    print("--- T6.7: Commercial Order Gate ---")
+    owner = 'qa-buyer@example.com'
+    profile_id = database.add_profile(
+        'QA Buyer', '1982-03-15', '15:55', 'São Paulo, SP, Brazil',
+        BIRTH_DATA['lat'], BIRTH_DATA['lon'], BIRTH_DATA['tz'],
+        owner_email=owner,
+    )
+    user = database.ensure_user(owner, firebase_uid='qa-uid', locale='en')
+    order = database.create_reading_order(owner, profile_id, locale='en', user_id=user['id'])
+    checkout_ready = database.prepare_order_for_checkout(order['id'], owner)
+    qa.check('T6.7.status', 'New order starts pending payment', order['status'], 'pending_payment')
+    qa.check('T6.7.price', 'Campaign price is server-side first tier', checkout_ready['price_cents'], 1099)
+    qa.check('T6.7.blocked', 'Pending order cannot generate', database.order_can_generate(order), False)
+
+    checkout_order = database.attach_stripe_checkout_session(
+        order['id'],
+        owner,
+        session_id='cs_test_qa',
+        checkout_url='https://checkout.stripe.test/qa',
+        expires_at=2000000000,
+    )
+    qa.check('T6.7.session', 'Checkout Session is stored', checkout_order['stripe_checkout_session_id'], 'cs_test_qa')
+
+    try:
+        database.store_generated_reading_for_order(order['id'], owner, snapshot)
+        blocked_code = 'generated'
+    except database.CommercialOrderError as exc:
+        blocked_code = exc.code
+    qa.check('T6.7.payment_required', 'Pending order generation is blocked', blocked_code, 'payment_required')
+
+    paid_order = database.mark_order_paid_from_stripe(
+        'cs_test_qa',
+        payment_intent_id='pi_test_qa',
+        customer_id='cus_test_qa',
+        amount_total=1099,
+        currency='brl',
+    )
+    qa.check('T6.7.paid', 'Verified Stripe webhook marks order paid', paid_order['status'], 'paid')
+
+    reading = database.store_generated_reading_for_order(order['id'], owner, snapshot)
+    complete_order = database.get_reading_order(order['id'], owner)
+    qa.check('T6.7.reading', 'Paid order stores generated reading', reading['status'], 'complete')
+    qa.check('T6.7.complete', 'Paid order moves to complete', complete_order['status'], 'complete')
+
+    print("--- T6.8: Stripe Webhook Signature ---")
+    payload = b'{"id":"evt_test","type":"checkout.session.completed"}'
+    secret = 'whsec_test_secret'
+    timestamp = 1234567890
+    signed_payload = f"{timestamp}.{payload.decode('utf-8')}".encode('utf-8')
+    signature = hmac.new(secret.encode('utf-8'), signed_payload, hashlib.sha256).hexdigest()
+    header = f"t={timestamp},v1={signature}"
+    try:
+        signature_ok = verify_webhook_signature(payload, header, secret, now=timestamp)
+    except Exception:
+        signature_ok = False
+    qa.check('T6.8.valid', 'Valid Stripe signature verifies', signature_ok, True)
+
+    try:
+        verify_webhook_signature(payload, f"t={timestamp},v1=bad", secret, now=timestamp)
+        invalid_signature = 'accepted'
+    except Exception:
+        invalid_signature = 'rejected'
+    qa.check('T6.8.invalid', 'Invalid Stripe signature is rejected', invalid_signature, 'rejected')
 
     print("--- T8: Guna Milan Regression ---")
     female_chart = calculate_chart(1990, 3, 4, 6, 53, 54 + 19/60, 10 + 8/60, tz_offset=1.0)

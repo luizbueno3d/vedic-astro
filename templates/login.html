@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="{{ html_lang(request) }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Login - Vedic Astro</title>
+    <title>{{ t('login.title') }}</title>
     <style>
         body { margin:0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background:#141625; color:#f3f4f6; display:flex; min-height:100vh; align-items:center; justify-content:center; }
         .card { width:min(420px, 92vw); background:#1c1f35; border:1px solid #34385c; border-radius:14px; padding:28px; box-shadow:0 20px 60px rgba(0,0,0,.35); }
@@ -16,30 +16,39 @@
         .muted { color:#8f96ad; font-size:.9rem; line-height:1.6; }
         .secondary { background:#2563eb; color:white; }
         .section { margin-top:18px; padding-top:18px; border-top:1px solid #34385c; }
+        .locale-switcher { margin-bottom:18px; text-align:right; }
+        .locale-switcher select { width:auto; margin-top:0; padding:8px 10px; font-size:.9rem; }
     </style>
 </head>
 <body>
     <div class="card">
-        <h1>Protected Access</h1>
-        <p>This app contains private stored charts and readings. Sign in with your own account to access only your saved birth data and readings.</p>
+        <div class="locale-switcher">
+            <select id="localeSelect" aria-label="{{ t('nav.language') }}" onchange="switchLocale(this.value)">
+                {% for locale in locale_options() %}
+                <option value="{{ locale.code }}" {% if locale.code == current_locale(request) %}selected{% endif %}>{{ locale.label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <h1>{{ t('login.heading') }}</h1>
+        <p>{{ t('login.intro') }}</p>
         <div id="status">{% if error %}{{ error }}{% endif %}</div>
-        <div class="hint">Session stays active in this browser until you log out.</div>
+        <div class="hint">{{ t('login.session_hint') }}</div>
 
         {% if firebase_enabled %}
         <div class="section">
-            <div class="muted" style="margin-bottom:10px">Firebase auth is enabled for this deployment.</div>
-            <button type="button" class="secondary" onclick="signInWithGoogle()">Continue with Google</button>
+            <div class="muted" style="margin-bottom:10px">{{ t('login.firebase_enabled') }}</div>
+            <button type="button" class="secondary" onclick="signInWithGoogle()">{{ t('login.google') }}</button>
             <div class="section" style="margin-top:14px; padding-top:14px">
-                <div class="muted" style="margin-bottom:10px">Or sign in with email and password</div>
-                <input id="firebaseEmail" type="email" placeholder="Email">
-                <input id="firebasePassword" type="password" placeholder="Password">
-                <button type="button" class="secondary" onclick="firebaseEmailSignIn()">Sign in with Firebase</button>
-                <button type="button" style="background:#374151; color:white" onclick="firebaseEmailSignUp()">Create account</button>
+                <div class="muted" style="margin-bottom:10px">{{ t('login.email_section') }}</div>
+                <input id="firebaseEmail" type="email" placeholder="{{ t('login.email_placeholder') }}">
+                <input id="firebasePassword" type="password" placeholder="{{ t('login.password_placeholder') }}">
+                <button type="button" class="secondary" onclick="firebaseEmailSignIn()">{{ t('login.email_sign_in') }}</button>
+                <button type="button" style="background:#374151; color:white" onclick="firebaseEmailSignUp()">{{ t('login.create_account') }}</button>
             </div>
         </div>
         {% else %}
         <div class="section muted">
-            Firebase auth is not configured for this deployment yet.
+            {{ t('login.firebase_not_configured') }}
         </div>
         {% endif %}
     </div>
@@ -53,6 +62,12 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
 
+    window.switchLocale = function (locale) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('lang', locale);
+        window.location.href = url.toString();
+    }
+
     async function finishLogin(user) {
         const idToken = await user.getIdToken();
         const resp = await fetch('/auth/firebase-login', {
@@ -61,7 +76,7 @@
             body: JSON.stringify({idToken})
         });
         const data = await resp.json();
-        if (!resp.ok) throw new Error(data.error || 'Firebase login failed');
+        if (!resp.ok) throw new Error(data.error || {{ t('login.firebase_login_failed') | tojson }});
         window.location.href = '/dashboard';
     }
 
@@ -95,6 +110,14 @@
         } catch (err) {
             document.getElementById('status').textContent = err.message;
         }
+    }
+    </script>
+    {% else %}
+    <script>
+    window.switchLocale = function (locale) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('lang', locale);
+        window.location.href = url.toString();
     }
     </script>
     {% endif %}

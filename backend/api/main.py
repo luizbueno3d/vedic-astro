@@ -18,6 +18,7 @@ from fastapi import FastAPI, HTTPException, Request, Query, UploadFile, File, Fo
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from starlette.middleware.sessions import SessionMiddleware
 from fastapi.templating import Jinja2Templates
+from jinja2 import pass_context
 from pydantic import BaseModel
 from datetime import date
 import json
@@ -41,6 +42,7 @@ from engine.guna_milan import calculate_guna_milan
 from engine.synastry import calculate_synastry
 from engine.reading import generate_reading
 from engine.synthesis import synthesize
+from engine.commercial_reading import build_life_map_snapshot
 from engine.llm_reading import generate_llm_reading
 from engine.ai_provider import (
     load_config, save_config, get_active_provider, update_provider,
@@ -52,8 +54,19 @@ from engine.firebase_auth import get_firebase_web_config, firebase_client_enable
 from engine.timezone_utils import get_tz_offset_for_date
 from engine.transcription import transcribe_audio
 from data.database import (
+    CommercialOrderError, DEFAULT_READING_PRODUCT_CODE,
     list_profiles, get_profile, add_profile, update_profile,
-    delete_profile, seed_default_profiles, assign_owner_uid
+    delete_profile, seed_default_profiles, assign_owner_uid,
+    ensure_user, list_reading_products, create_reading_order,
+    list_reading_orders, get_reading_order, get_generated_reading_for_order,
+    order_can_generate, store_generated_reading_for_order,
+    prepare_order_for_checkout, attach_stripe_checkout_session,
+    mark_order_paid_from_stripe, cancel_order_from_stripe_session,
+)
+from i18n import html_lang, locale_options, resolve_locale, translate
+from payments.stripe_client import (
+    StripeAPIError, StripeConfigError, StripeSignatureError,
+    construct_webhook_event, create_checkout_session, stripe_configured,
 )
 
 app = FastAPI(title="Vedic Astro", version="1.0.0")
@@ -65,6 +78,7 @@ PUBLIC_PATHS = {
     "/login",
     "/api",
     "/auth/firebase-login",
+    "/stripe/webhook",
 }
 
 app.add_middleware(
@@ -84,6 +98,23 @@ templates_dir = _os.path.join(_base_dir, 'templates')
 _os.makedirs(templates_dir, exist_ok=True)
 
 templates = Jinja2Templates(directory=templates_dir)
+
+
+def _request_locale(request: Request | None) -> str:
+    if request is None:
+        return resolve_locale()
+    return getattr(request.state, "locale", resolve_locale())
+
+
+@pass_context
+def _template_translate(context, key: str, **kwargs) -> str:
+    return translate(key, _request_locale(context.get("request")), **kwargs)
+
+
+templates.env.globals["t"] = _template_translate
+templates.env.globals["current_locale"] = _request_locale
+templates.env.globals["html_lang"] = lambda request: html_lang(_request_locale(request))
+templates.env.globals["locale_options"] = locale_options
 
 
 def _session_data(request: Request) -> dict:
@@ -127,6 +158,21 @@ def _login_redirect() -> RedirectResponse:
 def _is_html_request(request: Request) -> bool:
     accept = request.headers.get("accept", "")
     return "text/html" in accept
+
+
+@app.middleware("http")
+async def locale_middleware(request: Request, call_next):
+    session = _session_data(request)
+    requested_locale = request.query_params.get("lang") or request.query_params.get("locale")
+    locale = resolve_locale(
+        requested=requested_locale,
+        session_locale=session.get("locale"),
+        accept_language=request.headers.get("accept-language"),
+    )
+    if requested_locale:
+        session["locale"] = locale
+    request.state.locale = locale
+    return await call_next(request)
 
 
 def _ai_template_state(owner_email: str) -> dict:
@@ -201,6 +247,16 @@ class ProfileCreate(BaseModel):
     notes: str = ''
 
 
+class ReadingOrderCreate(BaseModel):
+    profile_id: int
+    product_code: str = DEFAULT_READING_PRODUCT_CODE
+    locale: str | None = None
+
+
+class ReadingGenerateRequest(BaseModel):
+    as_of: str | None = None
+
+
 # ===== API Routes =====
 
 @app.on_event("startup")
@@ -270,6 +326,12 @@ async def api_firebase_login(request: Request):
     session['user_uid'] = uid
     if uid:
         assign_owner_uid(email, uid)
+    ensure_user(
+        email,
+        firebase_uid=uid,
+        display_name=claims.get('name') or claims.get('display_name'),
+        locale=_request_locale(request),
+    )
     response = JSONResponse({'success': True, 'email': email})
     response.set_cookie(
         AUTH_COOKIE_NAME,
@@ -338,6 +400,138 @@ def _chart_from_profile(profile_id: int, owner_email: str):
         p['latitude'], p['longitude'], p['name'],
         p['birth_place'], p.get('tz_offset', -3.0)
     )
+
+
+def _safe_json_loads(value, fallback):
+    if not value:
+        return fallback
+    try:
+        return json.loads(value)
+    except Exception:
+        return fallback
+
+
+def _commercial_order_error_response(exc: CommercialOrderError) -> JSONResponse:
+    status_codes = {
+        'profile_not_found': 404,
+        'product_not_found': 404,
+        'order_not_found': 404,
+        'payment_required': 402,
+        'missing_generated_reading': 409,
+        'invalid_order_state': 409,
+        'checkout_exists': 409,
+        'payment_amount_mismatch': 409,
+        'payment_currency_mismatch': 409,
+        'locale_mismatch': 409,
+    }
+    return JSONResponse(
+        {'error': exc.message, 'code': exc.code},
+        status_code=status_codes.get(exc.code, 400),
+    )
+
+
+def _serialize_reading_product(product: dict, locale: str) -> dict:
+    return {
+        'id': product['id'],
+        'code': product['code'],
+        'active': bool(product['active']),
+        'title': translate(product['title_key'], locale),
+        'description': translate(product['description_key'], locale),
+        'title_key': product['title_key'],
+        'description_key': product['description_key'],
+        'base_price_cents': product['base_price_cents'],
+        'currency': product['currency'],
+        'template_version': product['template_version'],
+        'metadata': _safe_json_loads(product.get('metadata_json'), {}),
+    }
+
+
+def _serialize_reading_order(order: dict, locale: str) -> dict:
+    return {
+        'id': order['id'],
+        'profile_id': order['profile_id'],
+        'product_id': order['product_id'],
+        'product_code': order['product_code'],
+        'product_title': translate(order['title_key'], locale),
+        'product_description': translate(order['description_key'], locale),
+        'template_version': order['template_version'],
+        'locale': order['locale'],
+        'status': order['status'],
+        'price_cents': order['price_cents'],
+        'currency': order['currency'],
+        'campaign_tier': order['campaign_tier'],
+        'payment_provider': order['payment_provider'],
+        'stripe_checkout_session_id': order.get('stripe_checkout_session_id'),
+        'stripe_checkout_url': order.get('stripe_checkout_url'),
+        'stripe_checkout_expires_at': order.get('stripe_checkout_expires_at'),
+        'stripe_payment_intent_id': order.get('stripe_payment_intent_id'),
+        'stripe_customer_id': order.get('stripe_customer_id'),
+        'paid_at': order.get('paid_at'),
+        'created_at': order['created_at'],
+        'updated_at': order['updated_at'],
+    }
+
+
+def _serialize_generated_reading(reading: dict | None) -> dict | None:
+    if not reading:
+        return None
+    return {
+        'id': reading['id'],
+        'order_id': reading['order_id'],
+        'locale': reading['locale'],
+        'status': reading['status'],
+        'profile_snapshot': _safe_json_loads(reading.get('profile_snapshot_json'), {}),
+        'calculation_snapshot': _safe_json_loads(reading.get('calculation_snapshot_json'), {}),
+        'jaimini_snapshot': _safe_json_loads(reading.get('jaimini_snapshot_json'), {}),
+        'content': _safe_json_loads(reading.get('content_json'), {}),
+        'content_markdown': reading.get('content_markdown'),
+        'model_provider': reading.get('model_provider'),
+        'model_name': reading.get('model_name'),
+        'template_version': reading['template_version'],
+        'generated_at': reading.get('generated_at'),
+        'created_at': reading['created_at'],
+        'updated_at': reading['updated_at'],
+    }
+
+
+def _stripe_error_response(exc: Exception) -> JSONResponse:
+    if isinstance(exc, StripeConfigError):
+        return JSONResponse(
+            {'error': str(exc), 'code': 'stripe_not_configured'},
+            status_code=503,
+        )
+    if isinstance(exc, StripeAPIError):
+        return JSONResponse(
+            {'error': str(exc), 'code': 'stripe_api_error', 'details': exc.details},
+            status_code=502,
+        )
+    return JSONResponse(
+        {'error': 'Stripe operation failed', 'code': 'stripe_error'},
+        status_code=502,
+    )
+
+
+def _public_base_url(request: Request) -> str:
+    configured = os.getenv("APP_BASE_URL") or os.getenv("PUBLIC_BASE_URL")
+    if configured:
+        return configured.rstrip("/")
+    railway_domain = os.getenv("RAILWAY_PUBLIC_DOMAIN")
+    if railway_domain:
+        return f"https://{railway_domain}".rstrip("/")
+    return str(request.base_url).rstrip("/")
+
+
+def _checkout_redirect_urls(request: Request, order_id: int) -> tuple[str, str]:
+    base_url = _public_base_url(request)
+    success_url = f"{base_url}/dashboard?checkout=success&order_id={order_id}&session_id={{CHECKOUT_SESSION_ID}}"
+    cancel_url = f"{base_url}/dashboard?checkout=cancelled&order_id={order_id}"
+    return success_url, cancel_url
+
+
+def _stripe_object_id(value):
+    if isinstance(value, dict):
+        return value.get('id')
+    return value
 
 
 def _serialize_chart(chart) -> dict:
@@ -723,6 +917,283 @@ async def api_reading(request: Request, profile_id: int):
     sav = calculate_sarva_ashtakavarga(chart.planets, chart.ascendant.rashi_index)
     reading = generate_reading(chart, dasha_data, yogas, doshas, sb, sav, rulerships)
     return {'reading': reading}
+
+
+@app.get("/reading-products")
+async def api_reading_products(request: Request):
+    """List active commercial reading products for the current UI locale."""
+    locale = _request_locale(request)
+    return {
+        'products': [
+            _serialize_reading_product(product, locale)
+            for product in list_reading_products(active_only=True)
+        ],
+    }
+
+
+@app.post("/reading-orders")
+async def api_create_reading_order(request: Request, data: ReadingOrderCreate):
+    """Create a pending-payment order; Stripe checkout is intentionally not wired yet."""
+    owner_email = _current_owner_email(request)
+    locale = resolve_locale(requested=data.locale, session_locale=_request_locale(request))
+    user = ensure_user(
+        owner_email,
+        firebase_uid=_current_owner_uid(request),
+        locale=locale,
+    )
+    try:
+        order = create_reading_order(
+            owner_email,
+            data.profile_id,
+            product_code=data.product_code,
+            locale=locale,
+            user_id=user['id'],
+        )
+    except CommercialOrderError as exc:
+        return _commercial_order_error_response(exc)
+
+    return JSONResponse(
+        {
+            'order': _serialize_reading_order(order, _request_locale(request)),
+            'checkout_required': True,
+            'checkout_url': None,
+            'message': 'Order created in pending_payment. Create a Stripe Checkout Session with POST /reading-orders/{order_id}/checkout.',
+        },
+        status_code=201,
+    )
+
+
+@app.get("/reading-orders")
+async def api_list_reading_orders(request: Request):
+    """List owner-scoped commercial reading orders."""
+    owner_email = _current_owner_email(request)
+    locale = _request_locale(request)
+    return {
+        'orders': [
+            _serialize_reading_order(order, locale)
+            for order in list_reading_orders(owner_email)
+        ],
+    }
+
+
+@app.get("/reading-orders/{order_id}")
+async def api_get_reading_order(request: Request, order_id: int):
+    """Get one owner-scoped order and its stored reading, if already generated."""
+    owner_email = _current_owner_email(request)
+    order = get_reading_order(order_id, owner_email)
+    if not order:
+        raise HTTPException(404, "Reading order not found")
+    return {
+        'order': _serialize_reading_order(order, _request_locale(request)),
+        'generated_reading': _serialize_generated_reading(
+            get_generated_reading_for_order(order_id, owner_email)
+        ),
+    }
+
+
+@app.post("/reading-orders/{order_id}/checkout")
+async def api_create_reading_checkout(request: Request, order_id: int):
+    """Create or return a Stripe Checkout Session for a pending-payment order."""
+    if not stripe_configured():
+        return JSONResponse(
+            {'error': 'STRIPE_SECRET_KEY is not configured', 'code': 'stripe_not_configured'},
+            status_code=503,
+        )
+
+    owner_email = _current_owner_email(request)
+    try:
+        order = prepare_order_for_checkout(order_id, owner_email)
+    except CommercialOrderError as exc:
+        return _commercial_order_error_response(exc)
+
+    locale = _request_locale(request)
+    if order.get('stripe_checkout_session_id') and order.get('stripe_checkout_url'):
+        return {
+            'order': _serialize_reading_order(order, locale),
+            'checkout_url': order['stripe_checkout_url'],
+            'checkout_session_id': order['stripe_checkout_session_id'],
+            'reused': True,
+        }
+
+    success_url, cancel_url = _checkout_redirect_urls(request, order_id)
+    product_name = translate(order['title_key'], order['locale'])
+    try:
+        session = create_checkout_session(
+            order,
+            product_name=product_name,
+            success_url=success_url,
+            cancel_url=cancel_url,
+            customer_email=owner_email,
+        )
+    except (StripeConfigError, StripeAPIError) as exc:
+        return _stripe_error_response(exc)
+
+    session_id = session.get('id')
+    checkout_url = session.get('url')
+    if not session_id or not checkout_url:
+        return JSONResponse(
+            {'error': 'Stripe did not return a Checkout Session URL', 'code': 'stripe_checkout_invalid'},
+            status_code=502,
+        )
+
+    try:
+        order = attach_stripe_checkout_session(
+            order_id,
+            owner_email,
+            session_id=session_id,
+            checkout_url=checkout_url,
+            expires_at=session.get('expires_at'),
+        )
+    except CommercialOrderError as exc:
+        return _commercial_order_error_response(exc)
+
+    return JSONResponse(
+        {
+            'order': _serialize_reading_order(order, locale),
+            'checkout_url': checkout_url,
+            'checkout_session_id': session_id,
+            'reused': False,
+        },
+        status_code=201,
+    )
+
+
+@app.post("/reading-orders/{order_id}/generate")
+async def api_generate_reading_order(
+    request: Request,
+    order_id: int,
+    data: ReadingGenerateRequest | None = None,
+):
+    """Generate and store a deterministic reading only after confirmed payment."""
+    owner_email = _current_owner_email(request)
+    order = get_reading_order(order_id, owner_email)
+    if not order:
+        raise HTTPException(404, "Reading order not found")
+
+    existing = get_generated_reading_for_order(order_id, owner_email)
+    if order['status'] == 'complete' and existing:
+        return {
+            'order': _serialize_reading_order(order, _request_locale(request)),
+            'generated_reading': _serialize_generated_reading(existing),
+            'already_generated': True,
+        }
+
+    if not order_can_generate(order):
+        return JSONResponse(
+            {'error': 'Order must be paid before generation', 'code': 'payment_required'},
+            status_code=402,
+        )
+
+    as_of = data.as_of if data else None
+    try:
+        target_date = date.fromisoformat(as_of) if as_of else None
+    except ValueError:
+        return JSONResponse(
+            {'error': 'Invalid as_of date; use YYYY-MM-DD', 'code': 'invalid_date'},
+            status_code=400,
+        )
+
+    profile = get_profile(order['profile_id'], owner_email)
+    if not profile:
+        raise HTTPException(404, "Profile not found for this order")
+
+    chart = _chart_from_profile(order['profile_id'], owner_email)
+    snapshot = build_life_map_snapshot(
+        chart,
+        profile=profile,
+        locale=order['locale'],
+        as_of=target_date,
+    )
+    try:
+        reading = store_generated_reading_for_order(order_id, owner_email, snapshot)
+    except CommercialOrderError as exc:
+        return _commercial_order_error_response(exc)
+
+    updated_order = get_reading_order(order_id, owner_email) or order
+    return {
+        'order': _serialize_reading_order(updated_order, _request_locale(request)),
+        'generated_reading': _serialize_generated_reading(reading),
+        'already_generated': False,
+    }
+
+
+@app.post("/stripe/webhook")
+async def api_stripe_webhook(request: Request):
+    """Receive verified Stripe webhooks and mark paid orders idempotently."""
+    payload = await request.body()
+    signature = request.headers.get('stripe-signature', '')
+    try:
+        event = construct_webhook_event(payload, signature)
+    except StripeConfigError as exc:
+        return JSONResponse({'error': str(exc), 'code': 'stripe_webhook_not_configured'}, status_code=500)
+    except StripeSignatureError as exc:
+        return JSONResponse({'error': str(exc), 'code': 'stripe_signature_invalid'}, status_code=400)
+
+    event_type = event.get('type')
+    stripe_object = event.get('data', {}).get('object', {})
+    action = 'ignored'
+    order = None
+
+    try:
+        if event_type in {'checkout.session.completed', 'checkout.session.async_payment_succeeded'}:
+            session_id = stripe_object.get('id')
+            if not session_id:
+                action = 'missing_session_id'
+            elif stripe_object.get('payment_status') != 'paid':
+                action = 'payment_not_paid'
+            else:
+                order = mark_order_paid_from_stripe(
+                    session_id,
+                    payment_intent_id=_stripe_object_id(stripe_object.get('payment_intent')),
+                    customer_id=_stripe_object_id(stripe_object.get('customer')),
+                    amount_total=stripe_object.get('amount_total'),
+                    currency=stripe_object.get('currency'),
+                )
+                action = 'marked_paid'
+        elif event_type == 'checkout.session.expired':
+            session_id = stripe_object.get('id')
+            order = cancel_order_from_stripe_session(session_id) if session_id else None
+            action = 'cancelled_pending_order' if order else 'order_not_found'
+    except CommercialOrderError as exc:
+        return {
+            'received': True,
+            'processed': False,
+            'event_id': event.get('id'),
+            'event_type': event_type,
+            'error': exc.message,
+            'code': exc.code,
+        }
+
+    return {
+        'received': True,
+        'processed': action != 'ignored',
+        'event_id': event.get('id'),
+        'event_type': event_type,
+        'action': action,
+        'order_id': order['id'] if order else None,
+    }
+
+
+@app.get("/commercial-reading/snapshot/{profile_id}")
+async def api_commercial_reading_snapshot(
+    request: Request,
+    profile_id: int,
+    locale: str = Query(None),
+    as_of: str = Query(None),
+):
+    """Build a deterministic Life Map Reading snapshot without payment, AI, or PDF."""
+    owner_email = _current_owner_email(request)
+    profile = get_profile(profile_id, owner_email)
+    if not profile:
+        raise HTTPException(404, "Profile not found")
+    chart = _chart_from_profile(profile_id, owner_email)
+    target_date = date.fromisoformat(as_of) if as_of else None
+    return build_life_map_snapshot(
+        chart,
+        profile=profile,
+        locale=locale or _request_locale(request),
+        as_of=target_date,
+    )
 
 
 @app.get("/llm-reading/{profile_id}")

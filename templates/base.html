@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ html_lang(request) }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -291,22 +291,27 @@
 <body>
     <nav>
         <a href="/dashboard?profile_id={{ profile_id }}" class="brand">☿ Vedic Astro</a>
-        <a href="/dashboard?profile_id={{ profile_id }}" class="{% if page == 'dashboard' %}active{% endif %}">Dashboard</a>
-        <a href="/vargas?profile_id={{ profile_id }}" class="{% if page == 'vargas' %}active{% endif %}">Divisionals</a>
-        <a href="/analysis?profile_id={{ profile_id }}" class="{% if page == 'analysis' %}active{% endif %}">Analysis</a>
-        <a href="/reading?profile_id={{ profile_id }}" class="{% if page == 'reading' %}active{% endif %}">Reading</a>
-        <a href="/ai-settings" class="{% if page == 'ai_reading' %}active{% endif %}">AI Interpretations</a>
-        <a href="/basics?profile_id={{ profile_id }}" class="{% if page == 'basics' %}active{% endif %}">Basics</a>
-        <a href="/dasha?profile_id={{ profile_id }}" class="{% if page == 'dasha' %}active{% endif %}">Dasha</a>
-        <a href="/compatibility?profile_id={{ profile_id }}" class="{% if page == 'compatibility' %}active{% endif %}">Compatibility</a>
+        <a href="/dashboard?profile_id={{ profile_id }}" class="{% if page == 'dashboard' %}active{% endif %}">{{ t('nav.dashboard') }}</a>
+        <a href="/vargas?profile_id={{ profile_id }}" class="{% if page == 'vargas' %}active{% endif %}">{{ t('nav.divisionals') }}</a>
+        <a href="/analysis?profile_id={{ profile_id }}" class="{% if page == 'analysis' %}active{% endif %}">{{ t('nav.analysis') }}</a>
+        <a href="/reading?profile_id={{ profile_id }}" class="{% if page == 'reading' %}active{% endif %}">{{ t('nav.reading') }}</a>
+        <a href="/ai-settings" class="{% if page == 'ai_reading' %}active{% endif %}">{{ t('nav.ai_interpretations') }}</a>
+        <a href="/basics?profile_id={{ profile_id }}" class="{% if page == 'basics' %}active{% endif %}">{{ t('nav.basics') }}</a>
+        <a href="/dasha?profile_id={{ profile_id }}" class="{% if page == 'dasha' %}active{% endif %}">{{ t('nav.dasha') }}</a>
+        <a href="/compatibility?profile_id={{ profile_id }}" class="{% if page == 'compatibility' %}active{% endif %}">{{ t('nav.compatibility') }}</a>
         <select id="profileSelect" onchange="switchProfile(this.value)">
             {% for p in profiles %}
             <option value="{{ p.id }}" {% if p.id == profile_id %}selected{% endif %}>{{ p.name }}</option>
             {% endfor %}
         </select>
-        <a href="/new-profile" style="background:var(--accent); color:#111; padding:4px 10px; border-radius:4px; font-size:0.85em; font-weight:600; text-decoration:none">+ Add Person</a>
+        <select id="localeSelect" aria-label="{{ t('nav.language') }}" onchange="switchLocale(this.value)">
+            {% for locale in locale_options() %}
+            <option value="{{ locale.code }}" {% if locale.code == current_locale(request) %}selected{% endif %}>{{ locale.label }}</option>
+            {% endfor %}
+        </select>
+        <a href="/new-profile" style="background:var(--accent); color:#111; padding:4px 10px; border-radius:4px; font-size:0.85em; font-weight:600; text-decoration:none">{{ t('nav.add_person') }}</a>
         {% if is_authenticated %}
-        <button onclick="logoutApp()" style="background:transparent; color:var(--muted); border:1px solid var(--border); padding:4px 10px; border-radius:4px; cursor:pointer">Logout</button>
+        <button onclick="logoutApp()" style="background:transparent; color:var(--muted); border:1px solid var(--border); padding:4px 10px; border-radius:4px; cursor:pointer">{{ t('nav.logout') }}</button>
         {% endif %}
     </nav>
     <div class="container">
@@ -314,15 +319,15 @@
     </div>
     {% if is_authenticated and page in ['dashboard', 'dasha', 'analysis', 'vargas', 'reading', 'compatibility', 'basics'] %}
     <div class="card ai-dock">
-        <h4>Ask AI{% if active_ai_provider_label | default('') %} - {{ active_ai_provider_label }}{% endif %}</h4>
-        <div class="subtitle" style="margin-bottom:10px">Ask about this page, this chart, or the current timing layer.</div>
-        <textarea id="aiDockQuestion" placeholder="Ask about the current dasha, D1 promise, KP/BCC, transits, divisional charts, compatibility..."></textarea>
+        <h4>{{ t('ai_dock.title') }}{% if active_ai_provider_label | default('') %} - {{ active_ai_provider_label }}{% endif %}</h4>
+        <div class="subtitle" style="margin-bottom:10px">{{ t('ai_dock.subtitle') }}</div>
+        <textarea id="aiDockQuestion" placeholder="{{ t('ai_dock.placeholder') }}"></textarea>
         <div class="ai-dock-actions">
-            <button class="ai-dock-primary" id="aiDockSend" onclick="askPageAI()">Ask</button>
-            <a class="ai-dock-secondary" href="/ai-settings">AI Settings</a>
+            <button class="ai-dock-primary" id="aiDockSend" onclick="askPageAI()">{{ t('ai_dock.ask') }}</button>
+            <a class="ai-dock-secondary" href="/ai-settings">{{ t('ai_dock.settings') }}</a>
         </div>
         <div class="ai-dock-status" id="aiDockStatus">
-            {% if active_ai_enabled | default(false) %}Ready. Using {{ active_ai_provider_label }}.{% else %}No model selected yet. Open AI Settings and save one.{% endif %}
+            {% if active_ai_enabled | default(false) %}{{ t('ai_dock.ready', provider=active_ai_provider_label) }}{% else %}{{ t('ai_dock.not_configured') }}{% endif %}
         </div>
         <div class="ai-dock-result" id="aiDockResult" style="display:none"></div>
     </div>
@@ -334,8 +339,15 @@
         }
 
         function switchProfile(id) {
-            const path = window.location.pathname;
-            window.location.href = path + '?profile_id=' + id;
+            const url = new URL(window.location.href);
+            url.searchParams.set('profile_id', id);
+            window.location.href = url.toString();
+        }
+
+        function switchLocale(locale) {
+            const url = new URL(window.location.href);
+            url.searchParams.set('lang', locale);
+            window.location.href = url.toString();
         }
 
         async function askPageAI() {
@@ -347,12 +359,12 @@
 
             const question = questionEl.value.trim();
             if (!question) {
-                statusEl.textContent = 'Ask something first.';
+                statusEl.textContent = {{ t('ai_dock.empty_question') | tojson }};
                 return;
             }
 
             btn.disabled = true;
-            statusEl.textContent = 'Thinking...';
+            statusEl.textContent = {{ t('ai_dock.thinking') | tojson }};
             resultEl.style.display = 'none';
 
             const params = new URLSearchParams(window.location.search);
@@ -373,17 +385,17 @@
                 });
                 const data = await resp.json();
                 if (!resp.ok) {
-                    statusEl.textContent = data.error || 'Could not get AI response.';
+                    statusEl.textContent = data.error || {{ t('ai_dock.response_error') | tojson }};
                     if ((data.error || '').includes('No AI model selected')) {
-                        alert(data.error + ' Go to AI Interpretations to configure it.');
+                        alert(data.error + {{ t('ai_dock.settings_alert_suffix') | tojson }});
                     }
                     return;
                 }
-                resultEl.textContent = data.answer || 'No answer returned.';
+                resultEl.textContent = data.answer || {{ t('ai_dock.no_answer') | tojson }};
                 resultEl.style.display = 'block';
-                statusEl.textContent = 'Answered via ' + (data.provider || 'AI');
+                statusEl.textContent = {{ t('ai_dock.answered_via', provider='__PROVIDER__') | tojson }}.replace('__PROVIDER__', data.provider || 'AI');
             } catch (err) {
-                statusEl.textContent = 'Error: ' + err.message;
+                statusEl.textContent = {{ t('ai_dock.error_prefix') | tojson }} + err.message;
             } finally {
                 btn.disabled = false;
             }

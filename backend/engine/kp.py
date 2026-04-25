@@ -103,6 +103,7 @@ class KPBhavaChalit:
     kp_asc_rashi: str
     d1_asc_idx: int
     kp_asc_idx: int
+    asc_nakshatra: str
     asc_pada: int
     asc_sub_lord: str
     asc_kp_house: int
@@ -164,6 +165,7 @@ def calculate_kp_bhava_chalit(chart: ChartData) -> KPBhavaChalit:
         kp_asc_rashi=RASHIS[kp_asc_idx],
         d1_asc_idx=d1_asc_idx,
         kp_asc_idx=kp_asc_idx,
+        asc_nakshatra=asc.nakshatra,
         asc_pada=asc.pada,
         asc_sub_lord=asc_sl,
         asc_kp_house=asc_kp_house,
@@ -181,7 +183,7 @@ def kp_to_dict(kp: KPBhavaChalit) -> dict:
         'd1_asc_idx': kp.d1_asc_idx,
         'kp_asc_idx': kp.kp_asc_idx,
         'ascendant': {
-            'nakshatra': kp.d1_asc_rashi,
+            'nakshatra': kp.asc_nakshatra,
             'pada': kp.asc_pada,
             'sub_lord': kp.asc_sub_lord,
             'kp_house': kp.asc_kp_house,
