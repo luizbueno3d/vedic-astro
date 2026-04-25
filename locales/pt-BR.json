@@ -51,5 +51,38 @@
       "title": "Mapa de Vida Védico",
       "description": "Uma leitura védica estruturada que combina D1, KP/Bhava Chalit, dasha atual, indicadores de Jaimini, forças, tensões e orientação prática."
     }
+  },
+  "checkout": {
+    "eyebrow": "Leitura paga",
+    "heading": "Mapa de Vida Védico",
+    "intro": "Compre um mapa de vida védico estruturado para o perfil de nascimento selecionado. O checkout usa o preço da campanha calculado no servidor.",
+    "profile_label": "Perfil de nascimento",
+    "language_label": "Idioma da leitura",
+    "price_label": "Preço atual",
+    "campaign_first_100": "Campanha de lançamento: primeiras 100 leituras pagas",
+    "campaign_next_100": "Campanha de lançamento: próximas 100 leituras pagas",
+    "campaign_standard": "Preço normal",
+    "buy": "Comprar leitura",
+    "continue_checkout": "Continuar checkout",
+    "opening_checkout": "Criando checkout seguro no Stripe...",
+    "checkout_error": "Não foi possível iniciar o checkout.",
+    "status_title": "Status do pedido",
+    "status_pending_payment": "Aguardando pagamento",
+    "status_paid": "Pago",
+    "status_generating": "Gerando",
+    "status_complete": "Concluído",
+    "status_failed": "Falhou",
+    "status_cancelled": "Cancelado",
+    "status_refunded": "Reembolsado",
+    "success": "O Stripe retornou com sucesso. Se o pagamento foi confirmado, o pedido aparecerá como pago.",
+    "cancelled": "O checkout foi cancelado. Você pode iniciar um novo checkout quando quiser.",
+    "missing_order": "O pedido retornado não foi encontrado nesta conta.",
+    "generate": "Gerar leitura",
+    "generating": "Gerando leitura armazenada...",
+    "generate_blocked": "A geração fica bloqueada até o Stripe confirmar o pagamento.",
+    "generate_error": "Não foi possível gerar a leitura.",
+    "generated": "Leitura gerada e armazenada. A exportação em PDF vem na próxima etapa.",
+    "already_generated": "Leitura já gerada e armazenada.",
+    "refresh": "Atualizar status"
   }
 }

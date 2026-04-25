@@ -62,6 +62,7 @@ from data.database import (
     order_can_generate, store_generated_reading_for_order,
     prepare_order_for_checkout, attach_stripe_checkout_session,
     mark_order_paid_from_stripe, cancel_order_from_stripe_session,
+    get_reading_product_offer,
 )
 from i18n import html_lang, locale_options, resolve_locale, translate
 from payments.stripe_client import (
@@ -532,6 +533,59 @@ def _stripe_object_id(value):
     if isinstance(value, dict):
         return value.get('id')
     return value
+
+
+def _format_price(cents: int | None, currency: str = 'BRL', locale: str = 'en') -> str:
+    if cents is None:
+        return ''
+    amount = int(cents) / 100
+    if currency.upper() == 'BRL':
+        if locale == 'pt-BR':
+            return f"R$ {amount:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        return f"R$ {amount:,.2f}"
+    return f"{currency.upper()} {amount:,.2f}"
+
+
+def _commercial_dashboard_state(owner_email: str, profile_id: int, locale: str,
+                                order_id: int | None = None, checkout: str | None = None) -> dict:
+    offer = get_reading_product_offer(DEFAULT_READING_PRODUCT_CODE)
+    if offer:
+        offer['title'] = translate(offer['title_key'], locale)
+        offer['description'] = translate(offer['description_key'], locale)
+        offer['price_label'] = _format_price(offer.get('price_cents'), offer.get('currency', 'BRL'), locale)
+
+    selected_order = None
+    checkout_order_missing = False
+    if order_id:
+        selected_order = get_reading_order(order_id, owner_email)
+        checkout_order_missing = selected_order is None
+
+    if not selected_order:
+        profile_orders = [
+            order for order in list_reading_orders(owner_email)
+            if int(order['profile_id']) == int(profile_id)
+            and order['product_code'] == DEFAULT_READING_PRODUCT_CODE
+        ]
+        selected_order = profile_orders[0] if profile_orders else None
+
+    generated_reading = None
+    if selected_order:
+        selected_order['product_title'] = translate(selected_order['title_key'], locale)
+        selected_order['product_description'] = translate(selected_order['description_key'], locale)
+        selected_order['price_label'] = _format_price(
+            selected_order.get('price_cents'),
+            selected_order.get('currency', 'BRL'),
+            locale,
+        )
+        generated_reading = get_generated_reading_for_order(selected_order['id'], owner_email)
+
+    return {
+        'commercial_offer': offer,
+        'commercial_order': selected_order,
+        'commercial_generated_reading': generated_reading,
+        'checkout_return_state': checkout,
+        'checkout_order_missing': checkout_order_missing,
+    }
 
 
 def _serialize_chart(chart) -> dict:
@@ -1630,15 +1684,25 @@ def _dasha_export_text(data: dict, chart_name: str) -> str:
 
 
 @app.get("/dashboard", response_class=HTMLResponse)
-async def page_dashboard(request: Request, profile_id: int = Query(None)):
+async def page_dashboard(
+    request: Request,
+    profile_id: int = Query(None),
+    checkout: str = Query(None),
+    order_id: int = Query(None),
+    session_id: str = Query(None),
+):
     try:
         owner_email = _current_owner_email(request)
         profiles = list_profiles(owner_email)
         if not profiles:
             return RedirectResponse(url="/new-profile", status_code=303)
         pid = profile_id or _get_default_profile_id(owner_email)
+        checkout_order = get_reading_order(order_id, owner_email) if order_id else None
+        if checkout_order:
+            pid = checkout_order['profile_id']
         chart = _chart_from_profile(pid, owner_email)
         payload = _build_dashboard_payload(chart)
+        locale = _request_locale(request)
 
         return templates.TemplateResponse("dashboard.html", {
             "request": request,
@@ -1647,6 +1711,7 @@ async def page_dashboard(request: Request, profile_id: int = Query(None)):
             "profiles": profiles,
             "profile_id": pid,
             **payload,
+            **_commercial_dashboard_state(owner_email, pid, locale, order_id=order_id, checkout=checkout),
             "houses_json": json.dumps(list(range(1, 13))),
             "asc_json": json.dumps({
                 'rashi': chart.ascendant.rashi,

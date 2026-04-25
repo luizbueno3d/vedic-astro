@@ -165,6 +165,7 @@ Each phase should preserve the existing QA baseline and avoid broad rewrites of 
 Current implementation status:
 
 - Phases 1-6 have backend foundations in place.
+- The dashboard now has a minimal user-facing buy/checkout/status/generate surface for the first product.
 - Phase 7 is the next commercial backend step and should export PDF from stored generated readings.
 
 ## 11. Immediate Next Step

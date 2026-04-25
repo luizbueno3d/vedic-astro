@@ -161,6 +161,8 @@ Order-gate endpoints:
 
 The order gate is deliberately conservative. It creates pending orders and blocks generation with `payment_required` until a verified Stripe webhook marks the order as paid.
 
+The dashboard includes the first minimal user-facing purchase surface for `life_map`: it shows the current server-side campaign price, creates an order, redirects to Stripe Checkout, displays return status, and exposes reading generation only after the order is `paid`.
+
 The first seeded product is:
 
 - Code: `life_map`

@@ -119,6 +119,17 @@ This endpoint is for internal product verification and future order-generation w
 - Deploys are triggered from `main`
 - If a push does not appear live, force a Railway rebuild with an empty commit
 
+## Production Domain
+
+- Commercial domain: `logicosmo.com`
+- Contact email: `info@logicosmo.com`
+- Until DNS is attached to Railway and verified, keep `APP_BASE_URL` and Stripe webhook URLs on the Railway domain.
+- After switching traffic to `logicosmo.com`, update:
+  - Railway `APP_BASE_URL`
+  - Stripe webhook endpoint URL
+  - Firebase authorized domains
+  - Any customer-facing email sender/reply-to settings
+
 ## Common Production Failure Modes
 
 ### Firebase auth enabled but Google sign-in fails

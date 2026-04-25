@@ -238,6 +238,23 @@ def get_reading_product(code: str) -> dict | None:
     return dict(row) if row else None
 
 
+def get_reading_product_offer(product_code: str = DEFAULT_READING_PRODUCT_CODE) -> dict | None:
+    """Return the currently available server-side offer for display only."""
+    conn = get_connection()
+    product = conn.execute(
+        'SELECT * FROM reading_products WHERE code = ? AND active = 1',
+        (product_code,),
+    ).fetchone()
+    if not product:
+        conn.close()
+        return None
+    price = _campaign_price_for_product(conn, product)
+    result = dict(product)
+    result.update(price)
+    conn.close()
+    return result
+
+
 def ensure_user(email: str, firebase_uid: str | None = None,
                 display_name: str | None = None, locale: str = 'en') -> dict:
     """Create or update a user row for commercial ownership joins."""

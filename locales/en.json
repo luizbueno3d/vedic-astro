@@ -51,5 +51,38 @@
       "title": "Life Map Reading",
       "description": "A structured Vedic astrology life map combining D1, KP/Bhava Chalit, current dasha, Jaimini indicators, strengths, tensions, and practical guidance."
     }
+  },
+  "checkout": {
+    "eyebrow": "Paid reading",
+    "heading": "Life Map Reading",
+    "intro": "Buy a structured Vedic astrology life map for the selected birth profile. Checkout uses the server-side launch campaign price.",
+    "profile_label": "Birth profile",
+    "language_label": "Reading language",
+    "price_label": "Current price",
+    "campaign_first_100": "Launch campaign: first 100 paid readings",
+    "campaign_next_100": "Launch campaign: next 100 paid readings",
+    "campaign_standard": "Standard price",
+    "buy": "Buy Reading",
+    "continue_checkout": "Continue Checkout",
+    "opening_checkout": "Creating secure Stripe Checkout...",
+    "checkout_error": "Could not start checkout.",
+    "status_title": "Order status",
+    "status_pending_payment": "Pending payment",
+    "status_paid": "Paid",
+    "status_generating": "Generating",
+    "status_complete": "Complete",
+    "status_failed": "Failed",
+    "status_cancelled": "Cancelled",
+    "status_refunded": "Refunded",
+    "success": "Stripe returned successfully. If payment is confirmed, the order will show as paid.",
+    "cancelled": "Checkout was cancelled. You can start a new checkout when ready.",
+    "missing_order": "The returned order could not be found for this account.",
+    "generate": "Generate Reading",
+    "generating": "Generating stored reading...",
+    "generate_blocked": "Generation is blocked until Stripe confirms payment.",
+    "generate_error": "Could not generate reading.",
+    "generated": "Reading generated and stored. PDF export is coming next.",
+    "already_generated": "Reading already generated and stored.",
+    "refresh": "Refresh status"
   }
 }

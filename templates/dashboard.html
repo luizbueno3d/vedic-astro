@@ -95,6 +95,154 @@
     font-size: 0.88em;
     line-height: 1.6;
 }
+.reading-commerce {
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 20px;
+    border-color: rgba(240,165,0,0.42);
+    background:
+        radial-gradient(circle at 12% 10%, rgba(240,165,0,0.18), transparent 34%),
+        radial-gradient(circle at 92% 18%, rgba(74,158,255,0.16), transparent 32%),
+        linear-gradient(135deg, rgba(255,255,255,0.045), rgba(255,255,255,0.015));
+}
+.reading-commerce::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image: linear-gradient(120deg, transparent 0 46%, rgba(255,255,255,0.045) 47% 48%, transparent 49% 100%);
+}
+.reading-commerce > * {
+    position: relative;
+    z-index: 1;
+}
+.reading-commerce-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+    flex-wrap: wrap;
+}
+.reading-commerce-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--accent);
+    font-size: 0.72em;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 7px;
+}
+.reading-commerce h3 {
+    margin-bottom: 8px;
+    font-size: 1.08em;
+}
+.reading-commerce-text {
+    max-width: 720px;
+    color: color-mix(in srgb, var(--text) 86%, var(--muted) 14%);
+    line-height: 1.65;
+    margin: 0;
+}
+.reading-commerce-price {
+    min-width: 160px;
+    padding: 12px 14px;
+    border: 1px solid rgba(240,165,0,0.32);
+    border-radius: 12px;
+    background: rgba(15,15,26,0.46);
+    text-align: right;
+}
+.reading-commerce-price small {
+    display: block;
+    color: var(--muted);
+    font-size: 0.75em;
+    margin-bottom: 4px;
+}
+.reading-commerce-price strong {
+    color: var(--accent);
+    font-size: 1.35em;
+}
+.reading-commerce-meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 10px;
+    margin: 16px 0;
+}
+.reading-commerce-meta div {
+    border: 1px solid rgba(255,255,255,0.07);
+    background: rgba(0,0,0,0.12);
+    border-radius: 10px;
+    padding: 10px 12px;
+}
+.reading-commerce-meta small {
+    display: block;
+    color: var(--muted);
+    margin-bottom: 4px;
+}
+.reading-commerce-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+.reading-commerce-button {
+    border: 0;
+    border-radius: 999px;
+    padding: 10px 16px;
+    background: linear-gradient(135deg, var(--accent), #ffd166);
+    color: #15120b;
+    font-weight: 800;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+.reading-commerce-button.secondary {
+    background: rgba(74,158,255,0.12);
+    color: var(--blue);
+    border: 1px solid rgba(74,158,255,0.45);
+}
+.reading-commerce-button:disabled {
+    opacity: 0.55;
+    cursor: wait;
+}
+.reading-commerce-status {
+    margin-top: 14px;
+    padding: 12px 14px;
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 10px;
+    background: rgba(0,0,0,0.13);
+    color: var(--muted);
+}
+.reading-commerce-status strong {
+    color: var(--text);
+}
+.reading-status-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 9px;
+    margin-left: 6px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.08);
+    color: var(--text);
+    font-size: 0.78em;
+    font-weight: 700;
+}
+.reading-status-paid,
+.reading-status-complete {
+    background: rgba(78,204,163,0.16);
+    color: var(--green);
+}
+.reading-status-pending_payment {
+    background: rgba(240,165,0,0.14);
+    color: var(--accent);
+}
+.reading-status-cancelled,
+.reading-status-failed {
+    background: rgba(233,69,96,0.14);
+    color: var(--accent2);
+}
 </style>
 <h2 style="margin-bottom:4px">
     {{ chart.name }}
@@ -107,6 +255,77 @@
     <a href="/dashboard/export?profile_id={{ profile_id }}" style="display:inline-block; margin-left:8px; background:transparent; color:var(--accent); border:1px solid var(--accent); text-decoration:none; padding:8px 12px; border-radius:6px; font-size:0.9em; font-weight:600">Export Dashboard Data</a>
     <a href="/dashboard/export-dasha?profile_id={{ profile_id }}" style="display:inline-block; margin-left:8px; background:transparent; color:var(--accent2); border:1px solid var(--accent2); text-decoration:none; padding:8px 12px; border-radius:6px; font-size:0.9em; font-weight:600">Export Full Dasha Timeline</a>
 </div>
+
+{% if commercial_offer %}
+<div class="card reading-commerce" id="lifeMapCheckout"
+     data-profile-id="{{ profile_id }}"
+     data-locale="{{ current_locale(request) }}"
+     data-existing-order-id="{% if commercial_order and commercial_order.status == 'pending_payment' %}{{ commercial_order.id }}{% endif %}">
+    <div class="reading-commerce-head">
+        <div>
+            <div class="reading-commerce-eyebrow">✦ {{ t('checkout.eyebrow') }}</div>
+            <h3>{{ commercial_offer.title }}</h3>
+            <p class="reading-commerce-text">{{ t('checkout.intro') }}</p>
+        </div>
+        <div class="reading-commerce-price">
+            <small>{{ t('checkout.price_label') }}</small>
+            <strong>{{ commercial_offer.price_label }}</strong>
+        </div>
+    </div>
+    <div class="reading-commerce-meta">
+        <div>
+            <small>{{ t('checkout.profile_label') }}</small>
+            <strong>{{ chart.name }}</strong>
+        </div>
+        <div>
+            <small>{{ t('checkout.language_label') }}</small>
+            <strong>{{ current_locale(request) }}</strong>
+        </div>
+        <div>
+            <small>{{ t('checkout.status_title') }}</small>
+            {% if commercial_order %}
+            <strong id="commerceOrderStatusText">{{ t('checkout.status_' ~ commercial_order.status) }}</strong>
+            {% else %}
+            <strong id="commerceOrderStatusText">{{ t('checkout.campaign_' ~ commercial_offer.campaign_tier) }}</strong>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="reading-commerce-actions">
+        {% if commercial_order and commercial_order.status == 'pending_payment' and commercial_order.stripe_checkout_url %}
+        <a class="reading-commerce-button" id="commerceBuyButton" href="{{ commercial_order.stripe_checkout_url }}">↗ {{ t('checkout.continue_checkout') }}</a>
+        {% elif commercial_order and commercial_order.status == 'paid' %}
+        <button class="reading-commerce-button" id="commerceGenerateButton" onclick="generateLifeMapReading({{ commercial_order.id }})">✦ {{ t('checkout.generate') }}</button>
+        {% elif commercial_order and commercial_order.status == 'complete' %}
+        <button class="reading-commerce-button secondary" disabled>✓ {{ t('checkout.already_generated') }}</button>
+        {% else %}
+        <button class="reading-commerce-button" id="commerceBuyButton" onclick="startLifeMapCheckout()">↗ {{ t('checkout.buy') }}</button>
+        {% endif %}
+        {% if commercial_order %}
+        <a class="reading-commerce-button secondary" href="/dashboard?order_id={{ commercial_order.id }}">{{ t('checkout.refresh') }}</a>
+        {% endif %}
+    </div>
+
+    <div class="reading-commerce-status" id="commerceStatus">
+        {% if checkout_order_missing %}
+            {{ t('checkout.missing_order') }}
+        {% elif checkout_return_state == 'success' %}
+            {{ t('checkout.success') }}
+        {% elif checkout_return_state == 'cancelled' %}
+            {{ t('checkout.cancelled') }}
+        {% elif commercial_order %}
+            <strong>#{{ commercial_order.id }}</strong>
+            <span class="reading-status-pill reading-status-{{ commercial_order.status }}">{{ t('checkout.status_' ~ commercial_order.status) }}</span>
+            · {{ commercial_order.price_label }}
+            {% if commercial_order.status != 'paid' and commercial_order.status != 'complete' %}
+            · {{ t('checkout.generate_blocked') }}
+            {% endif %}
+        {% else %}
+            {{ t('checkout.campaign_' ~ commercial_offer.campaign_tier) }}
+        {% endif %}
+    </div>
+</div>
+{% endif %}
 
 <div class="card" style="margin-bottom:20px; border-color:var(--blue)">
     <h3>Start Here</h3>
@@ -492,6 +711,76 @@ function deleteProfile() {
     fetch('/profiles/{{ profile_id }}', {method: 'DELETE'})
         .then(d => { window.location.href = '/dashboard'; })
         .catch(e => alert('Error: ' + e));
+}
+
+async function startLifeMapCheckout() {
+    const panel = document.getElementById('lifeMapCheckout');
+    const button = document.getElementById('commerceBuyButton');
+    const status = document.getElementById('commerceStatus');
+    if (!panel || !button || !status) return;
+
+    const setBusy = (busy) => {
+        button.disabled = busy;
+        button.textContent = busy ? '{{ t('checkout.opening_checkout') }}' : '{{ t('checkout.buy') }}';
+    };
+
+    try {
+        setBusy(true);
+        status.textContent = '{{ t('checkout.opening_checkout') }}';
+        let orderId = panel.dataset.existingOrderId;
+        if (!orderId) {
+            const orderResp = await fetch('/reading-orders', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    profile_id: Number(panel.dataset.profileId),
+                    product_code: 'life_map',
+                    locale: panel.dataset.locale || 'en',
+                }),
+            });
+            const orderData = await orderResp.json();
+            if (!orderResp.ok) throw new Error(orderData.error || '{{ t('checkout.checkout_error') }}');
+            orderId = orderData.order.id;
+            panel.dataset.existingOrderId = orderId;
+        }
+
+        const checkoutResp = await fetch(`/reading-orders/${orderId}/checkout`, {method: 'POST'});
+        const checkoutData = await checkoutResp.json();
+        if (!checkoutResp.ok) throw new Error(checkoutData.error || '{{ t('checkout.checkout_error') }}');
+        if (!checkoutData.checkout_url) throw new Error('{{ t('checkout.checkout_error') }}');
+        window.location.href = checkoutData.checkout_url;
+    } catch (error) {
+        setBusy(false);
+        status.textContent = `${'{{ t('checkout.checkout_error') }}'} ${error.message || ''}`.trim();
+    }
+}
+
+async function generateLifeMapReading(orderId) {
+    const button = document.getElementById('commerceGenerateButton');
+    const status = document.getElementById('commerceStatus');
+    if (!button || !status) return;
+    try {
+        button.disabled = true;
+        button.textContent = '{{ t('checkout.generating') }}';
+        status.textContent = '{{ t('checkout.generating') }}';
+        const resp = await fetch(`/reading-orders/${orderId}/generate`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({}),
+        });
+        const data = await resp.json();
+        if (!resp.ok) {
+            if (data.code === 'payment_required') throw new Error('{{ t('checkout.generate_blocked') }}');
+            throw new Error(data.error || '{{ t('checkout.generate_error') }}');
+        }
+        status.textContent = data.already_generated ? '{{ t('checkout.already_generated') }}' : '{{ t('checkout.generated') }}';
+        button.textContent = '✓ {{ t('checkout.already_generated') }}';
+        button.classList.add('secondary');
+    } catch (error) {
+        button.disabled = false;
+        button.textContent = '{{ t('checkout.generate') }}';
+        status.textContent = `${'{{ t('checkout.generate_error') }}'} ${error.message || ''}`.trim();
+    }
 }
 </script>
 <script>
