@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="{{ html_lang(request) }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}LogicCosmo{% endblock %}</title>
+  <meta name="description" content="{% block description %}LogicCosmo is a public Vedic astrology reading platform for clear, grounded life-map readings.{% endblock %}">
+  <link rel="icon" href="/static/public/assets/mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/public/styles/tokens.css">
+  <link rel="stylesheet" href="/static/public/styles/site.css">
+</head>
+<body class="noise" data-menu-open="false">
+  <header class="site-header">
+    <div class="shell header-inner">
+      <a class="brand" href="/" aria-label="LogicCosmo home">
+        <img src="/static/public/assets/logo.svg" alt="LogicCosmo">
+      </a>
+      <nav class="nav" aria-label="Main navigation">
+        <a href="/readings/life-map" data-i18n="navProduct">Reading</a>
+        <a href="/#how-it-works" data-i18n="navHow">How it works</a>
+        <a href="/#faq" data-i18n="navFaq">FAQ</a>
+        <a href="/login" data-i18n="navAccount">Account</a>
+      </nav>
+      <div class="header-actions">
+        <div class="lang-toggle" aria-label="Language selector">
+          <button type="button" data-lang-button="en" aria-pressed="true">EN</button>
+          <button type="button" data-lang-button="pt-BR" aria-pressed="false">PT</button>
+        </div>
+        <a class="btn btn-secondary" href="/login" data-i18n="navBegin">Begin reading</a>
+        <button class="mobile-menu-button" type="button" data-menu-button aria-expanded="false">Menu</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <div class="shell footer-inner">
+      <p><span data-year></span> LogicCosmo. <span data-i18n="footerNote">LogicCosmo public product prototype. Internal astrology engine remains separate.</span></p>
+      <div class="footer-links">
+        <a href="mailto:info@logicosmo.com">info@logicosmo.com</a>
+        <a href="/readings/life-map" data-i18n="navProduct">Reading</a>
+        <a href="/login" data-i18n="navAccount">Account</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/static/public/scripts/app.js"></script>
+</body>
+</html>

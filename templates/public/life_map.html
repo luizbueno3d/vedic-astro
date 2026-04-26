@@ -1,0 +1,32 @@
+{% extends "public/base_public.html" %}
+
+{% block title %}Life Map Reading — LogicCosmo{% endblock %}
+
+{% block content %}
+  <section class="section">
+    <div class="shell split">
+      <div class="panel">
+        <p class="eyebrow" data-i18n="productEyebrow">First product</p>
+        <h1 data-i18n="productPageTitle">Life Map Reading</h1>
+        <p class="lede" data-i18n="productPageLead">A structured Vedic reading for identity, timing, karmic direction, work, and practical guidance.</p>
+        <h3 class="panel-title" data-i18n="productSectionsTitle">Core reading sections</h3>
+        <ul class="list">
+          <li>Birth data confirmation and method explanation</li>
+          <li>D1 / Rashi foundation and identity pattern</li>
+          <li>KP / Bhava Chalit lived shifts, compared with D1</li>
+          <li>Current Mahadasha / Antardasha timing</li>
+          <li>Atma Karaka: soul significator and life direction</li>
+          <li>Amatya Karaka: vocation, work style, execution, and money-making pathway</li>
+          <li>Strengths, tensions, practical guidance, and conclusion</li>
+        </ul>
+      </div>
+      <aside class="order-card">
+        <h3 data-i18n="orderSummary">Order summary</h3>
+        <div class="order-row"><span data-i18n="productPageTitle">Life Map Reading</span><strong>{{ offer.price_label if offer else "R$ 10.99" }}</strong></div>
+        <div class="order-row"><span data-i18n="orderLanguage">Reading language</span><strong data-locale-label>English</strong></div>
+        <div class="order-row"><span data-i18n="orderDelivery">Stored web reading + future PDF</span><strong>Included</strong></div>
+        <a class="btn btn-primary" href="/login" data-i18n="orderButton">Continue to birth profile</a>
+      </aside>
+    </div>
+  </section>
+{% endblock %}

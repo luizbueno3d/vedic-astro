@@ -16,6 +16,7 @@ except ImportError:
 from fastapi import FastAPI, HTTPException, Request, Query, UploadFile, File, Form
 
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
+from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 from fastapi.templating import Jinja2Templates
 from jinja2 import pass_context
@@ -76,11 +77,18 @@ APP_SESSION_SECRET = os.getenv("APP_SESSION_SECRET", "vedic-astro-session-secret
 DEFAULT_OWNER_EMAIL = os.getenv("DEFAULT_OWNER_EMAIL", "luizbueno3d@gmail.com")
 AUTH_COOKIE_NAME = "vedic_astro_auth"
 PUBLIC_PATHS = {
+    "/",
+    "/en",
+    "/pt-BR",
     "/login",
     "/api",
     "/auth/firebase-login",
     "/stripe/webhook",
+    "/readings/life-map",
 }
+PUBLIC_PATH_PREFIXES = (
+    "/static/public/",
+)
 
 app.add_middleware(
     SessionMiddleware,
@@ -89,6 +97,8 @@ app.add_middleware(
     same_site="lax",
     https_only=True,
 )
+
+app.mount("/static", StaticFiles(directory=str(Path(__file__).parent.parent.parent / "static")), name="static")
 
 # Templates
 import os as _os
@@ -210,6 +220,9 @@ async def auth_gate(request: Request, call_next):
     if request.method == "OPTIONS":
         return await call_next(request)
 
+    if path.startswith(PUBLIC_PATH_PREFIXES):
+        return await call_next(request)
+
     if path in PUBLIC_PATHS or path.startswith("/login"):
         return await call_next(request)
 
@@ -269,9 +282,52 @@ async def startup():
 async def api_root():
     return {"app": "Vedic Astro", "version": "1.0.0", "endpoints": ["/profiles", "/chart", "/chart/{profile_id}", "/dasha/{profile_id}", "/transits/{profile_id}", "/vargas/{profile_id}", "/compatibility"]}
 
-@app.get("/")
-async def root():
-    return RedirectResponse(url="/dashboard")
+
+def _set_public_locale(request: Request, locale: str | None = None) -> str:
+    resolved = resolve_locale(requested=locale, session_locale=_request_locale(request))
+    request.state.locale = resolved
+    if locale:
+        _session_data(request)["locale"] = resolved
+    return resolved
+
+
+def _public_page_context(request: Request, locale: str | None = None) -> dict:
+    resolved = _set_public_locale(request, locale)
+    offer = get_reading_product_offer(DEFAULT_READING_PRODUCT_CODE)
+    if offer:
+        offer['title'] = translate(offer['title_key'], resolved)
+        offer['description'] = translate(offer['description_key'], resolved)
+        offer['price_label'] = _format_price(
+            offer.get('price_cents'),
+            offer.get('currency', 'BRL'),
+            resolved,
+        )
+    return {
+        "request": request,
+        "page": "public",
+        "is_authenticated": _is_authenticated(request),
+        "offer": offer,
+    }
+
+
+@app.get("/", response_class=HTMLResponse)
+async def page_public_home(request: Request):
+    return templates.TemplateResponse("public/landing.html", _public_page_context(request))
+
+
+@app.get("/en", response_class=HTMLResponse)
+async def page_public_home_en(request: Request):
+    return templates.TemplateResponse("public/landing.html", _public_page_context(request, "en"))
+
+
+@app.get("/pt-BR", response_class=HTMLResponse)
+async def page_public_home_pt_br(request: Request):
+    return templates.TemplateResponse("public/landing.html", _public_page_context(request, "pt-BR"))
+
+
+@app.get("/readings/life-map", response_class=HTMLResponse)
+async def page_public_life_map(request: Request):
+    return templates.TemplateResponse("public/life_map.html", _public_page_context(request))
 
 
 @app.get("/login", response_class=HTMLResponse)

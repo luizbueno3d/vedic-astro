@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 48" fill="none">
+  <ellipse cx="24" cy="24" rx="18" ry="18" stroke="#C8922A" stroke-width="1.5" fill="none" opacity="0.5"></ellipse>
+  <ellipse cx="24" cy="24" rx="18" ry="7" stroke="#C8922A" stroke-width="1.5" fill="none" transform="rotate(-20 24 24)"></ellipse>
+  <circle cx="24" cy="24" r="3.5" fill="#C8922A"></circle>
+  <circle cx="24" cy="24" r="1.5" fill="#F0C96A"></circle>
+  <circle cx="38.5" cy="19" r="2" fill="#C8922A" opacity="0.8"></circle>
+  <text x="52" y="20" font-family="&#39;Cormorant Garamond&#39;, Georgia, serif" font-size="18" font-weight="500" fill="#FAF7F2" letter-spacing="-0.01em">Logic</text>
+  <text x="104" y="20" font-family="&#39;Cormorant Garamond&#39;, Georgia, serif" font-size="18" font-weight="300" fill="#C8922A" letter-spacing="-0.01em">Cosmo</text>
+  <text x="52" y="34" font-family="&#39;DM Sans&#39;, sans-serif" font-size="8.5" font-weight="400" fill="rgba(250,247,242,0.50)" letter-spacing="0.10em">VEDIC ASTROLOGY</text>
+</svg>

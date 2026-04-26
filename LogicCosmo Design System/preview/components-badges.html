@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: white; padding: 24px; font-family: 'Instrument Sans', sans-serif; -webkit-font-smoothing: antialiased; }
+  h5 { font-size: 9px; letter-spacing: 0.10em; text-transform: uppercase; color: #B2B0AC; margin-bottom: 12px; font-weight: 600; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 20px; }
+  .divider { height: 1px; background: #F0EDE8; margin: 4px 0 20px; }
+
+  /* Outline badge — primary treatment */
+  .badge { display: inline-flex; align-items: center; gap: 5px; font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 400; letter-spacing: 0.06em; text-transform: uppercase; border-radius: 2px; padding: 4px 8px; white-space: nowrap; }
+  .b-outline { border: 1px solid #C8C4BC; color: #5C5958; background: transparent; }
+  .b-ink { border: 1px solid #0E0E0E; color: #0E0E0E; background: transparent; }
+  .b-filled { background: #0E0E0E; color: #FAFAF8; border: 1px solid #0E0E0E; }
+  .b-copper { background: #B8622A; color: #FAFAF8; border: 1px solid #B8622A; }
+  .b-copper-outline { border: 1px solid #B8622A; color: #B8622A; background: transparent; }
+  .b-muted { background: #EDEAE4; color: #5C5958; border: 1px solid #E2DED8; }
+
+  /* Status dot */
+  .dot { width: 5px; height: 5px; border-radius: 50%; display: inline-block; }
+  .dot-live { background: #2D7A4F; }
+  .dot-pending { background: #B8622A; }
+  .dot-off { background: #C8C4BC; }
+
+  /* Filter pills — architectural */
+  .pill { display: inline-flex; align-items: center; font-family: 'Instrument Sans', sans-serif; font-size: 12px; font-weight: 500; border-radius: 2px; padding: 6px 14px; border: 1px solid #E2DED8; color: #5C5958; background: white; cursor: pointer; }
+  .pill-active { background: #0E0E0E; color: #FAFAF8; border-color: #0E0E0E; }
+
+  /* Overline label */
+  .overline { font-family: 'DM Mono', monospace; font-size: 9px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: #8A8785; }
+  .overline-copper { color: #B8622A; }
+</style></head><body>
+
+<h5>Badges</h5>
+<div class="row">
+  <span class="badge b-outline">Vedic</span>
+  <span class="badge b-outline">Beginner</span>
+  <span class="badge b-ink">Life Map</span>
+  <span class="badge b-filled">Premium</span>
+  <span class="badge b-copper">Launch Price</span>
+  <span class="badge b-copper-outline">Limited</span>
+  <span class="badge b-muted">PDF Included</span>
+</div>
+<div class="divider"></div>
+
+<h5>Status</h5>
+<div class="row">
+  <span class="badge b-muted"><span class="dot dot-live"></span> Delivered</span>
+  <span class="badge b-muted"><span class="dot dot-pending"></span> Processing</span>
+  <span class="badge b-muted"><span class="dot dot-off"></span> Pending</span>
+  <span class="badge b-filled">✓ Verified</span>
+</div>
+<div class="divider"></div>
+
+<h5>Filter Pills</h5>
+<div class="row">
+  <span class="pill pill-active">All Readings</span>
+  <span class="pill">Life Map</span>
+  <span class="pill">Compatibility</span>
+  <span class="pill">Career</span>
+</div>
+<div class="divider"></div>
+
+<h5>Overline Labels</h5>
+<div class="row">
+  <span class="overline">Life Map Reading</span>
+  <span class="overline" style="margin-left:16px; padding-left:16px; border-left:1px solid #E2DED8">Section 01</span>
+  <span class="overline-copper" style="margin-left:16px; padding-left:16px; border-left:1px solid #E2DED8">Launch Offer</span>
+</div>
+
+</body></html>

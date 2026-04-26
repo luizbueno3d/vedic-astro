@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { background: var(--bg-base); padding: 20px; font-family: var(--font-body); }
+  h5 { font-size: 9px; letter-spacing: 0.10em; text-transform: uppercase; color: var(--fg-secondary); margin-bottom: 12px; font-weight: 600; }
+  .section { margin-bottom: 16px; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 4px; }
+  .item { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .box { width: 44px; height: 44px; background: var(--color-cream-200); border: 1px solid var(--border-soft); }
+  .label { font-size: 9px; color: var(--fg-secondary); font-family: var(--font-mono); text-align: center; }
+  .shadow-row { display: flex; gap: 16px; flex-wrap: wrap; }
+  .scard { width: 80px; height: 40px; background: white; border-radius: 10px; }
+</style></head><body>
+<div class="section">
+  <h5>Border Radius</h5>
+  <div class="row">
+    <div class="item"><div class="box" style="border-radius:2px"></div><span class="label">xs / 2px<br>tags</span></div>
+    <div class="item"><div class="box" style="border-radius:4px"></div><span class="label">sm / 4px<br>badges</span></div>
+    <div class="item"><div class="box" style="border-radius:8px"></div><span class="label">md / 8px<br>inputs</span></div>
+    <div class="item"><div class="box" style="border-radius:12px"></div><span class="label">lg / 12px<br>cards</span></div>
+    <div class="item"><div class="box" style="border-radius:16px"></div><span class="label">xl / 16px<br>panels</span></div>
+    <div class="item"><div class="box" style="border-radius:24px"></div><span class="label">2xl / 24px<br>modals</span></div>
+    <div class="item"><div class="box" style="border-radius:999px; width:70px; height:36px"></div><span class="label">pill<br>CTAs</span></div>
+  </div>
+</div>
+<div class="section">
+  <h5>Shadow Scale</h5>
+  <div class="shadow-row">
+    <div class="item"><div class="scard" style="box-shadow:0 1px 2px rgba(0,0,0,0.05)"></div><span class="label">xs</span></div>
+    <div class="item"><div class="scard" style="box-shadow:0 2px 8px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)"></div><span class="label">sm · card rest</span></div>
+    <div class="item"><div class="scard" style="box-shadow:0 4px 16px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04)"></div><span class="label">md</span></div>
+    <div class="item"><div class="scard" style="box-shadow:0 8px 24px rgba(0,0,0,0.10), 0 2px 4px rgba(0,0,0,0.06)"></div><span class="label">lg · hover</span></div>
+    <div class="item"><div class="scard" style="box-shadow:0 4px 24px rgba(200,146,42,0.28)"></div><span class="label">gold · CTA</span></div>
+    <div class="item"><div class="scard" style="box-shadow:0 0 0 3px rgba(200,146,42,0.30)"></div><span class="label">focus ring</span></div>
+  </div>
+</div>
+</body></html>

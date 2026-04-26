@@ -97,6 +97,46 @@ Webhook setup:
 
 Campaign pricing is recalculated immediately before Checkout Session creation. Pending orders without a Stripe session do not reserve a campaign slot; pending orders with an active Checkout Session do.
 
+## Stripe Sandbox, Live Cutover, And Currency
+
+Development and full customer-flow testing should remain on Stripe sandbox until the public LogicCosmo flow is production-ready:
+
+- public landing/product pages
+- login/account flow
+- birth profile flow
+- Stripe Checkout redirect
+- verified webhook confirmation
+- paid-only reading generation
+- stored reading view
+- PDF download
+- admin/expert order visibility
+
+Only after the flow is complete should Railway be switched to live Stripe keys. For the first validation launch, LogicCosmo may temporarily use the existing approved Transferio live Stripe account. That is an early-validation shortcut only, not the final architecture.
+
+Long-term production should move to a separate LogicCosmo Stripe account/business for:
+
+- customer recognition
+- statement descriptor clarity
+- accounting separation
+- dispute isolation
+- business and risk isolation
+
+Live migration steps later:
+
+- Replace `STRIPE_SECRET_KEY` with the LogicCosmo or temporary Transferio live key.
+- Create a webhook endpoint for this app only: `/stripe/webhook`.
+- Replace `STRIPE_WEBHOOK_SECRET` with that endpoint's signing secret.
+- Update `APP_BASE_URL` to the live public domain.
+- Re-test with a small real payment before any public launch.
+
+International currency display is not automatic just because Checkout exists. Stripe Checkout can localize prices through Adaptive Pricing, but it must be enabled in Stripe Dashboard payment settings for Checkout. When enabled and supported, Stripe can infer presentment currency from customer location and convert inline `price_data` prices such as the current BRL Life Map price. If Adaptive Pricing is disabled or unsupported for a session, Checkout presents the original configured currency.
+
+Operational note:
+
+- Keep the server-side product price in the app's campaign currency.
+- Enable/test Adaptive Pricing in Stripe sandbox before relying on it in live mode.
+- Test foreign-currency presentation with Stripe's location-formatted test emails, for example `test+location_US@example.com` or `test+location_FR@example.com`.
+
 ## Commercial Snapshot Generator
 
 The deterministic Life Map snapshot generator is implemented in `backend/engine/commercial_reading.py`.

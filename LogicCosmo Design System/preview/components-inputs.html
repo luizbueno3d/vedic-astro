@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=DM+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: white; padding: 24px; font-family: 'Instrument Sans', sans-serif; -webkit-font-smoothing: antialiased; }
+  h5 { font-size: 9px; letter-spacing: 0.10em; text-transform: uppercase; color: #B2B0AC; margin-bottom: 12px; font-weight: 600; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+
+  label {
+    font-family: 'Instrument Sans', sans-serif;
+    font-size: 12px; font-weight: 600;
+    color: #3A3A3A; letter-spacing: -0.005em;
+  }
+
+  input, select {
+    font-family: 'Instrument Sans', sans-serif;
+    font-size: 14px; font-weight: 400;
+    color: #0E0E0E;
+    background: #FAFAF8;
+    border: 1px solid #C8C4BC;
+    border-radius: 4px;
+    padding: 11px 14px;
+    outline: none;
+    width: 100%;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+    -webkit-appearance: none;
+  }
+  input::placeholder, select::placeholder { color: #B2B0AC; }
+  input.mono { font-family: 'DM Mono', monospace; font-size: 13px; }
+
+  input.focused {
+    background: white;
+    border-color: #0E0E0E;
+    box-shadow: 0 0 0 2px rgba(14,14,14,0.08);
+  }
+  input.error {
+    border-color: #C0392B;
+    background: #FDF8F8;
+  }
+  input.filled { border-color: #C8C4BC; }
+
+  .hint { font-size: 11px; color: #8A8785; line-height: 1.5; }
+  .error-msg { font-size: 11px; color: #C0392B; }
+</style></head><body>
+
+<h5>Form Inputs</h5>
+<div class="grid">
+  <div class="field">
+    <label>Full Name</label>
+    <input type="text" value="Priya Sharma" class="filled">
+  </div>
+
+  <div class="field">
+    <label>Date of Birth</label>
+    <input type="text" value="12 / 08 / 1990" class="mono filled">
+  </div>
+
+  <div class="field">
+    <label>Time of Birth</label>
+    <input type="text" placeholder="14 : 35" class="mono focused">
+    <span class="hint">Local time at place of birth</span>
+  </div>
+
+  <div class="field">
+    <label>Place of Birth</label>
+    <input type="text" placeholder="City, Country" class="error">
+    <span class="error-msg">Required — enter your city of birth</span>
+  </div>
+
+  <div class="field">
+    <label>Email</label>
+    <input type="email" value="priya@example.com" class="filled">
+  </div>
+
+  <div class="field">
+    <label>Language</label>
+    <select>
+      <option>English</option>
+      <option>Português (BR)</option>
+    </select>
+  </div>
+</div>
+
+</body></html>

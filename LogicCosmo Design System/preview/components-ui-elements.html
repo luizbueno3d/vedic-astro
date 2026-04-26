@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: white; padding: 24px; font-family: 'Instrument Sans', sans-serif; -webkit-font-smoothing: antialiased; }
+  h5 { font-size: 9px; letter-spacing: 0.10em; text-transform: uppercase; color: #B2B0AC; margin-bottom: 12px; font-weight: 600; }
+  .divider { height: 1px; background: #F0EDE8; margin: 20px 0; }
+
+  /* Step indicator */
+  .steps { display: flex; align-items: center; }
+  .step { display: flex; flex-direction: column; align-items: center; gap: 7px; }
+  .step-num {
+    width: 30px; height: 30px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 500;
+  }
+  .step-num.done   { background: #0E0E0E; color: #FAFAF8; }
+  .step-num.active { background: #B8622A; color: #FAFAF8; }
+  .step-num.todo   { background: transparent; color: #B2B0AC; border: 1px solid #E2DED8; }
+  .step-label { font-size: 10px; font-weight: 500; color: #B2B0AC; letter-spacing: -0.01em; }
+  .step-label.active { color: #0E0E0E; font-weight: 600; }
+  .step-label.done   { color: #5C5958; }
+  .step-line { flex: 1; height: 1px; background: #E2DED8; margin: 0 4px 18px; min-width: 28px; }
+  .step-line.done { background: #0E0E0E; }
+
+  /* Progress bar */
+  .progress-track { height: 3px; background: #EDEAE4; border-radius: 999px; overflow: hidden; margin-bottom: 6px; }
+  .progress-fill  { height: 100%; border-radius: 999px; background: #0E0E0E; }
+  .progress-label { font-size: 11px; color: #8A8785; font-family: 'DM Mono', monospace; letter-spacing: 0.02em; }
+
+  /* Alerts */
+  .alert { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; border-radius: 4px; margin-bottom: 8px; border-left: 2px solid; }
+  .alert-icon { font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 500; padding-top: 1px; flex-shrink: 0; }
+  .alert-title { font-size: 13px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 2px; }
+  .alert-body  { font-size: 12px; line-height: 1.55; }
+
+  .alert-success { background: #F5F2EC; border-color: #2D7A4F; }
+  .alert-success .alert-icon  { color: #2D7A4F; }
+  .alert-success .alert-title { color: #1E1E1E; }
+  .alert-success .alert-body  { color: #5C5958; }
+
+  .alert-error { background: #F5F2EC; border-color: #C0392B; }
+  .alert-error .alert-icon  { color: #C0392B; }
+  .alert-error .alert-title { color: #1E1E1E; }
+  .alert-error .alert-body  { color: #5C5958; }
+
+  .alert-info { background: #F5F2EC; border-color: #0E0E0E; }
+  .alert-info .alert-icon  { color: #8A8785; }
+  .alert-info .alert-title { color: #1E1E1E; }
+  .alert-info .alert-body  { color: #5C5958; }
+</style></head><body>
+
+<h5>Step Indicator</h5>
+<div class="steps">
+  <div class="step">
+    <div class="step-num done">✓</div>
+    <span class="step-label done">Birth Data</span>
+  </div>
+  <div class="step-line done"></div>
+  <div class="step">
+    <div class="step-num active">02</div>
+    <span class="step-label active">Checkout</span>
+  </div>
+  <div class="step-line"></div>
+  <div class="step">
+    <div class="step-num todo">03</div>
+    <span class="step-label">Reading</span>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<h5>Progress</h5>
+<div class="progress-track"><div class="progress-fill" style="width:65%"></div></div>
+<span class="progress-label">65% — Reading your chart</span>
+
+<div class="divider"></div>
+
+<h5>Alerts</h5>
+<div class="alert alert-success">
+  <span class="alert-icon">OK</span>
+  <div>
+    <div class="alert-title">Payment confirmed</div>
+    <div class="alert-body">Your Life Map Reading is being prepared. You'll receive an email when it's ready.</div>
+  </div>
+</div>
+<div class="alert alert-error">
+  <span class="alert-icon">!</span>
+  <div>
+    <div class="alert-title">Birth time required</div>
+    <div class="alert-body">An accurate birth time significantly improves your reading's precision.</div>
+  </div>
+</div>
+<div class="alert alert-info">
+  <span class="alert-icon">i</span>
+  <div>
+    <div class="alert-title">Using sidereal zodiac</div>
+    <div class="alert-body">Your Vedic signs differ from Western astrology. This is expected and correct.</div>
+  </div>
+</div>
+
+</body></html>

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LogicCosmo — UI Kit</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../colors_and_type.css">
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { -webkit-font-smoothing: antialiased; }
+    body { font-family: 'DM Sans', sans-serif; background: #FAF7F2; }
+    input, button, select, textarea { font-family: inherit; }
+
+    /* Screen transition */
+    .screen { animation: fadeUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) both; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Screen nav breadcrumb */
+    #screen-breadcrumb {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      background: rgba(15,18,53,0.92); backdrop-filter: blur(12px);
+      border-radius: 999px; padding: 8px 20px;
+      display: flex; align-items: center; gap: 4px;
+      z-index: 500; border: 1px solid rgba(255,255,255,0.10);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+    }
+    .crumb-btn {
+      font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500;
+      color: rgba(250,247,242,0.55); background: none; border: none; cursor: pointer;
+      padding: 4px 10px; border-radius: 999px; transition: all 150ms ease; white-space: nowrap;
+    }
+    .crumb-btn:hover { color: rgba(250,247,242,0.85); background: rgba(255,255,255,0.07); }
+    .crumb-btn.active { color: #F0C96A; background: rgba(200,146,42,0.15); font-weight: 600; }
+    .crumb-sep { color: rgba(255,255,255,0.20); font-size: 11px; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" src="Shared.jsx"></script>
+<script type="text/babel" src="LandingPage.jsx"></script>
+<script type="text/babel" src="ProductPage.jsx"></script>
+<script type="text/babel" src="CheckoutAndReading.jsx"></script>
+
+<script type="text/babel">
+const SCREENS = [
+  { id: 'landing',  label: 'Landing',     dark: true  },
+  { id: 'product',  label: 'Product',     dark: false },
+  { id: 'birth',    label: 'Birth Data',  dark: false },
+  { id: 'checkout', label: 'Checkout',    dark: false },
+  { id: 'reading',  label: 'Reading',     dark: false },
+];
+
+const App = () => {
+  const [screen, setScreen] = React.useState('landing');
+  const current = SCREENS.find(s => s.id === screen);
+
+  const navigate = (id) => {
+    setScreen(id);
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  };
+
+  const renderScreen = () => {
+    switch (screen) {
+      case 'landing':  return <LandingPage onNavigate={navigate} />;
+      case 'product':  return <ProductPage onNavigate={navigate} />;
+      case 'birth':    return <BirthDataForm onNavigate={navigate} />;
+      case 'checkout': return <CheckoutPage onNavigate={navigate} />;
+      case 'reading':  return <ReadingView onNavigate={navigate} />;
+      default:         return <LandingPage onNavigate={navigate} />;
+    }
+  };
+
+  return (
+    <div>
+      <Nav dark={current.dark} onCTA={() => navigate('product')} />
+      <div className="screen" key={screen}>
+        {renderScreen()}
+      </div>
+
+      {/* Breadcrumb navigator */}
+      <div id="screen-breadcrumb">
+        {SCREENS.map((s, i) => (
+          <React.Fragment key={s.id}>
+            {i > 0 && <span className="crumb-sep">›</span>}
+            <button
+              className={`crumb-btn ${screen === s.id ? 'active' : ''}`}
+              onClick={() => navigate(s.id)}
+            >
+              {s.label}
+            </button>
+          </React.Fragment>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
