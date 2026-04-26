@@ -3,30 +3,53 @@
 {% block title %}Life Map Reading — LogicCosmo{% endblock %}
 
 {% block content %}
-  <section class="section">
-    <div class="shell split">
-      <div class="panel">
+  <section class="section product-hero">
+    <div class="shell split product-split">
+      <div class="product-copy">
         <p class="eyebrow" data-i18n="productEyebrow">First product</p>
         <h1 data-i18n="productPageTitle">Life Map Reading</h1>
         <p class="lede" data-i18n="productPageLead">A structured Vedic reading for identity, timing, karmic direction, work, and practical guidance.</p>
-        <h3 class="panel-title" data-i18n="productSectionsTitle">Core reading sections</h3>
-        <ul class="list">
-          <li>Birth data confirmation and method explanation</li>
-          <li>D1 / Rashi foundation and identity pattern</li>
-          <li>KP / Bhava Chalit lived shifts, compared with D1</li>
-          <li>Current Mahadasha / Antardasha timing</li>
-          <li>Atma Karaka: soul significator and life direction</li>
-          <li>Amatya Karaka: vocation, work style, execution, and money-making pathway</li>
-          <li>Strengths, tensions, practical guidance, and conclusion</li>
-        </ul>
+
+        <div class="included-list">
+          <h2 data-i18n="productSectionsTitle">Core reading sections</h2>
+          <ul>
+            <li><span>01</span><span data-i18n="productSectionBirth">Birth data confirmation and method explanation</span></li>
+            <li><span>02</span><span data-i18n="productSectionD1">D1 / Rashi foundation and identity pattern</span></li>
+            <li><span>03</span><span data-i18n="productSectionKp">KP / Bhava Chalit lived shifts, compared with D1</span></li>
+            <li><span>04</span><span data-i18n="productSectionDasha">Current Mahadasha / Antardasha timing</span></li>
+            <li><span>05</span><span data-i18n="productSectionAtma">Atma Karaka: soul significator and life direction</span></li>
+            <li><span>06</span><span data-i18n="productSectionAmatya">Amatya Karaka: vocation, work style, execution, and money-making pathway</span></li>
+            <li><span>07</span><span data-i18n="productSectionGuidance">Strengths, tensions, practical guidance, and conclusion</span></li>
+          </ul>
+        </div>
       </div>
-      <aside class="order-card">
-        <h3 data-i18n="orderSummary">Order summary</h3>
-        <div class="order-row"><span data-i18n="productPageTitle">Life Map Reading</span><strong>{{ offer.price_label if offer else "R$ 10.99" }}</strong></div>
-        <div class="order-row"><span data-i18n="orderLanguage">Reading language</span><strong data-locale-label>English</strong></div>
-        <div class="order-row"><span data-i18n="orderDelivery">Stored web reading + future PDF</span><strong>Included</strong></div>
+
+      <aside class="purchase-card">
+        <span class="purchase-badge" data-i18n="priceLabel">Launch price</span>
+        <div class="purchase-price">{{ offer.price_label if offer else "R$ 10.99" }}</div>
+        <p data-i18n="launchNote">First 100 readings during launch campaign.</p>
         <a class="btn btn-primary" href="/login" data-i18n="orderButton">Continue to birth profile</a>
+        <div class="purchase-details">
+          <div><span data-i18n="orderLanguage">Reading language</span><strong data-locale-label>English</strong></div>
+          <div><span data-i18n="statDeliveryLabel">Stripe checkout</span><strong data-i18n="statDeliveryValue">Secure</strong></div>
+          <div><span data-i18n="orderDelivery">Stored web reading + future PDF</span><strong>Included</strong></div>
+        </div>
       </aside>
+    </div>
+  </section>
+
+  <section class="section section-muted">
+    <div class="shell product-method">
+      <div class="section-head section-head-narrow">
+        <p class="eyebrow" data-i18n="whyEyebrow">Why Vedic astrology</p>
+        <h2 data-i18n="whyTitle">A precise map, not a sun-sign horoscope.</h2>
+        <p data-i18n="whyText">Vedic astrology uses the sidereal zodiac, planetary periods, lunar mansions, and house logic to describe timing and life patterns with more structure than generic horoscope content.</p>
+      </div>
+      <div class="feature-grid">
+        <article class="feature-card"><span>01</span><h3>D1 / Rashi</h3><p data-i18n="methodD1Text">The main birth chart is the foundation. Secondary layers refine it; they do not replace it.</p></article>
+        <article class="feature-card"><span>02</span><h3>Mahadasha</h3><p data-i18n="methodDashaText">The major planetary life period explains what themes are active in the current chapter.</p></article>
+        <article class="feature-card"><span>03</span><h3>Jaimini</h3><p data-i18n="methodJaiminiText">Atma Karaka and Amatya Karaka clarify soul direction, work style, and contribution.</p></article>
+      </div>
     </div>
   </section>
 {% endblock %}

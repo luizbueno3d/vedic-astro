@@ -3,107 +3,126 @@
 {% block title %}LogicCosmo — Vedic Life Map Readings{% endblock %}
 
 {% block content %}
-  <section class="hero">
+  <section class="hero hero-editorial">
     <div class="shell hero-grid">
-      <div>
+      <div class="hero-copy">
         <p class="eyebrow" data-i18n="landingEyebrow">LogicCosmo</p>
         <h1 data-i18n="landingTitle">Your Vedic life map, explained clearly.</h1>
         <p class="lede" data-i18n="landingLead">A guided astrology reading that turns your birth data into a grounded, human-readable map of identity, timing, work, strengths, and life direction.</p>
         <div class="hero-actions">
-          <a class="btn btn-primary" href="/readings/life-map" data-i18n="landingPrimary">Get the Life Map Reading</a>
-          <a class="btn btn-secondary" href="#included" data-i18n="landingSecondary">See what is included</a>
+          <a class="btn btn-primary" href="/login" data-i18n="landingPrimary">Get the Life Map Reading</a>
+          <a class="btn btn-ghost" href="#included" data-i18n="landingSecondary">See what is included</a>
         </div>
-        <div class="trust-row">
-          <span class="pill" data-i18n="pillLanguage">English + Brazilian Portuguese</span>
-          <span class="pill" data-i18n="pillPrivate">Private account flow</span>
-          <span class="pill" data-i18n="pillPaid">Paid reading delivery</span>
+        <div class="metrics-row" aria-label="Reading highlights">
+          <div class="metric"><strong>{{ offer.price_label if offer else "R$ 10.99" }}</strong><span data-i18n="statPriceLabel">Launch price</span></div>
+          <div class="metric"><strong data-i18n="statDeliveryValue">Secure</strong><span data-i18n="statDeliveryLabel">Stripe checkout</span></div>
+          <div class="metric"><strong data-i18n="statPdfValue">PDF</strong><span data-i18n="statPdfLabel">Included at launch</span></div>
         </div>
       </div>
 
-      <aside class="orbit-card" aria-label="Life Map Reading summary">
-        <div class="orbit-content">
-          <div class="price-card">
-            <small data-i18n="priceLabel">Launch price</small>
-            <div class="price">{{ offer.price_label if offer else "R$ 10.99" }}</div>
-            <p class="launch-note" data-i18n="launchNote">First 100 readings during launch campaign.</p>
+      <aside class="reading-preview" aria-label="Life Map Reading preview">
+        <div class="preview-header">
+          <span data-i18n="previewDocLabel">Reading preview</span>
+          <strong data-i18n="previewProfileName">Your Life Map</strong>
+          <div class="preview-meta">
+            <div><b>DD/MM/YYYY</b><small data-i18n="previewDateLabel">Birth data</small></div>
+            <div><b data-locale-label>English</b><small data-i18n="previewLanguageLabel">Language</small></div>
+            <div><b>PDF</b><small data-i18n="previewFormatLabel">Format</small></div>
           </div>
-          <div class="mini-map">
-            <div class="mini-map-item">
-              <span class="mini-number">1</span>
-              <div><strong data-i18n="miniOneTitle">Birth chart foundation</strong><span data-i18n="miniOneText">D1/Rashi is treated as the main map, not replaced by secondary layers.</span></div>
-            </div>
-            <div class="mini-map-item">
-              <span class="mini-number">2</span>
-              <div><strong data-i18n="miniTwoTitle">Timing and direction</strong><span data-i18n="miniTwoText">Mahadasha, Antardasha, Atma Karaka, and Amatya Karaka shape the story.</span></div>
-            </div>
-            <div class="mini-map-item">
-              <span class="mini-number">3</span>
-              <div><strong data-i18n="miniThreeTitle">Human reading</strong><span data-i18n="miniThreeText">Technical Vedic terms are explained in plain language.</span></div>
-            </div>
-          </div>
+        </div>
+        <div class="preview-price">
+          <small data-i18n="priceLabel">Launch price</small>
+          <div>{{ offer.price_label if offer else "R$ 10.99" }}</div>
+          <p data-i18n="launchNote">First 100 readings during launch campaign.</p>
+        </div>
+        <div class="preview-sections">
+          <div><span>01</span><strong data-i18n="previewBirth">Birth chart foundation</strong></div>
+          <div><span>02</span><strong data-i18n="previewTiming">Planetary life period</strong></div>
+          <div><span>03</span><strong data-i18n="previewSoul">Atma Karaka</strong></div>
+          <div><span>04</span><strong data-i18n="previewCareer">Amatya Karaka</strong></div>
+          <div><span>05</span><strong data-i18n="previewHouse">Bhava Chalit refinement</strong></div>
+          <div><span>06</span><strong data-i18n="previewSummary">Life map summary</strong></div>
         </div>
       </aside>
     </div>
   </section>
 
-  <section class="section" id="included">
+  <section class="section section-paper" id="included">
     <div class="shell">
-      <div class="section-head">
-        <div>
-          <p class="eyebrow" data-i18n="includedEyebrow">What you receive</p>
-          <h2 data-i18n="includedTitle">Not a dashboard. A finished reading.</h2>
-        </div>
+      <div class="section-head section-head-narrow">
+        <p class="eyebrow" data-i18n="includedEyebrow">What you receive</p>
+        <h2 data-i18n="includedTitle">Not a dashboard. A finished reading.</h2>
         <p data-i18n="includedLead">The public product hides the expert cockpit and gives the customer a polished, structured interpretation.</p>
       </div>
-      <div class="card-grid">
-        <article class="card"><div class="icon-dot"></div><h3 data-i18n="includedOneTitle">Life pattern</h3><p data-i18n="includedOneText">Core identity, recurring themes, strengths, tensions, and the direction suggested by the chart.</p></article>
-        <article class="card"><div class="icon-dot"></div><h3 data-i18n="includedTwoTitle">Current period</h3><p data-i18n="includedTwoText">A clear explanation of the active Mahadasha and Antardasha in practical life language.</p></article>
-        <article class="card"><div class="icon-dot"></div><h3 data-i18n="includedThreeTitle">Soul and work</h3><p data-i18n="includedThreeText">Atma Karaka for life direction and Amatya Karaka for vocation, execution, and contribution.</p></article>
+      <div class="feature-grid feature-grid-six">
+        <article class="feature-card"><span>01</span><h3 data-i18n="includedOneTitle">Life pattern</h3><p data-i18n="includedOneText">Core identity, recurring themes, strengths, tensions, and the direction suggested by the chart.</p></article>
+        <article class="feature-card"><span>02</span><h3 data-i18n="includedTwoTitle">Current period</h3><p data-i18n="includedTwoText">A clear explanation of the active Mahadasha and Antardasha in practical life language.</p></article>
+        <article class="feature-card"><span>03</span><h3 data-i18n="includedThreeTitle">Soul and work</h3><p data-i18n="includedThreeText">Atma Karaka for life direction and Amatya Karaka for vocation, execution, and contribution.</p></article>
+        <article class="feature-card"><span>04</span><h3 data-i18n="includedFourTitle">House reality check</h3><p data-i18n="includedFourText">Bhava Chalit clarifies how chart promises show up in lived experience.</p></article>
+        <article class="feature-card"><span>05</span><h3 data-i18n="includedFiveTitle">Reading document</h3><p data-i18n="includedFiveText">A clear written reading designed to be saved, revisited, and exported as PDF.</p></article>
+        <article class="feature-card"><span>06</span><h3 data-i18n="includedSixTitle">Beginner-safe method</h3><p data-i18n="includedSixText">Vedic terms are introduced with plain-language explanations at the moment they appear.</p></article>
       </div>
     </div>
   </section>
 
-  <section class="section" id="how-it-works">
-    <div class="shell band">
-      <p class="eyebrow" data-i18n="processEyebrow">Guided flow</p>
-      <h2 data-i18n="processTitle">A simple purchase path for normal customers.</h2>
-      <p class="lede" data-i18n="processLead">The user should never need to understand vargas, KP, or dashboard mechanics to receive value.</p>
-      <div class="steps">
-        <div class="step"><b>01</b><h3 data-i18n="stepOneTitle">Create account</h3><p data-i18n="stepOneText">Sign up or log in with a normal customer account.</p></div>
-        <div class="step"><b>02</b><h3 data-i18n="stepTwoTitle">Confirm birth data</h3><p data-i18n="stepTwoText">Enter date, time, place, and reading language.</p></div>
-        <div class="step"><b>03</b><h3 data-i18n="stepThreeTitle">Checkout</h3><p data-i18n="stepThreeText">Pay through Stripe using server-side pricing.</p></div>
-        <div class="step"><b>04</b><h3 data-i18n="stepFourTitle">Receive reading</h3><p data-i18n="stepFourText">View the stored reading and download PDF when available.</p></div>
+  <section class="section section-muted" id="how-it-works">
+    <div class="shell">
+      <div class="section-head section-head-narrow">
+        <p class="eyebrow" data-i18n="processEyebrow">Guided flow</p>
+        <h2 data-i18n="processTitle">A simple purchase path for normal customers.</h2>
+        <p data-i18n="processLead">The user should never need to understand vargas, KP, or dashboard mechanics to receive value.</p>
+      </div>
+      <div class="process-grid">
+        <article><span>01</span><h3 data-i18n="stepOneTitle">Create account</h3><p data-i18n="stepOneText">Sign up or log in with a normal customer account.</p></article>
+        <article><span>02</span><h3 data-i18n="stepTwoTitle">Confirm birth data</h3><p data-i18n="stepTwoText">Enter date, time, place, and reading language.</p></article>
+        <article><span>03</span><h3 data-i18n="stepThreeTitle">Checkout</h3><p data-i18n="stepThreeText">Pay through Stripe using server-side pricing.</p></article>
+        <article><span>04</span><h3 data-i18n="stepFourTitle">Receive reading</h3><p data-i18n="stepFourText">View the stored reading and download PDF when available.</p></article>
       </div>
     </div>
   </section>
 
-  <section class="section" id="product">
+  <section class="section section-dark">
+    <div class="shell why-grid">
+      <div>
+        <p class="eyebrow" data-i18n="whyEyebrow">Why Vedic astrology</p>
+        <h2 data-i18n="whyTitle">A precise map, not a sun-sign horoscope.</h2>
+        <p data-i18n="whyText">Vedic astrology uses the sidereal zodiac, planetary periods, lunar mansions, and house logic to describe timing and life patterns with more structure than generic horoscope content.</p>
+      </div>
+      <div class="why-list">
+        <article><h3 data-i18n="whyOneTitle">Sidereal zodiac</h3><p data-i18n="whyOneText">The chart is calculated against the star-based zodiac used in Jyotish.</p></article>
+        <article><h3 data-i18n="whyTwoTitle">Planetary periods</h3><p data-i18n="whyTwoText">Mahadasha and Antardasha show which planetary themes are active now.</p></article>
+        <article><h3 data-i18n="whyThreeTitle">Layered interpretation</h3><p data-i18n="whyThreeText">D1 is primary; KP/Bhava Chalit, D9, D10, and Jaimini refine the reading.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section-paper" id="product">
     <div class="shell split">
-      <div class="panel">
-        <p class="eyebrow" data-i18n="productEyebrow">First product</p>
-        <h2 data-i18n="productTitle">Life Map Reading</h2>
-        <p class="lede" data-i18n="productLead">A complete Vedic astrology life map designed for people who want insight, not raw calculation tables.</p>
-        <ul class="list">
-          <li>D1 / Rashi chart as the foundation</li>
-          <li>KP / Bhava Chalit as lived-reality refinement</li>
-          <li>Current Mahadasha and Antardasha</li>
-          <li>Atma Karaka and Amatya Karaka explained in human language</li>
-        </ul>
+      <div>
+        <p class="eyebrow" data-i18n="pricingEyebrow">Launch pricing</p>
+        <h2 data-i18n="pricingTitle">Start low, validate demand, then raise price.</h2>
+        <p class="lede lede-tight" data-i18n="pricingText">The first public campaign is intentionally priced for early validation. Pricing is controlled server-side and moves by paid reading count.</p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="/login" data-i18n="finalCtaButton">Begin Your Reading</a>
+          <a class="btn btn-ghost" href="/readings/life-map" data-i18n="landingSecondary">See what is included</a>
+        </div>
       </div>
-      <aside class="order-card">
-        <h3 data-i18n="productTitle">Life Map Reading</h3>
-        <div class="order-row"><span data-i18n="priceLabel">Launch price</span><strong>{{ offer.price_label if offer else "R$ 10.99" }}</strong></div>
-        <div class="order-row"><span data-i18n="orderLanguage">Reading language</span><strong data-locale-label>English</strong></div>
-        <div class="order-row"><span data-i18n="orderDelivery">Stored web reading + future PDF</span><strong>Included</strong></div>
-        <a class="btn btn-primary" href="/login" data-i18n="productCta">Start birth profile</a>
+      <aside class="pricing-table">
+        <div class="pricing-row active"><div><strong data-i18n="pricingFirst">First 100 readings</strong><span data-i18n="pricingActive">Current launch tier</span></div><b>{{ offer.price_label if offer else "R$ 10.99" }}</b></div>
+        <div class="pricing-row"><div><strong data-i18n="pricingNext">Next 100 readings</strong><span>101–200</span></div><b>R$ 59,99</b></div>
+        <div class="pricing-row"><div><strong data-i18n="pricingStandard">Standard price</strong><span>200+</span></div><b>R$ 99,99</b></div>
       </aside>
     </div>
   </section>
 
-  <section class="section-tight" id="faq">
-    <div class="shell panel">
-      <h2 data-i18n="faqTitle">Beginner-safe by design</h2>
-      <p class="lede" data-i18n="faqText">LogicCosmo explains terms like Rashi chart, Bhava Chalit, Mahadasha, Atma Karaka, and Amatya Karaka where they appear. The goal is specificity without jargon overload.</p>
+  <section class="section section-cta" id="faq">
+    <div class="shell cta-panel">
+      <div>
+        <p class="eyebrow" data-i18n="faqTitle">Beginner-safe by design</p>
+        <h2 data-i18n="finalCtaTitle">Ready to understand your map?</h2>
+        <p data-i18n="finalCtaText">Create an account, confirm your birth data, and generate a structured Vedic reading after payment.</p>
+      </div>
+      <a class="btn btn-primary" href="/login" data-i18n="finalCtaButton">Begin Your Reading</a>
     </div>
   </section>
 {% endblock %}

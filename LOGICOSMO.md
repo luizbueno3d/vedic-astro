@@ -248,6 +248,38 @@ Expert UI principles:
 - Make expert/internal status visually clear.
 - Add admin/review functions here later.
 
+## Public Design Direction
+
+Current production direction: **DS2.1 editorial storefront**.
+
+The first public visual pass was too close to a cosmic/SaaS dashboard. The second design exploration moved toward a stronger editorial language, but the raw prototype was too oversized and partly inconsistent across screens. The production direction should use DS2 as reference, not as a wholesale copy.
+
+DS2.1 rules:
+
+- Use a premium paper/document feeling rather than a glowing astrology-dashboard feeling.
+- Keep the hero commercially clear above the fold: product, price, secure checkout, PDF, and CTA.
+- Use strong ink typography, warm paper backgrounds, and copper/gold as a restrained accent.
+- Make the reading preview look like a polished document/report, not a technical chart surface.
+- Keep cosmic/orbital motifs subtle and decorative only.
+- Avoid emoji in production UI.
+- Avoid overlarge typography that breaks the viewport or hides the CTA.
+- Keep English and Brazilian Portuguese copy switchable on public pages.
+- Preserve the expert app visual language separately; do not force the public brand onto the internal cockpit yet.
+
+Current public implementation files:
+
+- `templates/public/base_public.html`
+- `templates/public/landing.html`
+- `templates/public/life_map.html`
+- `static/public/styles/site.css`
+- `static/public/scripts/app.js`
+
+Design reference source:
+
+- `LogicCosmo Design System 2/`
+
+Do not commit personal/browser screenshots from design-tool upload folders unless explicitly needed for review history.
+
 ## Auth And Permissions
 
 Current auth already supports Firebase login and owner-scoped profiles/orders. The public product needs an explicit role model.

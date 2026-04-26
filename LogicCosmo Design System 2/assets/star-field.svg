@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" fill="none">
+  
+  <circle cx="120" cy="80" r="1" fill="white" opacity="0.6"></circle>
+  <circle cx="340" cy="160" r="1.5" fill="white" opacity="0.4"></circle>
+  <circle cx="560" cy="60" r="1" fill="white" opacity="0.7"></circle>
+  <circle cx="780" cy="200" r="1" fill="white" opacity="0.5"></circle>
+  <circle cx="920" cy="90" r="2" fill="#F0C96A" opacity="0.5"></circle>
+  <circle cx="1100" cy="140" r="1" fill="white" opacity="0.6"></circle>
+  <circle cx="1280" cy="50" r="1.5" fill="white" opacity="0.4"></circle>
+  <circle cx="200" cy="300" r="1" fill="white" opacity="0.35"></circle>
+  <circle cx="450" cy="400" r="1.5" fill="white" opacity="0.3"></circle>
+  <circle cx="670" cy="340" r="1" fill="#F0C96A" opacity="0.4"></circle>
+  <circle cx="850" cy="430" r="1" fill="white" opacity="0.45"></circle>
+  <circle cx="1050" cy="310" r="1.5" fill="white" opacity="0.3"></circle>
+  <circle cx="1350" cy="380" r="1" fill="white" opacity="0.5"></circle>
+  <circle cx="80" cy="500" r="1" fill="white" opacity="0.4"></circle>
+  <circle cx="300" cy="560" r="2" fill="#C8922A" opacity="0.3"></circle>
+  <circle cx="600" cy="490" r="1" fill="white" opacity="0.5"></circle>
+  <circle cx="720" cy="600" r="1.5" fill="white" opacity="0.35"></circle>
+  <circle cx="980" cy="520" r="1" fill="white" opacity="0.55"></circle>
+  <circle cx="1200" cy="580" r="2" fill="#F0C96A" opacity="0.35"></circle>
+  <circle cx="1400" cy="520" r="1" fill="white" opacity="0.4"></circle>
+  
+  <ellipse cx="720" cy="450" rx="500" ry="180" stroke="rgba(200,146,42,0.08)" stroke-width="1" fill="none"></ellipse>
+  <ellipse cx="720" cy="450" rx="320" ry="110" stroke="rgba(200,146,42,0.06)" stroke-width="1" fill="none" transform="rotate(-15 720 450)"></ellipse>
+</svg>

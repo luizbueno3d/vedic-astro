@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { background: var(--bg-base); padding: 20px; font-family: var(--font-body); }
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .item { }
+  .block { height: 48px; border-radius: 8px; margin-bottom: 6px; display: flex; align-items: center; justify-content: center; }
+  .inner { height: 22px; border-radius: 4px; width: 80%; }
+  .label { font-size: 10px; color: var(--fg-secondary); font-weight: 500; }
+  .val { font-size: 9px; color: var(--fg-disabled); font-family: var(--font-mono); }
+  h5 { font-size: 9px; letter-spacing: 0.10em; text-transform: uppercase; color: var(--fg-secondary); margin-bottom: 12px; font-weight: 600; }
+</style></head><body>
+<h5>Semantic Colors</h5>
+<div class="grid">
+  <div class="item">
+    <div class="block" style="background:#E3F4EC"><div class="inner" style="background:#2D7A4F"></div></div>
+    <div class="label">Success</div><div class="val">#2D7A4F</div>
+  </div>
+  <div class="item">
+    <div class="block" style="background:#F9E5E3"><div class="inner" style="background:#C0392B"></div></div>
+    <div class="label">Error</div><div class="val">#C0392B</div>
+  </div>
+  <div class="item">
+    <div class="block" style="background:#FBF5E6"><div class="inner" style="background:#C8922A"></div></div>
+    <div class="label">Warning</div><div class="val">#C8922A</div>
+  </div>
+  <div class="item">
+    <div class="block" style="background:#ECEEF7"><div class="inner" style="background:#1B1F4A"></div></div>
+    <div class="label">Info</div><div class="val">#1B1F4A</div>
+  </div>
+  <div class="item">
+    <div class="block" style="background:var(--bg-inverse); border: 1px solid rgba(255,255,255,0.08)">
+      <span style="color:var(--fg-inverse); font-size:11px; font-family:var(--font-body)">fg-inverse</span>
+    </div>
+    <div class="label">On Dark</div><div class="val">--fg-inverse</div>
+  </div>
+  <div class="item">
+    <div class="block" style="background:var(--bg-surface); border: 1px solid var(--border-soft)">
+      <span style="color:var(--fg-primary); font-size:11px; font-family:var(--font-body)">fg-primary</span>
+    </div>
+    <div class="label">On Light</div><div class="val">--fg-primary</div>
+  </div>
+  <div class="item">
+    <div class="block" style="background:var(--bg-base); border: 1px solid var(--border-soft)">
+      <span style="color:var(--fg-secondary); font-size:11px; font-family:var(--font-body)">secondary</span>
+    </div>
+    <div class="label">Secondary</div><div class="val">--fg-secondary</div>
+  </div>
+  <div class="item">
+    <div class="block" style="background:var(--bg-base); border: 1px solid var(--border-soft)">
+      <span style="color:var(--accent-primary); font-size:11px; font-family:var(--font-body); font-weight:600">accent</span>
+    </div>
+    <div class="label">Accent</div><div class="val">--accent-primary</div>
+  </div>
+</div>
+</body></html>
